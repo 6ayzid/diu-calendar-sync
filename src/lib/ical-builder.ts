@@ -26,8 +26,22 @@ const ICAL_WEEKDAY_MAP: Record<DayOfWeek, ICalWeekday> = {
   THURSDAY: ICalWeekday.TH,
 };
 
-// End of Semester (Fall/Autumn term ending Jan 31, 2027)
-const SEMESTER_END_DATE = new Date('2027-01-31T23:59:59+06:00');
+// RFC 5545 standard VTIMEZONE block for Asia/Dhaka (UTC+6, no DST)
+const DHAKA_VTIMEZONE = `BEGIN:VTIMEZONE
+TZID:Asia/Dhaka
+LAST-MODIFIED:20260101T000000Z
+TZURL:http://tzurl.org/zoneinfo-outlook/Asia/Dhaka
+X-LIC-LOCATION:Asia/Dhaka
+BEGIN:STANDARD
+TZNAME:BST
+TZOFFSETFROM:+0600
+TZOFFSETTO:+0600
+DTSTART:19700101T000000
+END:STANDARD
+END:VTIMEZONE`;
+
+// End of Semester (Fall/Autumn term ending Jan 31, 2027, in UTC for RFC 5545 UNTIL compliance)
+const SEMESTER_END_DATE = new Date(Date.UTC(2027, 0, 31, 17, 59, 59));
 
 export interface BuildCalendarOptions {
   sectionId: string;
@@ -66,7 +80,15 @@ export function buildCalendarFeed(
   const calendar = ical({
     name: calendarName,
     description: `Official class schedule feed for Dept. of CSE, Routine V1.1. Auto-syncs weekly changes directly to Google, Apple, and Outlook calendars.`,
-    timezone,
+    timezone: {
+      name: timezone,
+      generator: (tz: string) => {
+        if (tz === 'Asia/Dhaka' || tz.includes('Dhaka')) {
+          return DHAKA_VTIMEZONE;
+        }
+        return null;
+      },
+    },
     ttl: 3600, // 1 hour refresh interval (X-PUBLISHED-TTL:PT1H & REFRESH-INTERVAL)
     prodId: {
       company: 'Dept. of CSE Routine Committee',
@@ -79,12 +101,18 @@ export function buildCalendarFeed(
     const baseDate = WEEKDAY_DATE_MAP[item.dayOfWeek];
     if (!baseDate) continue;
 
-    // ISO strings in local Dhaka time (UTC+6)
-    const startIso = `${baseDate}T${item.startTime}:00+06:00`;
-    const endIso = `${baseDate}T${item.endTime}:00+06:00`;
+    // Parse date and time into individual components:
+    // e.g. baseDate = "2026-09-15", item.startTime = "08:30"
+    const [year, month, day] = baseDate.split('-').map(Number);
+    const [startH, startM] = item.startTime.split(':').map(Number);
+    const [endH, endM] = item.endTime.split(':').map(Number);
 
-    const startDate = new Date(startIso);
-    const endDate = new Date(endIso);
+    // Using new Date(year, monthIndex, day, hour, min):
+    // In ical-generator, when timezone is set, it calls m.getHours() and m.getMinutes().
+    // new Date(year, month-1, day, hour, min) ensures getHours() === hour and getMinutes() === min
+    // on ALL runtime environments (local Node, Docker, or Vercel serverless running in UTC).
+    const startDate = new Date(year, month - 1, day, startH, startM, 0);
+    const endDate = new Date(year, month - 1, day, endH, endM, 0);
 
     // Deterministic UID:
     // Consistent across routine changes for identical slots so calendar engines replace/update in-place
