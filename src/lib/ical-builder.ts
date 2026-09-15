@@ -77,18 +77,12 @@ export function buildCalendarFeed(
     ? `CSE Routine: ${sectionMeta.displayName}${subLabel}`
     : `CSE Routine: Section ${sectionId}${subLabel}`;
 
+  // Do not set timezone on the top-level calendar options, because ical-generator
+  // strips the mandatory 'Z' from DTSTAMP and RRULE:UNTIL when top-level timezone is present.
+  // Instead, we set timezone on each event and inject the RFC 5545 VTIMEZONE component into the serialized output.
   const calendar = ical({
     name: calendarName,
     description: `Official class schedule feed for Dept. of CSE, Routine V1.1. Auto-syncs weekly changes directly to Google, Apple, and Outlook calendars.`,
-    timezone: {
-      name: timezone,
-      generator: (tz: string) => {
-        if (tz === 'Asia/Dhaka' || tz.includes('Dhaka')) {
-          return DHAKA_VTIMEZONE;
-        }
-        return null;
-      },
-    },
     ttl: 3600, // 1 hour refresh interval (X-PUBLISHED-TTL:PT1H & REFRESH-INTERVAL)
     prodId: {
       company: 'Dept. of CSE Routine Committee',
@@ -108,7 +102,7 @@ export function buildCalendarFeed(
     const [endH, endM] = item.endTime.split(':').map(Number);
 
     // Using new Date(year, monthIndex, day, hour, min):
-    // In ical-generator, when timezone is set, it calls m.getHours() and m.getMinutes().
+    // In ical-generator, when timezone is set on the event, it calls m.getHours() and m.getMinutes().
     // new Date(year, month-1, day, hour, min) ensures getHours() === hour and getMinutes() === min
     // on ALL runtime environments (local Node, Docker, or Vercel serverless running in UTC).
     const startDate = new Date(year, month - 1, day, startH, startM, 0);
@@ -163,4 +157,26 @@ export function buildCalendarFeed(
   }
 
   return calendar;
+}
+
+/**
+ * Serializes calendar to RFC 5545 compliant string with mandatory VTIMEZONE and strict UTC Z formatting.
+ */
+export function serializeCalendarToIcs(calendar: ICalCalendar): string {
+  let output = calendar.toString();
+
+  // Inject X-WR-TIMEZONE and RFC 5545 VTIMEZONE block after X-WR-CALNAME
+  const tzHeader = `X-WR-TIMEZONE:Asia/Dhaka\r\n${DHAKA_VTIMEZONE}\r\n`;
+  if (!output.includes('BEGIN:VTIMEZONE')) {
+    output = output.replace(/(X-WR-CALNAME:.*?\r\n)/, `$1${tzHeader}`);
+  }
+
+  // Ensure strict RFC 5545 compliance:
+  // 1. DTSTAMP MUST be UTC (ending with Z)
+  output = output.replace(/(DTSTAMP:\d{8}T\d{6})(?!Z)/g, '$1Z');
+
+  // 2. RRULE UNTIL MUST be UTC (ending with Z) when DTSTART has timezone
+  output = output.replace(/(UNTIL=\d{8}T\d{6})(?!Z)/g, '$1Z');
+
+  return output;
 }

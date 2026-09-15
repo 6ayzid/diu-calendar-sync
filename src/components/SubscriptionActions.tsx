@@ -52,9 +52,9 @@ export function SubscriptionActions({ section, subSection }: SubscriptionActions
     }
   };
 
-  // Build the live API path with optional subsection query
+  // Build the live API path with .ics extension for strict calendar client compatibility
   const subQuery = subSection !== 'all' ? `?sub=${subSection}` : '';
-  const apiPath = `/api/calendar/${section.id}${subQuery}`;
+  const apiPath = `/api/calendar/${section.id}.ics${subQuery}`;
 
   const isLocalhost = Boolean(
     origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getScheduleForSection, getSection } from '@/lib/schedule';
-import { buildCalendarFeed } from '@/lib/ical-builder';
+import { buildCalendarFeed, serializeCalendarToIcs } from '@/lib/ical-builder';
 
 export async function handleCalendarFeedRequest(
   req: NextRequest,
@@ -14,8 +14,11 @@ export async function handleCalendarFeedRequest(
     });
   }
 
+  // Strip trailing .ics extension if passed (e.g. 68_D.ics or 66_O-sub2.ics)
+  let cleanId = rawSectionId.trim().replace(/\.ics$/i, '');
+
   // Handle format like 68_D1 or 68-D1 where the last char is the subsection
-  let sectionId = rawSectionId.trim().toUpperCase().replace('-', '_');
+  let sectionId = cleanId.toUpperCase().replace('-', '_');
   let subSection: '1' | '2' | 'all' | null = (rawSubSection as any) || null;
 
   const subMatch = sectionId.match(/^([0-9]+_[A-Za-z])([12])$/);
@@ -57,7 +60,7 @@ export async function handleCalendarFeedRequest(
     sourceDomain: host,
   });
 
-  const icsOutput = calendar.toString();
+  const icsOutput = serializeCalendarToIcs(calendar);
   const subFileSuffix = subSection && subSection !== 'all' ? `-sub${subSection}` : '';
   const filename = `${sectionId}${subFileSuffix}-routine.ics`;
 
