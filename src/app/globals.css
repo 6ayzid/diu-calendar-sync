@@ -1,26 +1,190 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --color-canvas: #f8fafc;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f1f5f9;
+  --color-border-terminal: #e2e8f0;
+  --color-radiant-emerald: #10b981;
+  --color-signal-sky: #0ea5e9;
+  --color-signal-indigo: #0ea5e9;
+  --color-phosphor-emerald: #10b981;
+  --color-amber-lab: #f59e0b;
+  --color-rose-sub: #f43f5e;
+}
+
+.dark {
+  --background: #080d1a;
+  --foreground: #f8fafc;
+  --color-canvas: #080d1a;
+  --color-surface: #0f172a;
+  --color-surface-hover: #172236;
+  --color-border-terminal: #1e2c44;
+  --color-radiant-emerald: #10b981;
+  --color-signal-sky: #0ea5e9;
+  --color-signal-indigo: #0ea5e9;
+  --color-phosphor-emerald: #10b981;
+  --color-amber-lab: #f59e0b;
+  --color-rose-sub: #f43f5e;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono), ui-monospace, monospace;
+  --color-radiant-emerald: var(--color-radiant-emerald);
+  --color-signal-sky: var(--color-signal-sky);
+  --color-signal-indigo: var(--color-signal-sky);
+  --color-phosphor-emerald: var(--color-phosphor-emerald);
+  --color-amber-lab: var(--color-amber-lab);
+  --color-rose-sub: var(--color-rose-sub);
+  --color-obsidian-void: var(--color-canvas);
+  --color-hard-slate: var(--color-surface);
+  --color-terminal-border: var(--color-border-terminal);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  caret-color: #94a3b8;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
+
+/* Browser surface customization per craft floor */
+::selection {
+  background-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.dark ::selection {
+  background-color: #1e293b;
+  color: #f8fafc;
+}
+
+button,
+[role="button"] {
+  cursor: pointer;
+}
+
+a {
+  text-underline-offset: 3px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-signal-sky);
+  outline-offset: 2px;
+}
+
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible {
+  outline: none;
+}
+
+/* Touch & Mobile Pointer Optimization */
+@media (pointer: coarse) {
+  button,
+  [role="button"],
+  a {
+    touch-action: manipulation;
+  }
+}
+
+/* Accessible Reduced Motion Adaptation */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Custom terminal scrollbars (Firefox & Standard) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 #f8fafc;
+}
+
+.dark * {
+  scrollbar-color: #1e293b #020617;
+}
+
+/* Custom terminal scrollbars (Webkit / Chromium / Safari) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #020617;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 6px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #1e293b;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Responsive Matrix Grid Layout */
+.matrix-grid-layout {
+  --col-time: 56px;
+  --col-day: 104px;
+  --row-h: 74px;
+  display: grid;
+  grid-template-columns: var(--col-time) repeat(6, minmax(var(--col-day), 1fr));
+  grid-template-rows: auto repeat(6, minmax(var(--row-h), auto));
+}
+
+@media (min-width: 640px) {
+  .matrix-grid-layout {
+    --col-time: 105px;
+    --col-day: 140px;
+    --row-h: 110px;
+  }
+}
+
+/* Print Adaptation: Crisp Clean Monochrome Output */
+@media print {
+  @page {
+    size: landscape;
+    margin: 8mm;
+  }
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    padding: 0 !important;
+  }
+  .matrix-grid-layout {
+    --col-time: 90px;
+    --col-day: 1fr;
+    --row-h: auto;
+    grid-template-columns: var(--col-time) repeat(6, 1fr);
+    grid-template-rows: auto repeat(6, auto);
+  }
+}
+

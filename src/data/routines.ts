@@ -1,6 +1,5 @@
 import { DayOfWeek, RoutineClass } from '@/types/schedule';
 import { getCourseName } from '@/lib/courses';
-import { ALL_SECTIONS } from './sections';
 
 // Exact real-world schedules extracted from the CSE Department Class Routine V1.1 (Effective: Sept 09, 2026)
 export const CURATED_ROUTINES: RoutineClass[] = [

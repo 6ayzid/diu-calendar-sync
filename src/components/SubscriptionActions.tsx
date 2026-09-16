@@ -8,37 +8,56 @@ import {
   Calendar,
   Download,
   Smartphone,
-  Share2,
   Info,
   AlertTriangle,
   Globe,
   X,
-  ArrowRight,
-  Sparkles,
+  RefreshCw,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { SectionMeta } from '@/types/schedule';
 
 interface SubscriptionActionsProps {
   section: SectionMeta;
   subSection: '1' | '2' | 'all';
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export function SubscriptionActions({ section, subSection }: SubscriptionActionsProps) {
+export function SubscriptionActions({
+  section,
+  subSection,
+  isOpen = true,
+  onClose,
+}: SubscriptionActionsProps) {
   const [copied, setCopied] = useState(false);
   const [origin, setOrigin] = useState('');
   const [customDomain, setCustomDomain] = useState('');
   const [showDomainInput, setShowDomainInput] = useState(false);
-  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [showGoogleGuide, setShowGoogleGuide] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    const frame = requestAnimationFrame(() => {
       setOrigin(window.location.origin);
       const saved = localStorage.getItem('diu_calendar_custom_domain');
       if (saved) {
         setCustomDomain(saved);
       }
-    }
+    });
+    return () => cancelAnimationFrame(frame);
   }, []);
+
+  // Close modal on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen && onClose) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   const handleSaveDomain = (domain: string) => {
     const trimmed = domain.trim().replace(/\/+$/, '');
@@ -66,8 +85,7 @@ export function SubscriptionActions({ section, subSection }: SubscriptionActions
   const effectiveOrigin =
     customDomain || (origin && !isLocalhost ? origin : DEFAULT_PUBLIC_URL);
 
-  // Cloud origin: Google Calendar & Outlook crawlers require a public internet domain.
-  // When developing on localhost, automatically route external calendar web-add to the live production deployment.
+  // Cloud origin: Google Calendar crawler requires a public internet domain.
   const cloudOrigin =
     customDomain || (isLocalhost ? DEFAULT_PUBLIC_URL : (origin || DEFAULT_PUBLIC_URL));
 
@@ -77,20 +95,16 @@ export function SubscriptionActions({ section, subSection }: SubscriptionActions
   // WebCal Protocol URL (forces native calendar apps to open the subscription dialog)
   const webcalUrl = httpUrl.replace(/^https?:\/\//i, 'webcal://');
 
-  // Cloud Feed URLs for Google Calendar & Outlook
-  const cloudHttpUrl = `${cloudOrigin}${apiPath}`;
+  // Cloud Feed URLs for Google Calendar
   const cloudWebcalUrl = `webcal://${cloudOrigin.replace(/^https?:\/\//i, '')}${apiPath}`;
 
   // Fresh Sync URL (cache buster to force Google Calendar crawler to fetch fresh feed immediately)
   const freshPublicApiPath = `/api/calendar/${section.id}.ics${subQuery}${subQuery ? '&' : '?'}v=2`;
   const freshCloudWebcalUrl = `webcal://${cloudOrigin.replace(/^https?:\/\//i, '')}${freshPublicApiPath}`;
 
-  // Google Calendar direct web-add URL (exact unencoded webcal:// format Google Calendar requires):
+  // Google Calendar direct web-add URL:
   const googleCalUrl = `https://calendar.google.com/calendar/render?cid=${cloudWebcalUrl}`;
   const freshGoogleCalUrl = `https://calendar.google.com/calendar/render?cid=${freshCloudWebcalUrl}`;
-
-  // Outlook Online URL:
-  const outlookOnlineUrl = `https://outlook.live.com/calendar/0/addfromweb?url=${encodeURIComponent(cloudHttpUrl)}&name=${encodeURIComponent(`CSE Routine: ${section.displayName}`)}`;
 
   const handleCopy = async () => {
     try {
@@ -102,74 +116,158 @@ export function SubscriptionActions({ section, subSection }: SubscriptionActions
       setTimeout(() => setCopied(false), 2500);
     }
   };
-  return (
-    <div className="rounded-2xl border border-slate-800 bg-gradient-to-b from-slate-900/80 to-slate-950/90 p-5 shadow-2xl backdrop-blur-md">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
+
+  if (!isOpen) return null;
+
+  const content = (
+    <section
+      aria-labelledby="subscription-heading"
+      className={`space-y-5 ${
+        onClose
+          ? 'w-full max-w-2xl rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-5 sm:p-7 shadow-2xl'
+          : ''
+      }`}
+    >
+      {/* Header with Title, Active Section Context & Close Button */}
+      <div className="flex items-start justify-between gap-4 pb-1">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold text-white flex items-center gap-2">
-              <Share2 className="h-4 w-4 text-emerald-400" />
-              Live Calendar Subscription Feed
-            </h2>
-            <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[11px] font-semibold text-emerald-400 flex items-center gap-1">
-              <Sparkles className="h-3 w-3" />
-              RFC 5545 Live Sync
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Subscribing creates a permanent dynamic link. Weekly routine revisions and room shifts update automatically on your device!
+          <h2
+            id="subscription-heading"
+            className="text-lg sm:text-xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2"
+          >
+            <span>Live Calendar Subscription Feed</span>
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-prose leading-relaxed">
+            Subscribing creates a permanent dynamic link. Weekly routine revisions and room shifts update automatically on your device.
           </p>
         </div>
 
-        {/* Selected Section Indicator */}
-        <div className="flex items-center gap-2 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
-          <span className="text-slate-400">Selected:</span>
-          <span className="font-bold text-indigo-400">{section.id}</span>
-          {subSection !== 'all' && (
-            <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
-              Sub {section.sectionLetter}{subSection}
-            </span>
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="font-mono text-xs text-slate-700 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg dark:text-slate-300 dark:bg-slate-950 dark:border-slate-800">
+            <span>Section:</span> <strong className="text-slate-900 dark:text-white">{section.id}</strong>
+            {subSection !== 'all' && (
+              <span className="text-amber-700 dark:text-amber-400 ml-1">
+                ({section.sectionLetter}{subSection})
+              </span>
+            )}
+          </div>
+
+          {onClose && (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close subscription modal"
+              className="flex items-center justify-center min-h-[40px] min-w-[40px] rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
           )}
         </div>
       </div>
 
-      {/* Copyable Feed URL Box */}
-      <div className="mt-4">
-        <div className="text-[11px] font-medium text-slate-400 mb-1.5 flex items-center justify-between">
-          <span className="flex items-center gap-1.5">
-            <span>Permanent iCal Feed URL:</span>
-            {customDomain && (
-              <span className="rounded bg-indigo-500/20 text-indigo-300 px-1.5 py-0.2 text-[10px]">
-                Custom Host
-              </span>
-            )}
-          </span>
+      {/* 3 Action Options: Google Calendar, Apple Calendar, Download .ICS */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* 1. Google Calendar */}
+        <a
+          href={googleCalUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-100 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950/70 dark:hover:bg-slate-900 dark:hover:border-slate-700 p-4 transition-colors flex flex-col justify-between gap-3 min-h-[110px] cursor-pointer shadow-2xs"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-100 text-blue-600 border border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/20 dark:text-blue-400">
+              <Calendar className="h-4 w-4" />
+            </div>
+            <span className="rounded bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 text-xs font-mono font-medium dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
+              Live Sync
+            </span>
+          </div>
+          <div>
+            <div className="font-semibold text-slate-900 dark:text-white text-sm flex items-center justify-between">
+              <span>Google Calendar</span>
+              <ExternalLink className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-900 dark:text-slate-500 dark:group-hover:text-white transition-colors" />
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Android &amp; Web 1-click sync</p>
+          </div>
+        </a>
+
+        {/* 2. Apple Calendar / Native WebCal */}
+        <a
+          href={webcalUrl}
+          className="group rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-100 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950/70 dark:hover:bg-slate-900 dark:hover:border-slate-700 p-4 transition-colors flex flex-col justify-between gap-3 min-h-[110px] cursor-pointer shadow-2xs"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-100 text-sky-600 border border-sky-200 dark:bg-sky-500/10 dark:border-sky-500/20 dark:text-sky-400">
+              <Smartphone className="h-4 w-4" />
+            </div>
+            <span className="rounded bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 text-xs font-mono font-medium dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20">
+              Live Sync
+            </span>
+          </div>
+          <div>
+            <div className="font-semibold text-slate-900 dark:text-white text-sm flex items-center justify-between">
+              <span>Apple Calendar</span>
+              <ExternalLink className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-900 dark:text-slate-500 dark:group-hover:text-white transition-colors" />
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">iPhone, Mac &amp; Native WebCal</p>
+          </div>
+        </a>
+
+        {/* 3. Static .ICS Download */}
+        <a
+          href={apiPath}
+          download={`${section.id}-routine.ics`}
+          className="group rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-100 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950/70 dark:hover:bg-slate-900 dark:hover:border-slate-700 p-4 transition-colors flex flex-col justify-between gap-3 min-h-[110px] cursor-pointer shadow-2xs"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-slate-200/80 border border-slate-300 text-slate-700 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-400">
+              <Download className="h-4 w-4" />
+            </div>
+            <span className="rounded bg-slate-200/70 text-slate-700 border border-slate-300 px-2 py-0.5 text-xs font-mono dark:bg-slate-900 dark:text-slate-400 dark:border-slate-800">
+              Offline
+            </span>
+          </div>
+          <div>
+            <div className="font-semibold text-slate-800 group-hover:text-slate-900 dark:text-slate-200 dark:group-hover:text-white text-sm flex items-center justify-between">
+              <span>Download .ICS</span>
+              <Download className="h-3.5 w-3.5 text-slate-400 group-hover:text-slate-900 dark:text-slate-500 dark:group-hover:text-white transition-colors" />
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Static snapshot (no auto-sync)</p>
+          </div>
+        </a>
+      </div>
+
+      {/* Copy Feed URL Bar */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
+          <span className="font-medium text-slate-700 dark:text-slate-300">Direct Calendar Feed URL</span>
           <button
             type="button"
             onClick={() => setShowDomainInput(!showDomainInput)}
-            className="text-[10px] text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-sans cursor-pointer transition-colors"
+            aria-expanded={showDomainInput}
+            className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white flex items-center gap-1 font-mono transition-colors cursor-pointer"
           >
             <Globe className="h-3 w-3" />
-            {customDomain ? 'Edit Domain' : 'Set Live/Vercel URL'}
+            <span>{customDomain ? 'Custom Host' : 'Host Options'}</span>
           </button>
         </div>
 
-        {/* Optional Custom Domain Bar */}
         {showDomainInput && (
-          <div className="mb-2.5 p-2.5 rounded-xl border border-indigo-500/30 bg-indigo-950/20 text-xs flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
-            <span className="text-indigo-300 shrink-0 text-[11px] font-medium">Production Domain:</span>
+          <div className="p-3 rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950 text-xs flex flex-col sm:flex-row gap-2 items-stretch sm:items-center">
+            <span className="text-slate-700 dark:text-slate-300 shrink-0 font-medium">Custom Host:</span>
             <input
               type="text"
               placeholder="e.g. https://diu-calendar-sync.vercel.app"
               value={customDomain}
               onChange={(e) => handleSaveDomain(e.target.value)}
-              className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              aria-label="Custom production domain or URL"
+              className="flex-1 bg-white border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-sky-500 font-mono dark:bg-slate-900 dark:border-slate-800 dark:text-white dark:placeholder-slate-500"
             />
             {customDomain && (
               <button
                 type="button"
                 onClick={() => handleSaveDomain('')}
-                className="text-[11px] text-slate-400 hover:text-red-400 px-2 py-1 transition-colors"
+                className="text-xs text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 px-2 py-1 transition-colors cursor-pointer"
               >
                 Reset
               </button>
@@ -177,282 +275,114 @@ export function SubscriptionActions({ section, subSection }: SubscriptionActions
           </div>
         )}
 
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 overflow-hidden rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2.5 font-mono text-xs text-slate-300 shadow-inner">
-            <span className="truncate block select-all">{httpUrl}</span>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex-1 overflow-hidden rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 font-mono text-xs text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300 flex items-center">
+            <span className="truncate select-all">{httpUrl}</span>
           </div>
           <button
             type="button"
             onClick={handleCopy}
-            className={`flex items-center gap-1.5 rounded-xl px-4 py-2.5 text-xs font-semibold transition-all shadow-md cursor-pointer ${
-              copied
-                ? 'bg-emerald-600 text-white shadow-emerald-600/30'
-                : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-indigo-600/20'
-            }`}
+            aria-live="polite"
+            className="rounded-xl bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-emerald-950 px-4 py-2.5 text-xs font-bold flex items-center justify-center gap-2 transition-colors cursor-pointer min-h-[44px] shrink-0 shadow-sm border border-emerald-400/30"
           >
             {copied ? (
               <>
-                <Check className="h-3.5 w-3.5" />
-                <span>Copied Feed URL!</span>
+                <Check className="h-3.5 w-3.5 text-emerald-950" />
+                <span>Copied!</span>
               </>
             ) : (
               <>
-                <Copy className="h-3.5 w-3.5" />
-                <span>Copy iCal Feed URL</span>
+                <Copy className="h-3.5 w-3.5 text-emerald-950" />
+                <span>Copy Feed URL</span>
               </>
             )}
           </button>
         </div>
       </div>
 
-      {/* Action Buttons Grid */}
-      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-        {/* Apple Calendar / iOS / Mac / Outlook One-Click WebCal */}
-        <a
-          href={webcalUrl}
-          className="group flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/90 hover:bg-slate-850 px-3.5 py-3 text-xs font-medium text-white transition-all hover:border-indigo-500/50 hover:shadow-lg hover:shadow-indigo-500/10"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-800 text-slate-200 group-hover:bg-indigo-600 group-hover:text-white transition-colors">
-              <Smartphone className="h-4 w-4" />
-            </div>
-            <div className="text-left">
-              <div className="font-semibold text-slate-200 group-hover:text-white">
-                Apple / Outlook
-              </div>
-              <div className="text-[10px] text-slate-400 font-mono">webcal:// protocol</div>
-            </div>
-          </div>
-          <ExternalLink className="h-3.5 w-3.5 text-slate-500 group-hover:text-indigo-400 transition-colors" />
-        </a>
-
-        {/* Google Calendar Web-Add */}
-        <a
-          href={googleCalUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/90 hover:bg-slate-850 px-3.5 py-3 text-xs font-medium text-white transition-all hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10 cursor-pointer"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-800 text-blue-400 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-              <Calendar className="h-4 w-4" />
-            </div>
-            <div className="text-left">
-              <div className="font-semibold text-slate-200 group-hover:text-white flex items-center gap-1.5">
-                Google Calendar
-                {isLocalhost && !customDomain && (
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping" />
-                )}
-              </div>
-              <div className="text-[10px] text-slate-400">Direct Web Add</div>
-            </div>
-          </div>
-          <ExternalLink className="h-3.5 w-3.5 text-slate-500 group-hover:text-blue-400 transition-colors" />
-        </a>
-
-        {/* Outlook Online Web-Add */}
-        <a
-          href={outlookOnlineUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/90 hover:bg-slate-850 px-3.5 py-3 text-xs font-medium text-white transition-all hover:border-cyan-500/50 hover:shadow-lg hover:shadow-cyan-500/10"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-800 text-cyan-400 group-hover:bg-cyan-600 group-hover:text-white transition-colors">
-              <Calendar className="h-4 w-4" />
-            </div>
-            <div className="text-left">
-              <div className="font-semibold text-slate-200 group-hover:text-white">
-                Outlook Live
-              </div>
-              <div className="text-[10px] text-slate-400">Subscribe on Web</div>
-            </div>
-          </div>
-          <ExternalLink className="h-3.5 w-3.5 text-slate-500 group-hover:text-cyan-400 transition-colors" />
-        </a>
-
-        {/* Static .ics Download (Fallback) */}
-        <a
-          href={apiPath}
-          download={`${section.id}-routine.ics`}
-          className="group flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/90 hover:bg-slate-850 px-3.5 py-3 text-xs font-medium text-slate-300 transition-all hover:border-slate-700 hover:text-white"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-800 text-slate-400 group-hover:bg-slate-700 group-hover:text-white transition-colors">
-              <Download className="h-4 w-4" />
-            </div>
-            <div className="text-left">
-              <div className="font-semibold text-slate-200">
-                Download .ics
-              </div>
-              <div className="text-[10px] text-slate-500">Offline Snapshot</div>
-            </div>
-          </div>
-          <Download className="h-3.5 w-3.5 text-slate-500 group-hover:text-slate-300 transition-colors" />
-        </a>
-      </div>
-
-      {/* Subscription Callout Banner */}
-      <div className="mt-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-indigo-900/40 bg-indigo-950/30 p-3 text-xs text-indigo-200/90">
-        <div className="flex items-start gap-2">
-          <Info className="h-4 w-4 text-indigo-400 shrink-0 mt-0.5" />
-          <div>
-            <strong className="text-indigo-300 font-semibold">Live Subscription:</strong> Always use{' '}
-            <span className="underline font-semibold">Subscribe</span> (WebCal or Add by URL). Room swaps and schedule revisions update automatically in the background on your phone and laptop.
-          </div>
-        </div>
+      {/* Inline Troubleshooting Accordion (No nested modals!) */}
+      <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80">
         <button
           type="button"
-          onClick={() => setShowGoogleModal(true)}
-          className="shrink-0 text-[11px] font-semibold text-blue-400 hover:text-blue-300 underline flex items-center gap-1 cursor-pointer"
+          onClick={() => setShowGoogleGuide(!showGoogleGuide)}
+          aria-expanded={showGoogleGuide}
+          className="w-full flex items-center justify-between text-xs text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors py-1 cursor-pointer"
         >
-          <span>Google Calendar Guide & Fixes</span>
-          <ArrowRight className="h-3 w-3" />
+          <span className="flex items-center gap-1.5">
+            <Info className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+            <span>Having trouble adding to Google Calendar?</span>
+          </span>
+          <span className="flex items-center gap-1 text-sky-600 dark:text-sky-400 font-medium">
+            <span>{showGoogleGuide ? 'Hide Guide' : 'Troubleshooting'}</span>
+            {showGoogleGuide ? (
+              <ChevronUp className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5" />
+            )}
+          </span>
         </button>
-      </div>
 
-      {/* Google Calendar Comprehensive Guide & Troubleshooting Modal */}
-      {showGoogleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-md overflow-y-auto">
-          <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/20 text-blue-400">
-                  <Calendar className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-white">Google Calendar Guide & Troubleshooting</h3>
-                  <p className="text-xs text-slate-400">How to subscribe & fix &quot;Unable to add calendar&quot;</p>
-                </div>
+        {showGoogleGuide && (
+          <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3.5 text-xs text-slate-700 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
+            {/* Quick Diagnostic Tips */}
+            <div className="space-y-1.5 text-xs leading-relaxed">
+              <div className="flex items-center gap-1.5 text-amber-800 dark:text-amber-300 font-semibold">
+                <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <span>If Google says &quot;Unable to add calendar&quot;:</span>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowGoogleModal(false)}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <ul className="list-disc list-inside space-y-1 text-slate-600 dark:text-slate-300 ml-1">
+                <li>
+                  <strong className="text-slate-900 dark:text-white">Already added:</strong> Google rejects duplicate links. Look under <span className="text-slate-900 dark:text-white font-medium">Other calendars</span> in your Google Calendar sidebar.
+                </li>
+                <li>
+                  <strong className="text-slate-900 dark:text-white">University Account blocked:</strong> Campus <code className="text-amber-800 dark:text-amber-300 font-mono">@diu.edu.bd</code> accounts may restrict external feeds. Use your personal <code className="text-amber-800 dark:text-amber-300 font-mono">@gmail.com</code> account instead.
+                </li>
+              </ul>
             </div>
 
-            <div className="mt-4 space-y-4 text-xs text-slate-300">
-              {/* Common Error Explanation */}
-              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-amber-200">
-                <div className="flex items-center gap-2 mb-1.5">
-                  <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
-                  <strong className="text-amber-300 font-semibold text-[13px]">
-                    Why Google says &quot;Unable to add calendar. Try again&quot;:
-                  </strong>
-                </div>
-                <ul className="list-disc list-inside space-y-1 text-[11.5px] text-amber-100/90 leading-relaxed ml-1">
-                  <li>
-                    <strong className="text-white">The calendar is ALREADY in your account:</strong> Google strictly rejects adding the exact same calendar URL twice. Look at your left sidebar under <span className="underline font-medium">Other calendars</span> — your classes are likely already there!
-                  </li>
-                  <li>
-                    <strong className="text-white">University / Workspace Account restriction:</strong> If you are logged in with your university account (e.g. <code className="bg-amber-950/70 px-1 py-0.5 rounded text-amber-200">@diu.edu.bd</code>), domain administrators often disable external calendar subscriptions. Switch to your personal <code className="bg-amber-950/70 px-1 py-0.5 rounded text-amber-200">@gmail.com</code> account!
-                  </li>
-                  <li>
-                    <strong className="text-white">Google Crawler Cache:</strong> Google caches feeds for up to 24 hours. If you added an earlier version, Google may take time to refresh, or you can use the Fresh Sync URL below.
-                  </li>
-                </ul>
-              </div>
-
-              {/* Method 1: Google's Official 'Add from URL' (100% Guaranteed) */}
-              <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-white flex items-center gap-1.5">
-                    <Sparkles className="h-4 w-4 text-emerald-400" />
-                    Method 1: Google&apos;s Official &quot;Add from URL&quot; (100% Guaranteed)
-                  </span>
-                  <span className="rounded bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 text-[10px] font-semibold">
-                    Recommended
-                  </span>
-                </div>
-                <p className="text-slate-400 text-[11px] leading-relaxed">
-                  This bypasses browser redirect issues and allows Google&apos;s servers to directly connect to the live routine:
-                </p>
-                <div className="space-y-2 bg-slate-900/90 p-3 rounded-lg border border-slate-800 text-[11.5px]">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-slate-300"><strong>Step 1:</strong> Copy your live feed URL</span>
-                    <button
-                      type="button"
-                      onClick={handleCopy}
-                      className="px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
-                    >
-                      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                      <span>{copied ? 'Copied!' : 'Copy Feed URL'}</span>
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800">
-                    <span className="text-slate-300"><strong>Step 2:</strong> Open Google&apos;s Add by URL page</span>
-                    <a
-                      href="https://calendar.google.com/calendar/r/settings/addbyurl"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-medium text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      <span>Open Add by URL</span>
-                    </a>
-                  </div>
-                  <div className="pt-1 border-t border-slate-800 text-slate-400 text-[11px]">
-                    <strong>Step 3:</strong> Paste the URL in the box and click <strong className="text-white">&quot;Add calendar&quot;</strong>. Done!
-                  </div>
-                </div>
-              </div>
-
-              {/* Method 2: One-Click Web Add Buttons */}
-              <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 space-y-2">
-                <span className="font-bold text-white flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5 text-blue-400" />
-                  Method 2: One-Click Web Links
-                </span>
-                <p className="text-slate-400 text-[11px]">
-                  Direct deep links into Google Calendar:
-                </p>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <a
-                    href={googleCalUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 text-center rounded-lg bg-blue-600/30 hover:bg-blue-600/40 border border-blue-500/40 text-blue-200 px-3 py-2 font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5 text-blue-400" />
-                    <span>Direct Web Add</span>
-                  </a>
-                  <a
-                    href={freshGoogleCalUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    title="Bypasses Google's 24h cache with a fresh version parameter"
-                    className="flex-1 text-center rounded-lg bg-emerald-600/30 hover:bg-emerald-600/40 border border-emerald-500/40 text-emerald-200 px-3 py-2 font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
-                    <span>Fresh Sync (Bypass Cache)</span>
-                  </a>
-                </div>
-              </div>
-
-              {/* Mobile app tip */}
-              <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-800 text-[11px] text-slate-400 flex items-start gap-2">
-                <Smartphone className="h-4 w-4 text-slate-300 shrink-0 mt-0.5" />
-                <div>
-                  <span className="font-semibold text-slate-200">Phone App Sync Tip:</span> After adding in Google Calendar web, open the Google Calendar app on your phone &rarr; Settings &rarr; Tap the university routine &rarr; make sure <strong className="text-indigo-300">Sync</strong> is turned ON so it syncs immediately!
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5 flex justify-end">
-              <button
-                type="button"
-                onClick={() => setShowGoogleModal(false)}
-                className="rounded-xl bg-slate-800 hover:bg-slate-700 text-white px-4 py-2 text-xs font-semibold transition-colors cursor-pointer"
+            {/* Alternative Actions */}
+            <div className="pt-2 border-t border-slate-200 dark:border-slate-800/80 flex flex-wrap items-center gap-2">
+              <a
+                href="https://calendar.google.com/calendar/r/settings/addbyurl"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-white px-3 py-2 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer min-h-[36px]"
               >
-                Close
-              </button>
+                <ExternalLink className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                <span>Official &quot;Add by URL&quot; Page</span>
+              </a>
+
+              <a
+                href={freshGoogleCalUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-900 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-white px-3 py-2 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer min-h-[36px]"
+              >
+                <RefreshCw className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>Bypass Google Cache</span>
+              </a>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </section>
   );
+
+  if (onClose) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto print:hidden"
+        onClick={onClose}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="subscription-heading"
+      >
+        <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl">
+          {content}
+        </div>
+      </div>
+    );
+  }
+
+  return content;
 }

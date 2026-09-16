@@ -15,11 +15,14 @@ export async function handleCalendarFeedRequest(
   }
 
   // Strip trailing .ics extension if passed (e.g. 68_D.ics or 66_O-sub2.ics)
-  let cleanId = rawSectionId.trim().replace(/\.ics$/i, '');
+  const cleanId = rawSectionId.trim().replace(/\.ics$/i, '');
 
   // Handle format like 68_D1 or 68-D1 where the last char is the subsection
   let sectionId = cleanId.toUpperCase().replace('-', '_');
-  let subSection: '1' | '2' | 'all' | null = (rawSubSection as any) || null;
+  let subSection: '1' | '2' | 'all' | null =
+    rawSubSection === '1' || rawSubSection === '2' || rawSubSection === 'all'
+      ? rawSubSection
+      : null;
 
   const subMatch = sectionId.match(/^([0-9]+_[A-Za-z])([12])$/);
   if (subMatch) {

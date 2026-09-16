@@ -82,10 +82,10 @@ export function buildCalendarFeed(
   // Instead, we set timezone on each event and inject the RFC 5545 VTIMEZONE component into the serialized output.
   const calendar = ical({
     name: calendarName,
-    description: `Official class schedule feed for Dept. of CSE, Routine V1.1. Auto-syncs weekly changes directly to Google, Apple, and Outlook calendars.`,
+    description: `Official class schedule feed for Dept. of CSE, Routine V1.1 by @6ayzid. Auto-syncs weekly routine changes directly to Google and Apple Calendars.`,
     ttl: 3600, // 1 hour refresh interval (X-PUBLISHED-TTL:PT1H & REFRESH-INTERVAL)
     prodId: {
-      company: 'Dept. of CSE Routine Committee',
+      company: 'Dept. of CSE, DIU (@6ayzid)',
       product: 'Live WebCal Feed Generator',
       language: 'EN',
     },
@@ -128,7 +128,7 @@ export function buildCalendarFeed(
       `Day & Time: ${item.dayOfWeek} ${item.startTime} - ${item.endTime}`,
       ``,
       `---`,
-      `Dept. of CSE Routine Committee (Version V1.1)`,
+      `Dept. of CSE, DIU (Version V1.1)`,
       `Effective From: 09 September, 2026`,
       `Live Subscription Feed: Automatically reflects room and instructor changes.`
     ].join('\n');
