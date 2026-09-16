@@ -56,13 +56,20 @@ export function SubscriptionActions({ section, subSection }: SubscriptionActions
   const subQuery = subSection !== 'all' ? `?sub=${subSection}` : '';
   const apiPath = `/api/calendar/${section.id}.ics${subQuery}`;
 
+  const DEFAULT_PUBLIC_URL = 'https://diu-calendar-sync.vercel.app';
+
   const isLocalhost = Boolean(
     origin && (origin.includes('localhost') || origin.includes('127.0.0.1'))
   );
 
-  // Determine active base URL: Custom Domain > Origin
+  // Determine active base URL: Custom Domain > Origin > Default Vercel
   const effectiveOrigin =
-    customDomain || origin || 'https://schedule.campus.edu';
+    customDomain || (origin && !isLocalhost ? origin : DEFAULT_PUBLIC_URL);
+
+  // Cloud origin: Google Calendar & Outlook crawlers require a public internet domain.
+  // When developing on localhost, automatically route external calendar web-add to the live production deployment.
+  const cloudOrigin =
+    customDomain || (isLocalhost ? DEFAULT_PUBLIC_URL : (origin || DEFAULT_PUBLIC_URL));
 
   // Full HTTPS feed URL
   const httpUrl = `${effectiveOrigin}${apiPath}`;
@@ -70,16 +77,20 @@ export function SubscriptionActions({ section, subSection }: SubscriptionActions
   // WebCal Protocol URL (forces native calendar apps to open the subscription dialog)
   const webcalUrl = httpUrl.replace(/^https?:\/\//i, 'webcal://');
 
-  // Fresh Sync URL (cache buster to force Google Calendar crawler to fetch fresh feed immediately)
-  const freshHttpUrl = `${httpUrl}${httpUrl.includes('?') ? '&' : '?'}v=2`;
-  const freshWebcalUrl = freshHttpUrl.replace(/^https?:\/\//i, 'webcal://');
+  // Cloud Feed URLs for Google Calendar & Outlook
+  const cloudHttpUrl = `${cloudOrigin}${apiPath}`;
+  const cloudWebcalUrl = `webcal://${cloudOrigin.replace(/^https?:\/\//i, '')}${apiPath}`;
 
-  // Google Calendar direct web-add URL (using webcal scheme for maximum Google Calendar compatibility):
-  const googleCalUrl = `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(webcalUrl)}`;
-  const freshGoogleCalUrl = `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(freshWebcalUrl)}`;
+  // Fresh Sync URL (cache buster to force Google Calendar crawler to fetch fresh feed immediately)
+  const freshPublicApiPath = `/api/calendar/${section.id}.ics${subQuery}${subQuery ? '&' : '?'}v=2`;
+  const freshCloudWebcalUrl = `webcal://${cloudOrigin.replace(/^https?:\/\//i, '')}${freshPublicApiPath}`;
+
+  // Google Calendar direct web-add URL (exact unencoded webcal:// format Google Calendar requires):
+  const googleCalUrl = `https://calendar.google.com/calendar/render?cid=${cloudWebcalUrl}`;
+  const freshGoogleCalUrl = `https://calendar.google.com/calendar/render?cid=${freshCloudWebcalUrl}`;
 
   // Outlook Online URL:
-  const outlookOnlineUrl = `https://outlook.live.com/calendar/0/addfromweb?url=${encodeURIComponent(httpUrl)}&name=${encodeURIComponent(`CSE Routine: ${section.displayName}`)}`;
+  const outlookOnlineUrl = `https://outlook.live.com/calendar/0/addfromweb?url=${encodeURIComponent(cloudHttpUrl)}&name=${encodeURIComponent(`CSE Routine: ${section.displayName}`)}`;
 
   const handleCopy = async () => {
     try {
@@ -89,14 +100,6 @@ export function SubscriptionActions({ section, subSection }: SubscriptionActions
     } catch {
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
-    }
-  };
-
-  const handleGoogleCalendarClick = (e: React.MouseEvent) => {
-    // If testing on localhost without a public domain configured, show helper modal
-    if (isLocalhost && !customDomain) {
-      e.preventDefault();
-      setShowGoogleModal(true);
     }
   };
   return (
@@ -228,7 +231,6 @@ export function SubscriptionActions({ section, subSection }: SubscriptionActions
           href={googleCalUrl}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={handleGoogleCalendarClick}
           className="group flex items-center justify-between rounded-xl border border-slate-800 bg-slate-900/90 hover:bg-slate-850 px-3.5 py-3 text-xs font-medium text-white transition-all hover:border-blue-500/50 hover:shadow-lg hover:shadow-blue-500/10 cursor-pointer"
         >
           <div className="flex items-center gap-2.5">
