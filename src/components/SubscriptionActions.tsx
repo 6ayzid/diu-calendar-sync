@@ -70,8 +70,13 @@ export function SubscriptionActions({ section, subSection }: SubscriptionActions
   // WebCal Protocol URL (forces native calendar apps to open the subscription dialog)
   const webcalUrl = httpUrl.replace(/^https?:\/\//i, 'webcal://');
 
-  // Google Calendar direct web-add URL:
-  const googleCalUrl = `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(httpUrl)}`;
+  // Fresh Sync URL (cache buster to force Google Calendar crawler to fetch fresh feed immediately)
+  const freshHttpUrl = `${httpUrl}${httpUrl.includes('?') ? '&' : '?'}v=2`;
+  const freshWebcalUrl = freshHttpUrl.replace(/^https?:\/\//i, 'webcal://');
+
+  // Google Calendar direct web-add URL (using webcal scheme for maximum Google Calendar compatibility):
+  const googleCalUrl = `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(webcalUrl)}`;
+  const freshGoogleCalUrl = `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(freshWebcalUrl)}`;
 
   // Outlook Online URL:
   const outlookOnlineUrl = `https://outlook.live.com/calendar/0/addfromweb?url=${encodeURIComponent(httpUrl)}&name=${encodeURIComponent(`CSE Routine: ${section.displayName}`)}`;
@@ -286,26 +291,36 @@ export function SubscriptionActions({ section, subSection }: SubscriptionActions
       </div>
 
       {/* Subscription Callout Banner */}
-      <div className="mt-3.5 flex items-start gap-2 rounded-xl border border-indigo-900/40 bg-indigo-950/30 p-3 text-xs text-indigo-200/90">
-        <Info className="h-4 w-4 text-indigo-400 shrink-0 mt-0.5" />
-        <div>
-          <strong className="text-indigo-300 font-semibold">Important Auto-Sync Tip:</strong> Always use{' '}
-          <span className="underline font-semibold">Subscribe</span> (WebCal or Add by URL) rather than downloading the static .ics file. When professors swap rooms or the Routine Committee releases updates, subscribed devices update in the background automatically!
+      <div className="mt-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-indigo-900/40 bg-indigo-950/30 p-3 text-xs text-indigo-200/90">
+        <div className="flex items-start gap-2">
+          <Info className="h-4 w-4 text-indigo-400 shrink-0 mt-0.5" />
+          <div>
+            <strong className="text-indigo-300 font-semibold">Live Subscription:</strong> Always use{' '}
+            <span className="underline font-semibold">Subscribe</span> (WebCal or Add by URL). Room swaps and schedule revisions update automatically in the background on your phone and laptop.
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={() => setShowGoogleModal(true)}
+          className="shrink-0 text-[11px] font-semibold text-blue-400 hover:text-blue-300 underline flex items-center gap-1 cursor-pointer"
+        >
+          <span>Google Calendar Guide & Fixes</span>
+          <ArrowRight className="h-3 w-3" />
+        </button>
       </div>
 
-      {/* Google Calendar Localhost Modal / Notice */}
+      {/* Google Calendar Comprehensive Guide & Troubleshooting Modal */}
       {showGoogleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-md overflow-y-auto">
+          <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2.5">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/20 text-blue-400">
                   <Calendar className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-white">Google Calendar Integration</h3>
-                  <p className="text-xs text-slate-400">Public Web-Add vs Localhost</p>
+                  <h3 className="text-base font-bold text-white">Google Calendar Guide & Troubleshooting</h3>
+                  <p className="text-xs text-slate-400">How to subscribe & fix &quot;Unable to add calendar&quot;</p>
                 </div>
               </div>
               <button
@@ -318,92 +333,108 @@ export function SubscriptionActions({ section, subSection }: SubscriptionActions
             </div>
 
             <div className="mt-4 space-y-4 text-xs text-slate-300">
-              <div className="flex items-start gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-amber-200">
-                <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
-                <div>
-                  <strong className="text-amber-300 font-semibold">Why Google Calendar needs a Public Domain:</strong>
-                  <p className="mt-1 text-amber-200/90 leading-relaxed">
-                    Google Calendar runs on Google's cloud servers. When subscribing by URL, Google's servers must fetch the link over the internet. They <strong>cannot reach</strong> your local machine (<code className="bg-amber-950/60 px-1 rounded font-mono text-[11px]">localhost:3000</code>).
-                  </p>
+              {/* Common Error Explanation */}
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-amber-200">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0" />
+                  <strong className="text-amber-300 font-semibold text-[13px]">
+                    Why Google says &quot;Unable to add calendar. Try again&quot;:
+                  </strong>
                 </div>
+                <ul className="list-disc list-inside space-y-1 text-[11.5px] text-amber-100/90 leading-relaxed ml-1">
+                  <li>
+                    <strong className="text-white">The calendar is ALREADY in your account:</strong> Google strictly rejects adding the exact same calendar URL twice. Look at your left sidebar under <span className="underline font-medium">Other calendars</span> — your classes are likely already there!
+                  </li>
+                  <li>
+                    <strong className="text-white">University / Workspace Account restriction:</strong> If you are logged in with your university account (e.g. <code className="bg-amber-950/70 px-1 py-0.5 rounded text-amber-200">@diu.edu.bd</code>), domain administrators often disable external calendar subscriptions. Switch to your personal <code className="bg-amber-950/70 px-1 py-0.5 rounded text-amber-200">@gmail.com</code> account!
+                  </li>
+                  <li>
+                    <strong className="text-white">Google Crawler Cache:</strong> Google caches feeds for up to 24 hours. If you added an earlier version, Google may take time to refresh, or you can use the Fresh Sync URL below.
+                  </li>
+                </ul>
               </div>
 
-              {/* Option 1: Vercel / Production domain */}
-              <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3.5">
-                <div className="flex items-center justify-between mb-1.5">
+              {/* Method 1: Google's Official 'Add from URL' (100% Guaranteed) */}
+              <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 space-y-2.5">
+                <div className="flex items-center justify-between">
                   <span className="font-bold text-white flex items-center gap-1.5">
-                    <Globe className="h-3.5 w-3.5 text-emerald-400" />
-                    Option 1: Connect your Deployed Domain (Vercel)
+                    <Sparkles className="h-4 w-4 text-emerald-400" />
+                    Method 1: Google&apos;s Official &quot;Add from URL&quot; (100% Guaranteed)
                   </span>
                   <span className="rounded bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 text-[10px] font-semibold">
-                    1-Click Auto-Sync
+                    Recommended
                   </span>
                 </div>
-                <p className="text-slate-400 text-[11px] mb-2.5">
-                  If you published this project to Vercel, paste your live URL below to subscribe directly to Google Calendar:
+                <p className="text-slate-400 text-[11px] leading-relaxed">
+                  This bypasses browser redirect issues and allows Google&apos;s servers to directly connect to the live routine:
                 </p>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    placeholder="https://diu-calendar-sync.vercel.app"
-                    value={customDomain}
-                    onChange={(e) => handleSaveDomain(e.target.value)}
-                    className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono"
-                  />
-                  {customDomain && (
+                <div className="space-y-2 bg-slate-900/90 p-3 rounded-lg border border-slate-800 text-[11.5px]">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-slate-300"><strong>Step 1:</strong> Copy your live feed URL</span>
+                    <button
+                      type="button"
+                      onClick={handleCopy}
+                      className="px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                      <span>{copied ? 'Copied!' : 'Copy Feed URL'}</span>
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800">
+                    <span className="text-slate-300"><strong>Step 2:</strong> Open Google&apos;s Add by URL page</span>
                     <a
-                      href={googleCalUrl}
+                      href="https://calendar.google.com/calendar/r/settings/addbyurl"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="rounded-lg bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 font-semibold text-xs flex items-center gap-1 shadow-md shadow-blue-600/20 transition-all shrink-0 cursor-pointer"
+                      className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white font-medium text-[11px] flex items-center gap-1 transition-colors cursor-pointer"
                     >
-                      <span>Add to Google</span>
-                      <ArrowRight className="h-3.5 w-3.5" />
+                      <ExternalLink className="h-3 w-3" />
+                      <span>Open Add by URL</span>
                     </a>
-                  )}
+                  </div>
+                  <div className="pt-1 border-t border-slate-800 text-slate-400 text-[11px]">
+                    <strong>Step 3:</strong> Paste the URL in the box and click <strong className="text-white">&quot;Add calendar&quot;</strong>. Done!
+                  </div>
                 </div>
               </div>
 
-              {/* Option 2: Immediate Localhost Test */}
-              <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3.5">
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="font-bold text-white flex items-center gap-1.5">
-                    <Download className="h-3.5 w-3.5 text-indigo-400" />
-                    Option 2: Immediate Local Test (Manual Import)
-                  </span>
-                  <span className="rounded bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 text-[10px] font-semibold">
-                    Works Offline
-                  </span>
-                </div>
-                <p className="text-slate-400 text-[11px] mb-2.5">
-                  You can import the routine into Google Calendar right now in 2 steps:
+              {/* Method 2: One-Click Web Add Buttons */}
+              <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-3.5 space-y-2">
+                <span className="font-bold text-white flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5 text-blue-400" />
+                  Method 2: One-Click Web Links
+                </span>
+                <p className="text-slate-400 text-[11px]">
+                  Direct deep links into Google Calendar:
                 </p>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <a
-                    href={apiPath}
-                    download={`${section.id}-routine.ics`}
-                    className="flex-1 text-center rounded-lg border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-200 px-3 py-2 font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <Download className="h-3.5 w-3.5 text-indigo-400" />
-                    <span>1. Download .ics File</span>
-                  </a>
-                  <a
-                    href="https://calendar.google.com/calendar/u/0/r/settings/export"
+                    href={googleCalUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 text-center rounded-lg border border-blue-500/40 bg-blue-600/20 hover:bg-blue-600/30 text-blue-200 px-3 py-2 font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                    className="flex-1 text-center rounded-lg bg-blue-600/30 hover:bg-blue-600/40 border border-blue-500/40 text-blue-200 px-3 py-2 font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                   >
                     <ExternalLink className="h-3.5 w-3.5 text-blue-400" />
-                    <span>2. Google Import Page</span>
+                    <span>Direct Web Add</span>
+                  </a>
+                  <a
+                    href={freshGoogleCalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    title="Bypasses Google's 24h cache with a fresh version parameter"
+                    className="flex-1 text-center rounded-lg bg-emerald-600/30 hover:bg-emerald-600/40 border border-emerald-500/40 text-emerald-200 px-3 py-2 font-medium text-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+                    <span>Fresh Sync (Bypass Cache)</span>
                   </a>
                 </div>
               </div>
 
               {/* Mobile app tip */}
-              <div className="p-2.5 rounded-xl bg-slate-800/40 border border-slate-800 text-[11px] text-slate-400 flex items-start gap-2">
-                <Smartphone className="h-3.5 w-3.5 text-slate-300 shrink-0 mt-0.5" />
+              <div className="p-3 rounded-xl bg-slate-800/40 border border-slate-800 text-[11px] text-slate-400 flex items-start gap-2">
+                <Smartphone className="h-4 w-4 text-slate-300 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-semibold text-slate-200">Phone App Sync Tip:</span> After subscribing in Google Calendar web, open the Google Calendar app on your phone &rarr; Settings &rarr; Tap the university calendar &rarr; toggle <strong className="text-indigo-300">Sync</strong> ON.
+                  <span className="font-semibold text-slate-200">Phone App Sync Tip:</span> After adding in Google Calendar web, open the Google Calendar app on your phone &rarr; Settings &rarr; Tap the university routine &rarr; make sure <strong className="text-indigo-300">Sync</strong> is turned ON so it syncs immediately!
                 </div>
               </div>
             </div>
