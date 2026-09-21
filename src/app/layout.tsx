@@ -19,6 +19,14 @@ export const metadata: Metadata = {
     "Dynamic RFC 5545 calendar subscription system and academic timetable schedule for Daffodil International University CSE.",
   authors: [{ name: "@6ayzid", url: "https://github.com/6ayzid" }],
   creator: "@6ayzid",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+  },
 };
 
 export const viewport: Viewport = {
@@ -56,12 +64,12 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${sansFont.variable} ${monoFont.variable} h-full antialiased font-sans bg-slate-50 dark:bg-[#080d1a]`}
+      className={`${sansFont.variable} ${monoFont.variable} min-h-full antialiased font-sans bg-slate-50 dark:bg-[#080d1a]`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
       </head>
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900 dark:bg-[#080d1a] dark:text-slate-100 transition-colors duration-150">
+      <body className="min-h-screen flex flex-col bg-slate-50 text-slate-900 dark:bg-[#080d1a] dark:text-slate-100 transition-colors duration-150">
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

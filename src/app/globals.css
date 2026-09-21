@@ -3,6 +3,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  color-scheme: light;
   --background: #f8fafc;
   --foreground: #0f172a;
   --color-canvas: #f8fafc;
@@ -17,7 +18,10 @@
   --color-rose-sub: #f43f5e;
 }
 
-.dark {
+.dark,
+:root.dark,
+html.dark {
+  color-scheme: dark;
   --background: #080d1a;
   --foreground: #f8fafc;
   --color-canvas: #080d1a;
@@ -46,6 +50,12 @@
   --color-obsidian-void: var(--color-canvas);
   --color-hard-slate: var(--color-surface);
   --color-terminal-border: var(--color-border-terminal);
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 body {
@@ -113,58 +123,140 @@ textarea:focus-visible {
   }
 }
 
-/* Custom terminal scrollbars (Firefox & Standard) */
-* {
-  scrollbar-width: thin;
-  scrollbar-color: #cbd5e1 #f8fafc;
+/* Custom Scrollbars (Standard & Firefox) */
+@supports (-moz-appearance: none) {
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: #94a3b8 transparent;
+  }
+
+  html.dark {
+    scrollbar-color: #334155 transparent;
+  }
+
+  .calendar-matrix-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #94a3b8 #f1f5f9;
+  }
+
+  .dark .calendar-matrix-scroll {
+    scrollbar-color: #475569 #0f172a;
+  }
 }
 
-.dark * {
-  scrollbar-color: #1e293b #020617;
-}
-
-/* Custom terminal scrollbars (Webkit / Chromium / Safari) */
+/* Custom Scrollbars (Webkit / Chromium / Safari / Edge) */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f8fafc;
-}
-
-.dark ::-webkit-scrollbar-track {
-  background: #020617;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
-  border-radius: 6px;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+  background-clip: content-box;
 }
 
-/* Responsive Matrix Grid Layout */
+.dark ::-webkit-scrollbar-thumb,
+html.dark::-webkit-scrollbar-thumb {
+  background: #334155;
+  background-clip: content-box;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover,
+html.dark::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+  background-clip: content-box;
+}
+
+/* Dedicated high-usability scrollbar for the calendar grid */
+.calendar-matrix-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
+}
+
+.calendar-matrix-scroll::-webkit-scrollbar {
+  height: 9px;
+  width: 8px;
+}
+
+.calendar-matrix-scroll::-webkit-scrollbar-track {
+  background: rgba(241, 245, 249, 0.85);
+  border-radius: 9999px;
+  margin: 0 4px;
+}
+
+.dark .calendar-matrix-scroll::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.85);
+}
+
+.calendar-matrix-scroll::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  cursor: grab;
+}
+
+.calendar-matrix-scroll::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+  background-clip: content-box;
+}
+
+.calendar-matrix-scroll::-webkit-scrollbar-thumb:active {
+  background: #475569;
+  cursor: grabbing;
+  background-clip: content-box;
+}
+
+.dark .calendar-matrix-scroll::-webkit-scrollbar-thumb {
+  background: #475569;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  cursor: grab;
+}
+
+.dark .calendar-matrix-scroll::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+  background-clip: content-box;
+}
+
+.dark .calendar-matrix-scroll::-webkit-scrollbar-thumb:active {
+  background: #94a3b8;
+  cursor: grabbing;
+  background-clip: content-box;
+}
+
+/* Responsive Timeline Grid Layout (Google Calendar Style) */
+.timeline-grid-layout,
 .matrix-grid-layout {
-  --col-time: 56px;
-  --col-day: 104px;
-  --row-h: 74px;
+  --col-time: 64px;
+  --col-day: 0px;
   display: grid;
   grid-template-columns: var(--col-time) repeat(6, minmax(var(--col-day), 1fr));
-  grid-template-rows: auto repeat(6, minmax(var(--row-h), auto));
+  grid-template-rows: auto 600px;
+  touch-action: pan-x pan-y;
 }
 
 @media (min-width: 640px) {
+  .timeline-grid-layout,
   .matrix-grid-layout {
-    --col-time: 105px;
-    --col-day: 140px;
-    --row-h: 110px;
+    --col-time: 72px;
+    --col-day: 0px;
   }
 }
 
@@ -179,12 +271,12 @@ textarea:focus-visible {
     color: #0f172a !important;
     padding: 0 !important;
   }
+  .timeline-grid-layout,
   .matrix-grid-layout {
-    --col-time: 90px;
+    --col-time: 68px;
     --col-day: 1fr;
-    --row-h: auto;
     grid-template-columns: var(--col-time) repeat(6, 1fr);
-    grid-template-rows: auto repeat(6, auto);
+    grid-template-rows: auto 600px;
   }
 }
 

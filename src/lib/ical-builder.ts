@@ -128,7 +128,7 @@ export function buildCalendarFeed(
       `Day & Time: ${item.dayOfWeek} ${item.startTime} - ${item.endTime}`,
       ``,
       `---`,
-      `Dept. of CSE, DIU (Version V1.1)`,
+      `Dept. of CSE, DIU (Version V2.2)`,
       `Effective From: 09 September, 2026`,
       `Live Subscription Feed: Automatically reflects room and instructor changes.`
     ].join('\n');

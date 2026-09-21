@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getScheduleForSection, getSection } from '@/lib/schedule';
+import { getScheduleWithMeta, getSection } from '@/lib/schedule';
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
@@ -14,11 +14,13 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  const classes = await getScheduleForSection(sectionId, subSection);
+  const { classes, version } = await getScheduleWithMeta(sectionId, subSection);
+  const formattedVersion = version ? (version.toLowerCase().startsWith('v') ? version : `v${version}`) : 'v2.2';
 
   return NextResponse.json({
     success: true,
     section: sectionMeta,
     classes,
+    version: formattedVersion,
   });
 }

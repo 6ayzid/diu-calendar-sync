@@ -1,18 +1,17 @@
 'use client';
 
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { DayOfWeek, RoutineClass, SectionMeta } from '@/types/schedule';
 import {
-  Calendar,
   Clock,
   MapPin,
-  BookOpen,
   FlaskConical,
-  ArrowRight,
   LayoutGrid,
   CalendarDays,
 } from 'lucide-react';
-import { Badge } from '@/components/ui';
+import { getCourseShortTitle } from '@/lib/course-utils';
+import { formatTime12, getDhakaClock, DhakaClockState, getUpcomingDays, getCurrentWeekScheduleDays, WeekScheduleDay, timeToMinutes } from '@/lib/time-utils';
+import { HOURLY_MARKS, layoutDayEvents, getCurrentTimeTopPercent, PositionedEvent } from '@/lib/timeline-layout';
 
 interface TimetableGridProps {
   section: SectionMeta;
@@ -22,6 +21,7 @@ interface TimetableGridProps {
   onViewModeChange?: (mode: 'matrix' | 'agenda') => void;
   activeDay?: DayOfWeek;
   onActiveDayChange?: (day: DayOfWeek) => void;
+  routineVersion?: string;
 }
 
 const DAYS: { key: DayOfWeek; label: string; short: string; colIndex: number }[] = [
@@ -33,588 +33,915 @@ const DAYS: { key: DayOfWeek; label: string; short: string; colIndex: number }[]
   { key: 'THURSDAY', label: 'Thursday', short: 'Thu', colIndex: 7 },
 ];
 
-const STANDARD_SLOTS = [
-  { start: '08:30', end: '10:00', label: '08:30 - 10:00', period: 'Period 1', rowIndex: 2 },
-  { start: '10:00', end: '11:30', label: '10:00 - 11:30', period: 'Period 2', rowIndex: 3 },
-  { start: '11:30', end: '13:00', label: '11:30 - 01:00', period: 'Period 3', rowIndex: 4 },
-  { start: '13:00', end: '14:30', label: '01:00 - 02:30', period: 'Period 4', rowIndex: 5 },
-  { start: '14:30', end: '16:00', label: '02:30 - 04:00', period: 'Period 5', rowIndex: 6 },
-  { start: '16:00', end: '17:30', label: '04:00 - 05:30', period: 'Period 6', rowIndex: 7 },
-];
-
 export function TimetableGrid({
   section,
   classes,
   viewMode,
   onViewModeChange,
-  activeDay,
   onActiveDayChange,
+  routineVersion = 'v2.2',
 }: TimetableGridProps) {
-  // Default to agenda for mobile-first companion
-  const [internalViewMode, setInternalViewMode] = useState<'matrix' | 'agenda'>('agenda');
+  // Default to matrix (week view) unless ?view=agenda is passed in URL
+  const [internalViewMode, setInternalViewMode] = useState<'matrix' | 'agenda'>('matrix');
   const effectiveViewMode = viewMode !== undefined ? viewMode : internalViewMode;
   const setEffectiveViewMode = onViewModeChange || setInternalViewMode;
 
-  // Determine current day in Bangladesh
-  const todayDay = useMemo<DayOfWeek>(() => {
-    try {
-      const parts = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Asia/Dhaka',
-        weekday: 'long',
-      }).formatToParts(new Date());
-      const weekday = parts.find((p) => p.type === 'weekday')?.value?.toUpperCase() || '';
-      const dayMap: Record<string, DayOfWeek> = {
-        SATURDAY: 'SATURDAY',
-        SUNDAY: 'SUNDAY',
-        MONDAY: 'MONDAY',
-        TUESDAY: 'TUESDAY',
-        WEDNESDAY: 'WEDNESDAY',
-        THURSDAY: 'THURSDAY',
-      };
-      return dayMap[weekday] || 'SATURDAY';
-    } catch {
-      return 'SATURDAY';
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const v = params.get('view') || params.get('v');
+        if (v === 'agenda') {
+          setInternalViewMode('agenda');
+        }
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Determine current day & minute in Asia/Dhaka with 1-second precision
+  const [currentDhakaTime, setCurrentDhakaTime] = useState<DhakaClockState>(() => getDhakaClock());
+
+  // Update clock every second for exact minute transitions
+  useEffect(() => {
+    const updateTime = () => {
+      setCurrentDhakaTime(getDhakaClock());
+    };
+
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const todayDay = currentDhakaTime.day;
+
+  // Matrix view scroll reference and selected day
+  const matrixScrollRef = useRef<HTMLDivElement>(null);
+  const scrollRafRef = useRef<number | null>(null);
+
+  // Fluid Zoom Level: 1.0 (1 day view) to 6.0 (full week view)
+  const [zoomDays, setZoomDays] = useState<number>(6);
+  const zoomDaysRef = useRef(zoomDays);
+  useEffect(() => {
+    zoomDaysRef.current = zoomDays;
+  }, [zoomDays]);
+
+  // Compression limit: on mobile (<640px) max comfortable days is 3.0. On desktop/tablet (>=640px) it is 6.0.
+  const getCompressionLimit = useCallback(() => {
+    if (typeof window === 'undefined') return 6.0;
+    return window.innerWidth < 640 ? 3.0 : 6.0;
+  }, []);
+
+  const minZoomLimit = 1.0;
+
+  // Spring animation ref for realistic damped bounce effect
+  const springRafRef = useRef<number | null>(null);
+
+  // High-performance spring bounce physics simulation
+  const triggerSpringBounce = useCallback((targetZoom: number) => {
+    if (springRafRef.current !== null) {
+      cancelAnimationFrame(springRafRef.current);
+      springRafRef.current = null;
+    }
+
+    const stiffness = 220; // Tension / responsiveness
+    const damping = 16;    // Damping / friction for organic bounce oscillation
+    let current = zoomDaysRef.current;
+    let velocity = 0;
+    let lastTime = performance.now();
+
+    const step = (now: number) => {
+      const dt = Math.min((now - lastTime) / 1000, 0.032);
+      lastTime = now;
+
+      const displacement = current - targetZoom;
+      const springForce = -stiffness * displacement;
+      const dampingForce = -damping * velocity;
+      const acceleration = springForce + dampingForce;
+
+      velocity += acceleration * dt;
+      current += velocity * dt;
+
+      // When settled, clamp cleanly to target and finish
+      if (Math.abs(displacement) < 0.005 && Math.abs(velocity) < 0.02) {
+        setZoomDays(targetZoom);
+        springRafRef.current = null;
+        return;
+      }
+
+      setZoomDays(Math.round(current * 100) / 100);
+      springRafRef.current = requestAnimationFrame(step);
+    };
+
+    springRafRef.current = requestAnimationFrame(step);
+  }, []);
+
+  // Clean up spring animation on unmount
+  useEffect(() => {
+    return () => {
+      if (springRafRef.current !== null) {
+        cancelAnimationFrame(springRafRef.current);
+      }
+    };
+  }, []);
+
+  const [selectedGridDay, setSelectedGridDay] = useState<DayOfWeek>(todayDay || 'SATURDAY');
+
+  // Render all 6 days continuously so horizontal scroll / bar movement is always possible
+  const visibleGridDays = DAYS;
+
+  const scrollToDay = useCallback((dayKey: DayOfWeek, smooth = true) => {
+    if (!matrixScrollRef.current) return;
+    const container = matrixScrollRef.current;
+    if (dayKey === 'SATURDAY') {
+      container.scrollTo({ left: 0, behavior: smooth ? 'smooth' : 'auto' });
+      return;
+    }
+    const colEl = container.querySelector<HTMLElement>(`#matrix-col-${dayKey}`);
+    if (colEl) {
+      const timeColWidth = window.innerWidth < 640 ? 64 : 72;
+      const targetLeft = Math.max(0, colEl.offsetLeft - timeColWidth);
+      container.scrollTo({
+        left: targetLeft,
+        behavior: smooth ? 'smooth' : 'auto',
+      });
     }
   }, []);
 
-  const [internalActiveDay, setInternalActiveDay] = useState<DayOfWeek>(todayDay);
-  const effectiveActiveDay = activeDay !== undefined ? activeDay : internalActiveDay;
-  const setEffectiveActiveDay = onActiveDayChange || setInternalActiveDay;
+  // Initial load: on mobile, initialize zoom to the compression limit (3 days) and scroll to today
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (typeof window !== 'undefined' && window.innerWidth < 640) {
+        const mobileLimit = 3.0;
+        setZoomDays(mobileLimit);
+        if (todayDay && todayDay !== 'SATURDAY') {
+          scrollToDay(todayDay, false);
+        }
+      }
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [scrollToDay, todayDay]);
 
-  // Matrix view mobile scroll reference and selected day
-  const matrixScrollRef = useRef<HTMLDivElement>(null);
-  const [selectedMatrixDay, setSelectedMatrixDay] = useState<DayOfWeek>(todayDay);
+  // Handle window resize compression bounds
+  useEffect(() => {
+    const handleResize = () => {
+      const limit = getCompressionLimit();
+      if (zoomDaysRef.current > limit) {
+        triggerSpringBounce(limit);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [getCompressionLimit, triggerSpringBounce]);
 
-  const scrollToDay = (dayKey: DayOfWeek) => {
+  // Update active day based on user sideways scrolling / dragging the scrollbar
+  const handleMatrixScroll = () => {
+    if (scrollRafRef.current !== null) return;
+
+    scrollRafRef.current = requestAnimationFrame(() => {
+      scrollRafRef.current = null;
+      if (!matrixScrollRef.current) return;
+      const container = matrixScrollRef.current;
+      const timeWidth = window.innerWidth < 640 ? 64 : 72;
+      const scrollLeft = container.scrollLeft;
+
+      let closestDay: DayOfWeek = 'SATURDAY';
+      let minDiff = Infinity;
+
+      for (const d of DAYS) {
+        const colEl = container.querySelector<HTMLElement>(`#matrix-col-${d.key}`);
+        if (colEl) {
+          const diff = Math.abs(colEl.offsetLeft - (scrollLeft + timeWidth));
+          if (diff < minDiff) {
+            minDiff = diff;
+            closestDay = d.key;
+          }
+        }
+      }
+
+      if (closestDay && closestDay !== selectedGridDay) {
+        setSelectedGridDay(closestDay);
+        onActiveDayChange?.(closestDay);
+      }
+    });
+  };
+
+  // Pinch-to-zoom touch handlers for continuous mobile zoom with rubber-band resistance & spring bounce
+  const initialTouchDistRef = useRef<number | null>(null);
+  const initialZoomDaysRef = useRef<number>(3);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (springRafRef.current !== null) {
+      cancelAnimationFrame(springRafRef.current);
+      springRafRef.current = null;
+    }
+
+    if (e.touches.length === 2) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      initialTouchDistRef.current = dist;
+      initialZoomDaysRef.current = zoomDaysRef.current;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && initialTouchDistRef.current !== null) {
+      if (e.cancelable) {
+        e.preventDefault();
+      }
+      const currentDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const scale = currentDist / initialTouchDistRef.current;
+      const rawZoom = initialZoomDaysRef.current / scale;
+
+      const limit = getCompressionLimit();
+      let nextZoom = rawZoom;
+
+      // Over-compression past limit: allow peeking with elastic rubber-band resistance
+      if (rawZoom > limit) {
+        const over = rawZoom - limit;
+        nextZoom = limit + over * 0.45;
+        nextZoom = Math.min(6.2, nextZoom);
+      } else if (rawZoom < minZoomLimit) {
+        const under = minZoomLimit - rawZoom;
+        nextZoom = minZoomLimit - under * 0.45;
+        nextZoom = Math.max(0.7, nextZoom);
+      }
+
+      setZoomDays(Math.round(nextZoom * 100) / 100);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    initialTouchDistRef.current = null;
+    const limit = getCompressionLimit();
+    const current = zoomDaysRef.current;
+
+    // Trigger spring bounce if over-compressed or over-stretched
+    if (current > limit) {
+      triggerSpringBounce(limit);
+    } else if (current < minZoomLimit) {
+      triggerSpringBounce(minZoomLimit);
+    }
+  };
+
+  // Trackpad pinch zoom on laptops (Ctrl + wheel) with bounce
+  useEffect(() => {
+    const el = matrixScrollRef.current;
+    if (!el) return;
+
+    let wheelTimer: NodeJS.Timeout | null = null;
+
+    const handleWheel = (e: WheelEvent) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        if (springRafRef.current !== null) {
+          cancelAnimationFrame(springRafRef.current);
+          springRafRef.current = null;
+        }
+
+        const delta = (e.deltaY / 100) * 0.4;
+        const limit = getCompressionLimit();
+        const next = Math.max(0.8, Math.min(6.2, zoomDaysRef.current + delta));
+        setZoomDays(Math.round(next * 100) / 100);
+
+        if (wheelTimer) clearTimeout(wheelTimer);
+        wheelTimer = setTimeout(() => {
+          const current = zoomDaysRef.current;
+          if (current > limit) {
+            triggerSpringBounce(limit);
+          } else if (current < minZoomLimit) {
+            triggerSpringBounce(minZoomLimit);
+          }
+        }, 120);
+      }
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', handleWheel);
+      if (wheelTimer) clearTimeout(wheelTimer);
+    };
+  }, [getCompressionLimit, triggerSpringBounce]);
+
+  // Mouse drag-to-scroll for desktop
+  const isMouseDownRef = useRef(false);
+  const startXRef = useRef(0);
+  const scrollLeftRef = useRef(0);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('button, a, input, select')) return;
+
     if (!matrixScrollRef.current) return;
-    if (dayKey === 'SATURDAY') {
-      matrixScrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
-      return;
-    }
-    const el = matrixScrollRef.current.querySelector<HTMLElement>(`#matrix-col-${dayKey}`);
-    if (el) {
-      const containerLeft = matrixScrollRef.current.getBoundingClientRect().left;
-      const colLeft = el.getBoundingClientRect().left;
-      const timeColWidth = window.innerWidth < 640 ? 62 : 112;
-      matrixScrollRef.current.scrollBy({
-        left: (colLeft - containerLeft) - timeColWidth,
-        behavior: 'smooth',
-      });
+    isMouseDownRef.current = true;
+    startXRef.current = e.pageX - matrixScrollRef.current.offsetLeft;
+    scrollLeftRef.current = matrixScrollRef.current.scrollLeft;
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isMouseDownRef.current || !matrixScrollRef.current) return;
+    e.preventDefault();
+    if (!isDragging) setIsDragging(true);
+    const x = e.pageX - matrixScrollRef.current.offsetLeft;
+    const walk = (x - startXRef.current) * 1.15;
+    matrixScrollRef.current.scrollLeft = scrollLeftRef.current - walk;
+  };
+
+  const handleMouseUpOrLeave = () => {
+    isMouseDownRef.current = false;
+    if (isDragging) {
+      setTimeout(() => setIsDragging(false), 50);
     }
   };
 
-  const totalClasses = classes.length;
-  const theoryClasses = classes.filter((c) => c.type === 'Theory').length;
-  const labClasses = classes.filter((c) => c.type === 'Lab').length;
+  const upcomingDays = useMemo(() => {
+    void currentDhakaTime.minuteInt;
+    return getUpcomingDays(7);
+  }, [currentDhakaTime.minuteInt]);
 
-  const dayClasses = useMemo(() => {
-    return classes
-      .filter((c) => c.dayOfWeek === effectiveActiveDay)
-      .sort((a, b) => a.startTime.localeCompare(b.startTime));
-  }, [classes, effectiveActiveDay]);
+  // Academic week days (Saturday to Thursday) with calendar dates
+  const weekDays = useMemo(() => {
+    void currentDhakaTime.day;
+    return getCurrentWeekScheduleDays();
+  }, [currentDhakaTime.day]);
+  const weekDaysMap = useMemo(() => {
+    const map: Record<string, WeekScheduleDay> = {};
+    for (const d of weekDays) {
+      map[d.dayKey] = d;
+    }
+    return map;
+  }, [weekDays]);
 
-  /**
-   * Checks if a slot is already covered by a 3-hour class starting in the prior period.
-   */
-  const isSlotCoveredByPriorClass = (day: DayOfWeek, slotIdx: number): boolean => {
-    if (slotIdx === 0) return false;
-    const prevSlot = STANDARD_SLOTS[slotIdx - 1];
-    const prevClass = classes.find(
-      (c) => c.dayOfWeek === day && c.startTime === prevSlot.start
-    );
-    if (!prevClass) return false;
+  // Dynamic Notion Calendar Date Title
+  const notionDateTitle = useMemo(() => {
+    if (effectiveViewMode === 'agenda') {
+      const firstUpcoming = upcomingDays[0];
+      return firstUpcoming ? `${firstUpcoming.monthLong} ${weekDays[0]?.year || 2026}` : 'Schedule';
+    }
 
-    const [startH, startM] = prevClass.startTime.split(':').map(Number);
-    const [endH, endM] = prevClass.endTime.split(':').map(Number);
-    const durationMinutes = endH * 60 + endM - (startH * 60 + startM);
-    return durationMinutes >= 150; // Spans 2 periods
-  };
+    const first = weekDays[0];
+    const last = weekDays[weekDays.length - 1];
+    if (first && last) {
+      if (first.monthShort === last.monthShort) {
+        return `${first.monthLong} ${first.year}`;
+      }
+      return `${first.monthShort} – ${last.monthShort} ${last.year}`;
+    }
+    return 'September 2026';
+  }, [weekDays, effectiveViewMode, upcomingDays]);
+
+  // Calendar View Keyboard Shortcuts: W for Week, A for Agenda
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        e.target instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+
+      if (e.key === 'w' || e.key === 'W') {
+        e.preventDefault();
+        setEffectiveViewMode('matrix');
+      } else if (e.key === 'a' || e.key === 'A') {
+        e.preventDefault();
+        setEffectiveViewMode('agenda');
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [setEffectiveViewMode]);
+
+  // Memoize positioned events for each day (Google Calendar Timeline Layout)
+  const dayEventsMap = useMemo(() => {
+    const map: Record<DayOfWeek, PositionedEvent[]> = {
+      SATURDAY: [],
+      SUNDAY: [],
+      MONDAY: [],
+      TUESDAY: [],
+      WEDNESDAY: [],
+      THURSDAY: [],
+    };
+
+    for (const d of DAYS) {
+      const classesForDay = classes.filter((c) => c.dayOfWeek === d.key);
+      map[d.key] = layoutDayEvents(classesForDay);
+    }
+
+    return map;
+  }, [classes]);
+
+  // Google Calendar style current time bar metrics
+  const isClassHours = currentDhakaTime.totalMinutes >= 480 && currentDhakaTime.totalMinutes <= 1080;
+  const currentTimeTopPercent = useMemo(() => {
+    return getCurrentTimeTopPercent(currentDhakaTime.totalMinutes);
+  }, [currentDhakaTime.totalMinutes]);
 
   return (
     <section
       aria-labelledby="timetable-heading"
-      className="rounded-2xl border border-slate-200 bg-white p-2.5 sm:p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900/40 transition-colors space-y-4 sm:space-y-5"
+      className="w-full space-y-3 sm:space-y-4 transition-colors"
     >
-      {/* Timetable Header & Stats */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-slate-100 dark:border-slate-800/80">
-        <div>
-          <div className="flex items-center gap-2">
-            <Calendar className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            <h2 id="timetable-heading" className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-              <span>Class Timetable</span>
-              <span className="text-xs font-normal text-slate-500 dark:text-slate-400">
-                ({section.displayName})
-              </span>
-            </h2>
-          </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-prose print:hidden">
-            {effectiveViewMode === 'agenda'
-              ? "Touch-friendly daily agenda with high-glance room numbers and instructor initials."
-              : "Full semester schedule matrix across standard academic periods."}
-          </p>
+      {/* Calendar Header & View Switcher (ONLY Week and Agenda) */}
+      <div className="flex items-center justify-between gap-2.5 print:hidden select-none">
+        {/* Left: Date Title + Routine Version */}
+        <div className="flex items-center gap-2">
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5">
+            <span>{notionDateTitle}</span>
+          </h2>
+          <span
+            title="Official CSE Department Class Routine Version"
+            className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-700/60 shadow-2xs shrink-0"
+          >
+            {routineVersion || 'v2.2'}
+          </span>
         </div>
 
-        {/* View Toggle & Stats Badges */}
-        <div className="flex flex-wrap items-center gap-2 text-xs print:hidden">
-          <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-100 dark:border-slate-800 dark:bg-slate-950 p-1">
-            <button
-              type="button"
-              onClick={() => setEffectiveViewMode('agenda')}
-              aria-pressed={effectiveViewMode === 'agenda'}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer min-h-[36px] ${
-                effectiveViewMode === 'agenda'
-                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80 dark:bg-slate-800 dark:text-white dark:border-slate-700'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
-              }`}
-            >
-              <CalendarDays className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>Today&apos;s Agenda</span>
-            </button>
+        {/* Right: ONLY Week and Agenda Toggle */}
+        <div className="flex items-center">
+          <div className="inline-flex items-center gap-0.5 rounded-xl border border-slate-200 bg-slate-100/90 dark:border-slate-800 dark:bg-slate-950 p-0.5 shadow-2xs">
+            {/* Week View */}
             <button
               type="button"
               onClick={() => setEffectiveViewMode('matrix')}
               aria-pressed={effectiveViewMode === 'matrix'}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer min-h-[36px] ${
+              className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer min-h-[32px] ${
                 effectiveViewMode === 'matrix'
-                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80 dark:bg-slate-800 dark:text-white dark:border-slate-700'
+                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80 dark:bg-slate-800 dark:text-white dark:border-slate-700 font-bold'
                   : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
               }`}
             >
               <LayoutGrid className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>Full Week Matrix</span>
+              <span>Week</span>
+            </button>
+
+            {/* Agenda View */}
+            <button
+              type="button"
+              onClick={() => setEffectiveViewMode('agenda')}
+              aria-pressed={effectiveViewMode === 'agenda'}
+              className={`flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer min-h-[32px] ${
+                effectiveViewMode === 'agenda'
+                  ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80 dark:bg-slate-800 dark:text-white dark:border-slate-700 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              <CalendarDays className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>Agenda</span>
             </button>
           </div>
-
-          <Badge variant="slate" size="sm" className="hidden sm:inline-flex">
-            <BookOpen className="h-3 w-3" />
-            <span>{theoryClasses} Theory</span>
-          </Badge>
-          <Badge variant="amber" size="sm" className="hidden sm:inline-flex">
-            <FlaskConical className="h-3 w-3" />
-            <span>{labClasses} Lab{labClasses !== 1 ? 's' : ''} (3h)</span>
-          </Badge>
-          <Badge variant="slate" size="sm" mono>
-            <span>{totalClasses} Classes/Wk</span>
-          </Badge>
         </div>
       </div>
 
-      {/* 1. Daily Agenda View (Mobile-First) */}
-      <div className={`space-y-4 print:hidden ${effectiveViewMode === 'agenda' ? 'block' : 'hidden'}`}>
-        {/* Day Selector Tabs Slider */}
+      {/* ============================================================== */}
+      {/* 1. Zoomable Google Calendar Timeline Grid (1 Day to 6 Days Full Week) */}
+      {/* ============================================================== */}
+      <div className={effectiveViewMode === 'matrix' ? 'block' : 'hidden print:block'}>
+
+        {/* Timetable Grid Container: Sideways scrollable + Draggable scrollbar + Pinch to zoom */}
         <div
-          className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin touch-pan-x overscroll-x-contain"
-          role="tablist"
-          aria-label="Select day of week"
+          ref={matrixScrollRef}
+          onScroll={handleMatrixScroll}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUpOrLeave}
+          onMouseLeave={handleMouseUpOrLeave}
+          className={`calendar-matrix-scroll mt-1 sm:mt-2 pb-2 print:overflow-visible print:pb-0 ${
+            isDragging ? 'cursor-grabbing select-none' : 'cursor-default'
+          }`}
+          style={{
+            containerType: 'inline-size',
+            scrollPaddingLeft: 'var(--col-time, 64px)',
+          }}
         >
-            {DAYS.map((d) => {
-              const count = classes.filter((c) => c.dayOfWeek === d.key).length;
-              const isActive = effectiveActiveDay === d.key;
+          <div
+            className="timeline-grid-layout relative print:min-w-0"
+            style={{
+              gridTemplateColumns: `var(--col-time) repeat(6, calc((100cqw - var(--col-time)) / ${zoomDays}))`,
+              width: `calc(var(--col-time) + 6 * ((100cqw - var(--col-time)) / ${zoomDays}))`,
+            }}
+          >
+            {/* ROW 1: HEADER - Col 1 is GMT+06 Timezone Label */}
+            <div
+              className="sticky top-0 left-0 z-30 flex items-center justify-end pr-2 py-2 bg-slate-50 dark:bg-[#080d1a] border-b border-slate-200 dark:border-slate-800"
+              style={{ gridColumn: 1, gridRow: 1 }}
+            >
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                GMT+06
+              </span>
+            </div>
+
+            {/* ROW 1: HEADER - Cols 2 to 7 are Day Headers (Google Calendar Style) */}
+            {visibleGridDays.map((d, vIdx) => {
               const isToday = d.key === todayDay;
+              const dateInfo = weekDaysMap[d.key];
+              const dayNum = dateInfo?.dayNumber || '';
 
               return (
-                <button
-                  key={d.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  onClick={() => setEffectiveActiveDay(d.key)}
-                  className={`group flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium transition-colors min-h-[44px] cursor-pointer whitespace-nowrap border ${
-                    isActive && isToday
-                      ? 'bg-emerald-50 text-emerald-950 border-2 border-emerald-500 shadow-xs hover:bg-emerald-100/80 dark:bg-emerald-950/50 dark:text-emerald-200 dark:border-emerald-500 dark:hover:bg-emerald-900/40'
-                      : isActive
-                      ? 'bg-white text-slate-900 border-2 border-slate-300 shadow-xs hover:bg-slate-50 dark:bg-slate-800 dark:text-white dark:border-slate-700 dark:hover:bg-slate-700/80'
-                      : isToday
-                      ? 'bg-emerald-50/60 text-emerald-900 border border-emerald-200 hover:bg-emerald-100/70 hover:border-emerald-300 hover:text-emerald-950 dark:bg-emerald-950/20 dark:text-emerald-300 dark:border-emerald-500/30 dark:hover:bg-emerald-900/40 dark:hover:text-emerald-100 dark:hover:border-emerald-500/60'
-                      : 'bg-slate-100/80 text-slate-600 border border-slate-200 hover:bg-slate-200/70 hover:text-slate-900 hover:border-slate-300 dark:bg-slate-950/70 dark:text-slate-400 dark:border-slate-800/70 dark:hover:bg-slate-900 dark:hover:text-slate-100 dark:hover:border-slate-700'
-                  }`}
+                <div
+                  key={`hdr-${d.key}`}
+                  id={`matrix-col-${d.key}`}
+                  className="sticky top-0 z-20 flex flex-col items-center justify-center py-2 px-1 text-center bg-slate-50 dark:bg-[#080d1a] border-b border-l border-slate-200 dark:border-slate-800 transition-colors"
+                  style={{
+                    gridColumn: vIdx + 2,
+                    gridRow: 1,
+                  }}
                 >
-                  <span>{d.label}</span>
-                  {isToday && (
-                    <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-mono text-xs font-medium">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                      <span>Today</span>
+                  <span
+                    className={`text-[11px] font-mono font-bold uppercase tracking-wider ${
+                      isToday ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'
+                    }`}
+                  >
+                    {zoomDays <= 1.5 ? d.label : d.short}
+                  </span>
+                  {dayNum && (
+                    <span
+                      className={`mt-0.5 inline-flex items-center justify-center font-bold text-xs sm:text-sm h-7 w-7 rounded-full ${
+                        isToday
+                          ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-emerald-950 shadow-xs'
+                          : 'text-slate-800 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
+                      }`}
+                    >
+                      {dayNum}
                     </span>
                   )}
-                  <span className="text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300 font-mono text-xs transition-colors">
-                    ({count})
-                  </span>
-                </button>
+                </div>
               );
             })}
-          </div>
 
-          {/* Agenda Cards */}
-          {dayClasses.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-8 text-center text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-950/50 dark:text-slate-400">
-              <p className="text-slate-800 dark:text-slate-300 font-medium">
-                No classes scheduled for {DAYS.find((d) => d.key === effectiveActiveDay)?.label}.
-              </p>
-              <p className="mt-1 text-slate-500 dark:text-slate-500">Free study day or off-schedule period.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {dayClasses.map((classItem) => {
-                const [startH, startM] = classItem.startTime.split(':').map(Number);
-                const [endH, endM] = classItem.endTime.split(':').map(Number);
-                const durationMinutes = endH * 60 + endM - (startH * 60 + startM);
-                const isDoubleSlot = durationMinutes >= 150;
-                const isLab = classItem.type === 'Lab';
-                const cleanCourseCode = classItem.courseCode.split('(')[0].trim();
-
-                const isSub1 = classItem.subSection === '1';
-                const isSub2 = classItem.subSection === '2';
-                const cardStyle = isLab
-                  ? 'border-2 border-amber-300 bg-amber-50/80 hover:border-amber-400 shadow-xs hover:shadow-md dark:border-amber-500/30 dark:bg-amber-950/15 dark:hover:border-amber-500/40'
-                  : 'border-2 border-slate-200/90 bg-white hover:border-slate-300 shadow-xs hover:shadow-md dark:border-slate-800/80 dark:bg-slate-900/50 dark:hover:border-slate-700';
+            {/* ROW 2: TIME Y-AXIS LABELS (Col 1) */}
+            <div
+              className="sticky left-0 z-20 relative h-[600px] bg-slate-50 dark:bg-[#080d1a] border-r border-transparent"
+              style={{ gridColumn: 1, gridRow: 2 }}
+            >
+              {HOURLY_MARKS.map((mark, mIdx) => {
+                const isFirst = mIdx === 0;
+                const isLast = mIdx === HOURLY_MARKS.length - 1;
 
                 return (
                   <div
-                    key={`agenda-${classItem.id}`}
-                    tabIndex={0}
-                    role="region"
-                    aria-label={`${cleanCourseCode}: ${classItem.courseTitle}, Room ${classItem.room.split('(')[0].trim()}, ${classItem.startTime} to ${classItem.endTime}`}
-                    className={`rounded-xl border p-4 transition-all flex flex-col justify-between gap-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-400 ${cardStyle}`}
-                  >
-                    {/* Top Row: Course Code, Title & Refined Room */}
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          {isLab && <FlaskConical className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />}
-                          <span className={`font-semibold text-sm sm:text-base font-mono tracking-tight ${
-                            isLab ? 'text-amber-950 dark:text-amber-100' : 'text-slate-900 dark:text-white'
-                          }`}>
-                            {cleanCourseCode}
-                          </span>
-                          {isDoubleSlot && (
-                            <span className="text-xs font-mono text-amber-900 dark:text-amber-300 font-semibold bg-amber-100 border border-amber-300 dark:bg-amber-500/15 dark:border-amber-500/30 px-1.5 py-0.2 rounded">
-                              3h Lab
-                            </span>
-                          )}
-                        </div>
-                        <h3 className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-snug">
-                          {classItem.courseTitle}
-                        </h3>
-                      </div>
-
-                      {/* Quiet Room Tag */}
-                      <div className="text-right shrink-0">
-                        <span className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-mono font-medium ${
-                          isLab
-                            ? 'border-amber-300 bg-amber-100 text-amber-950 dark:border-amber-500/30 dark:bg-slate-950 dark:text-amber-200'
-                            : 'border-slate-200 bg-slate-100 text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200'
-                        }`}>
-                          <MapPin className="h-3 w-3 text-slate-400 dark:text-slate-500" />
-                          <span>{classItem.room.split('(')[0].trim()}</span>
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Bottom Row: Time, Faculty & Subgroup */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-slate-100 dark:border-slate-800/60 text-xs font-mono">
-                      <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                        <Clock className="h-3 w-3 text-slate-400 dark:text-slate-500" />
-                        <span>
-                          {classItem.startTime} – {classItem.endTime}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2.5 text-slate-500 dark:text-slate-400">
-                        <span>
-                          Faculty: <strong className="text-slate-800 dark:text-slate-200 font-medium">{classItem.teacherCode}</strong>
-                        </span>
-                        {classItem.subSection ? (
-                          <span
-                            className={`px-2 py-0.5 rounded text-xs font-bold border ${
-                              isSub1
-                                ? 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30'
-                                : isSub2
-                                ? 'bg-rose-100 text-rose-900 border-rose-300 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30'
-                                : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-950 dark:text-slate-300 dark:border-slate-800'
-                            }`}
-                          >
-                            Sec {section.sectionLetter}{classItem.subSection}
-                          </span>
-                        ) : (
-                          <span className="text-slate-500 dark:text-slate-400 text-xs">
-                            Theory
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* 2. Full Week Matrix Grid (Always visible when printing) */}
-        <div className={effectiveViewMode === 'matrix' ? 'block' : 'hidden print:block'}>
-          {/* Mobile Quick Day Jump Bar & Swipe Hint */}
-          <div className="sm:hidden mt-2 mb-2 flex flex-col gap-1.5 print:hidden">
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none overscroll-x-contain">
-              <span className="text-xs font-mono text-slate-400 dark:text-slate-500 shrink-0">
-                Jump:
-              </span>
-              {DAYS.map((d) => {
-                const isToday = d.key === todayDay;
-                const isCurrentJump = selectedMatrixDay === d.key;
-                return (
-                  <button
-                    key={`jump-${d.key}`}
-                    type="button"
-                    onClick={() => {
-                      setSelectedMatrixDay(d.key);
-                      scrollToDay(d.key);
-                    }}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono font-medium transition-colors shrink-0 min-h-[32px] cursor-pointer border ${
-                      isCurrentJump
-                        ? 'bg-slate-900 text-white border-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:border-slate-100 dark:hover:bg-white shadow-2xs'
-                        : isToday
-                        ? 'bg-emerald-50 text-emerald-900 border-emerald-300 hover:bg-emerald-100 hover:border-emerald-400 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-700/60 dark:hover:bg-emerald-900/40 dark:hover:text-emerald-100 dark:hover:border-emerald-500'
-                        : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200/80 hover:text-slate-900 hover:border-slate-300 dark:bg-slate-950 dark:text-slate-400 dark:border-slate-800 dark:hover:bg-slate-900 dark:hover:text-slate-100 dark:hover:border-slate-700'
+                    key={`time-lbl-${mark.hour}`}
+                    className={`absolute right-0 pr-2 select-none pointer-events-none ${
+                      isFirst ? 'top-1 translate-y-0' : isLast ? '-bottom-1 translate-y-0' : '-translate-y-1/2'
                     }`}
+                    style={isFirst || isLast ? undefined : { top: `${mark.topPercent}%` }}
                   >
-                    <span>{d.short}</span>
-                    {isToday && (
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 font-mono">
-              <span className="text-slate-500 dark:text-slate-400">
-                Sticky time column
-              </span>
-              <span className="text-slate-700 dark:text-slate-300 font-bold flex items-center gap-1">
-                <span>Swipe Sat to Thu</span>
-                <ArrowRight className="h-3 w-3 text-slate-400" />
-              </span>
-            </div>
-          </div>
-
-          {/* Timetable Grid: Time on Y-Axis, Days on X-Axis */}
-          <div
-            ref={matrixScrollRef}
-            className="mt-2 sm:mt-4 overflow-x-auto pb-3 scrollbar-thin overscroll-x-contain touch-pan-x print:overflow-visible print:pb-0"
-          >
-            <div className="matrix-grid-layout gap-1.5 sm:gap-2 min-w-[686px] sm:min-w-[960px] print:min-w-0 print:gap-1.5">
-              {/* HEADER ROW: Time label in Col 1, Days in Cols 2 to 7 */}
-              <div
-                className="sticky left-0 z-20 flex items-center justify-center rounded-lg sm:rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-1.5 sm:p-2.5 text-center shadow-xs"
-                style={{ gridColumn: 1, gridRow: 1 }}
-              >
-                <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1 sm:gap-1.5">
-                  <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-slate-400 dark:text-slate-500 shrink-0" />
-                  <span className="hidden sm:inline">Time \ Day</span>
-                  <span className="sm:hidden">Time</span>
-                </span>
-              </div>
-
-              {DAYS.map((d) => {
-                const isToday = d.key === todayDay;
-                return (
-                  <div
-                    key={d.key}
-                    id={`matrix-col-${d.key}`}
-                    className={`flex flex-col items-center justify-center rounded-lg sm:rounded-xl py-1.5 sm:py-2.5 px-1 sm:px-2 text-center transition-colors border ${
-                      isToday
-                        ? 'border-2 border-emerald-500 bg-emerald-50 text-emerald-950 shadow-2xs dark:border-emerald-500/50 dark:bg-emerald-950/30 dark:text-white'
-                        : 'bg-slate-100/80 border border-slate-200 text-slate-800 dark:bg-slate-950 dark:border-slate-800 dark:text-white'
-                    }`}
-                    style={{ gridColumn: d.colIndex, gridRow: 1 }}
-                  >
-                    <div className="flex items-center gap-1 sm:gap-1.5">
-                      <span className={`text-xs font-bold tracking-wide ${isToday ? 'text-emerald-950 dark:text-white' : 'text-slate-900 dark:text-white'}`}>
-                        <span className="sm:hidden">{d.short}</span>
-                        <span className="hidden sm:inline">{d.label}</span>
-                      </span>
-                      {isToday && (
-                        <span className="rounded bg-emerald-600 text-white px-1 sm:px-1.5 py-0.2 text-xs font-bold font-mono shadow-2xs">
-                          TODAY
-                        </span>
-                      )}
-                    </div>
-                    <span className={`text-xs font-mono mt-0.5 hidden sm:inline ${isToday ? 'text-emerald-800 dark:text-emerald-300 font-semibold' : 'text-slate-500 dark:text-slate-400'}`}>
-                      {d.short}
+                    <span className="text-[10px] sm:text-[11px] font-mono font-medium text-slate-400 dark:text-slate-500">
+                      {mark.label}
                     </span>
                   </div>
                 );
               })}
+            </div>
 
-              {/* TIME Y-AXIS LABELS (Col 1, Rows 2 to 7) */}
-              {STANDARD_SLOTS.map((slot) => (
+            {/* ROW 2: DAY TIMELINE COLUMNS (Cols 2 to 7) */}
+            {visibleGridDays.map((day, vIdx) => {
+              const isToday = day.key === todayDay;
+              const positionedEvents = dayEventsMap[day.key] || [];
+
+              return (
                 <div
-                  key={`time-col-${slot.rowIndex}`}
-                  className="sticky left-0 z-10 flex flex-col items-center justify-center rounded-lg sm:rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-1 sm:p-2 text-center shadow-xs"
-                  style={{ gridColumn: 1, gridRow: slot.rowIndex }}
+                  key={`timeline-${day.key}`}
+                  className="relative h-[600px] border-l border-slate-200 dark:border-slate-800/80"
+                  style={{
+                    gridColumn: vIdx + 2,
+                    gridRow: 2,
+                  }}
                 >
-                  {/* Mobile Compact View */}
-                  <div className="sm:hidden flex flex-col items-center">
-                    <span className="font-mono font-bold text-xs text-slate-900 dark:text-white leading-tight">
-                      {slot.start}
-                    </span>
-                    <span className="font-mono text-xs text-slate-500 dark:text-slate-400 leading-tight">
-                      {slot.end}
-                    </span>
-                    <span className="mt-0.5 rounded bg-slate-200/80 dark:bg-slate-800 px-1 py-0.2 font-mono text-xs font-semibold text-slate-600 dark:text-slate-400">
-                      P{slot.rowIndex - 1}
-                    </span>
-                  </div>
-
-                  {/* Desktop View */}
-                  <div className="hidden sm:flex flex-col items-center">
-                    <span className="font-mono font-semibold text-xs text-slate-800 dark:text-slate-200">
-                      {slot.label}
-                    </span>
-                    <span className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-0.5 font-mono">
-                      {slot.period}
-                    </span>
-                  </div>
-                </div>
-              ))}
-
-              {/* TIMETABLE CELLS (Cols 2 to 7, Rows 2 to 7) */}
-              {DAYS.map((day) => {
-                const isToday = day.key === todayDay;
-
-                return STANDARD_SLOTS.map((slot, sIdx) => {
-                  if (isSlotCoveredByPriorClass(day.key, sIdx)) {
-                    return null;
-                  }
-
-                  const matchedClasses = classes.filter(
-                    (c) => c.dayOfWeek === day.key && c.startTime === slot.start
-                  );
-
-                  if (matchedClasses.length === 0) {
-                    return (
+                  {/* Background Hourly Dashed Grid Lines (Google Calendar with dashed guides) */}
+                  <div className="absolute inset-0 grid grid-rows-10 pointer-events-none">
+                    {Array.from({ length: 10 }).map((_, hIdx) => (
                       <div
-                        key={`cell-${day.key}-${slot.start}`}
-                        className={`rounded-lg sm:rounded-xl border border-dashed p-1.5 sm:p-2 flex items-center justify-center transition-colors ${
-                          isToday
-                            ? 'border-emerald-200 bg-emerald-50/20 text-emerald-600/40 dark:border-emerald-500/15 dark:bg-emerald-950/10 dark:text-emerald-500/30'
-                            : 'border-slate-200 bg-slate-50/50 text-slate-300 dark:border-slate-800/50 dark:bg-slate-950/40 dark:text-slate-700'
-                        }`}
-                        style={{
-                          gridColumn: day.colIndex,
-                          gridRow: slot.rowIndex,
-                        }}
-                      >
-                        <span className="text-xs font-mono select-none">
-                          —
-                        </span>
-                      </div>
-                    );
-                  }
+                        key={`hour-grid-${day.key}-${hIdx}`}
+                        className="border-b border-dashed border-slate-200/85 dark:border-slate-800/75 w-full h-full"
+                      />
+                    ))}
+                  </div>
 
-                  const firstClass = matchedClasses[0];
-                  const [startH, startM] = firstClass.startTime.split(':').map(Number);
-                  const [endH, endM] = firstClass.endTime.split(':').map(Number);
-                  const durationMinutes = endH * 60 + endM - (startH * 60 + startM);
-                  const isDoubleSlot = durationMinutes >= 150;
-                  const rowSpan = isDoubleSlot ? 2 : 1;
-                  const isLab = matchedClasses.some((c) => c.type === 'Lab');
+                  {/* Floating Event Blocks (Google Calendar Style) */}
+                  <div className="absolute inset-0">
+                    {positionedEvents.map((pe) => {
+                      const c = pe.event;
+                      const cleanCode = c.courseCode.split('(')[0].trim();
+                      const shortTitle = getCourseShortTitle(cleanCode, c.courseTitle, c.type === 'Lab');
+                      const isLab = c.type === 'Lab';
+                      const durationMins = pe.endMinutes - pe.startMinutes;
 
-                  const cellBg = isLab
-                    ? 'bg-amber-50/90 border-2 border-amber-300 hover:border-amber-400 shadow-xs hover:shadow-md dark:bg-amber-950/20 dark:border-amber-500/35 dark:hover:border-amber-500/60'
-                    : isToday
-                    ? 'bg-emerald-50/40 border-2 border-emerald-400/90 hover:border-emerald-500 shadow-xs hover:shadow-md dark:bg-slate-900/90 dark:border-emerald-500/50 dark:hover:border-emerald-400'
-                    : 'bg-white border-2 border-slate-200/90 hover:border-slate-400 shadow-xs hover:shadow-md dark:bg-slate-900/90 dark:border-slate-800 dark:hover:border-slate-700';
+                      // If shortTitle already contains cleanCode or is identical, do not show cleanCode separately
+                      const isCodeSameAsTitle =
+                        cleanCode.toUpperCase() === shortTitle.toUpperCase() ||
+                        shortTitle.toUpperCase().includes(cleanCode.toUpperCase());
+                      const showSeparateCode = cleanCode && !isCodeSameAsTitle;
 
-                  return (
-                    <div
-                      key={`cell-${day.key}-${slot.start}`}
-                      tabIndex={0}
-                      role="region"
-                      aria-label={`${matchedClasses.map(c => `${c.courseCode} in Room ${c.room}`).join(', ')} on ${day.label} at ${slot.label}`}
-                      className={`group relative rounded-lg sm:rounded-xl p-1.5 sm:p-2.5 transition-all flex flex-col justify-between focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-400 ${cellBg}`}
-                      style={{
-                        gridColumn: day.colIndex,
-                        gridRow: `${slot.rowIndex} / span ${rowSpan}`,
-                      }}
-                    >
-                      <div className="space-y-1 sm:space-y-1.5">
-                        {matchedClasses.map((c) => {
-                          const cleanCode = c.courseCode.split('(')[0].trim();
-                          const isSub1 = c.subSection === '1';
-                          const isSub2 = c.subSection === '2';
+                      // Solid Google Calendar chips adapting across light (emerald-600) and dark (emerald-500)
+                      const cardTheme =
+                        'bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:text-emerald-950 border border-emerald-700/25 dark:border-emerald-400/40 shadow-xs';
 
-                          return (
-                            <div key={c.id} className="text-xs">
-                              <div className="flex items-center justify-between gap-1">
-                                <div className="flex items-center gap-1 min-w-0">
-                                  {c.type === 'Lab' && (
-                                    <FlaskConical className="h-3 w-3 text-amber-600 dark:text-amber-400 shrink-0" />
-                                  )}
-                                  <span className={`font-bold tracking-tight font-mono truncate ${
-                                    c.type === 'Lab' ? 'text-amber-950 dark:text-amber-100' : 'text-slate-900 dark:text-white'
-                                  }`}>
+                      // Compact time string without space around en-dash: "1–2:30pm" or "8:30–11:30am"
+                      const compactTime = pe.formattedRange.replace(/\s*–\s*/, '–');
+
+                      return (
+                        <div
+                          key={c.id}
+                          className={`absolute rounded-lg transition-all overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 cursor-pointer select-none group z-10 ${cardTheme}`}
+                          style={{
+                            top: `calc(${pe.topPercent}% + 2px)`,
+                            height: `calc(${pe.heightPercent}% - 4px)`,
+                            left: `calc(${pe.leftPercent}% + 2px)`,
+                            width: `calc(${pe.widthPercent}% - 4px)`,
+                          }}
+                        >
+                          <div className="space-y-0.5 overflow-hidden min-w-0">
+                            {/* Line 1: Course Title + Optional Code + Subsection Badge */}
+                            <div className="flex items-center justify-between gap-1 min-w-0">
+                              <div className="flex items-center gap-1 min-w-0 truncate">
+                                {isLab && (
+                                  <FlaskConical className="h-3 w-3 text-emerald-200 dark:text-emerald-900 shrink-0" />
+                                )}
+                                <span className="font-bold tracking-tight text-xs truncate leading-tight">
+                                  {shortTitle}
+                                </span>
+                                {showSeparateCode && zoomDays <= 3.5 && (
+                                  <span className="text-[10px] font-mono opacity-80 shrink-0 leading-tight">
                                     {cleanCode}
-                                  </span>
-                                </div>
-                                {c.subSection ? (
-                                  <span
-                                    className={`shrink-0 rounded px-1 sm:px-1.5 py-0.5 text-xs font-bold font-mono ${
-                                      isSub1
-                                        ? 'bg-amber-100 text-amber-900 border border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30'
-                                        : isSub2
-                                        ? 'bg-rose-100 text-rose-900 border border-rose-300 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30'
-                                        : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                                    }`}
-                                  >
-                                    {section.sectionLetter}{c.subSection}
-                                  </span>
-                                ) : (
-                                  <span className="shrink-0 rounded bg-slate-100 border border-slate-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 px-1 sm:px-1.5 py-0.5 text-xs font-mono font-semibold">
-                                    Th
                                   </span>
                                 )}
                               </div>
-                              <div className={`hidden sm:block truncate text-xs mt-0.5 ${isLab ? 'text-amber-800/90 dark:text-amber-200/90' : 'text-slate-600 dark:text-slate-300'}`} title={c.courseTitle}>
-                                {c.courseTitle}
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
 
-                      <div className={`mt-1.5 sm:mt-2.5 pt-1 sm:pt-1.5 border-t flex items-center justify-between text-xs font-mono ${
-                        isLab ? 'border-amber-200/80 dark:border-amber-500/20' : 'border-slate-100 dark:border-slate-800/80'
-                      }`}>
-                        <span className={`flex items-center gap-0.5 font-bold truncate ${
-                          isLab ? 'text-amber-950 dark:text-amber-200' : 'text-slate-800 dark:text-slate-200'
-                        }`}>
-                          <MapPin className={`h-2.5 w-2.5 sm:h-3 sm:w-3 shrink-0 ${isLab ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500'}`} />
-                          <span className="truncate">{firstClass.room.split('(')[0].trim()}</span>
-                        </span>
-                        <span className="shrink-0 rounded bg-slate-100 dark:bg-slate-950 px-1 sm:px-1.5 py-0.5 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 font-bold text-xs">
-                          {matchedClasses.map((c) => c.teacherCode).join('/')}
-                        </span>
-                      </div>
+                              {/* Subsection badge */}
+                              {c.subSection ? (
+                                <span className="shrink-0 rounded px-1.5 py-0.2 text-[9px] font-bold font-mono bg-black/25 text-white border border-white/20 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20">
+                                  {section.sectionLetter}{c.subSection}
+                                </span>
+                              ) : durationMins >= 150 && zoomDays <= 3.5 ? (
+                                <span className="shrink-0 rounded px-1.5 py-0.2 text-[9px] font-mono font-bold bg-black/25 text-white border border-white/20 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20">
+                                  3h
+                                </span>
+                              ) : null}
+                            </div>
+
+                            {/* Line 2: Time Range (Single Line, Never Wraps, Clean Descenders) */}
+                            <div className="text-[10px] sm:text-[10.5px] font-mono font-medium leading-normal opacity-95 truncate whitespace-nowrap">
+                              {compactTime}
+                            </div>
+                          </div>
+
+                          {/* Line 3: Room & Teacher Bottom Row */}
+                          <div className="pt-1 border-t border-black/15 dark:border-black/20 flex items-center justify-between text-[10px] sm:text-[10.5px] font-mono leading-tight gap-1 min-w-0">
+                            <span className="flex items-center gap-0.5 font-bold truncate min-w-0">
+                              <MapPin className="h-2.5 w-2.5 shrink-0 opacity-80" />
+                              <span className="truncate">{c.room.split('(')[0].trim()}</span>
+                            </span>
+                            <span className="shrink-0 rounded px-1 py-0.2 font-bold text-[9.5px] bg-black/25 text-white border border-white/15 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20">
+                              {c.teacherCode}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Google Calendar Current Time Red Line across Today's column */}
+                  {isToday && currentTimeTopPercent !== null && (
+                    <div
+                      className="absolute left-0 right-0 z-30 pointer-events-none flex items-center -translate-y-1/2"
+                      style={{ top: `${currentTimeTopPercent}%` }}
+                    >
+                      <span className="h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-[#080d1a] -ml-1.5 shrink-0 shadow-xs" />
+                      <div className="h-[2px] w-full bg-red-500 shadow-xs" />
                     </div>
-                  );
-                });
-              })}
-            </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
+      </div>
 
-      {/* Footer Legend */}
-      <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 flex flex-wrap items-center gap-4 text-xs text-slate-600 dark:text-slate-400 font-medium print:text-slate-800 print:border-slate-300">
-        <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-slate-400"></span>
-          <span>Shared Theory Class (1.5 Hours)</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
-          <span>Subsection {section.sectionLetter}1 Lab (3-Hour Merged Slot)</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-rose-500"></span>
-          <span>Subsection {section.sectionLetter}2 Lab (3-Hour Merged Slot)</span>
+      {/* ============================================================== */}
+      {/* 2. Continuous Agenda View (Multi-Day Upcoming Stream) */}
+      {/* ============================================================== */}
+      <div className={`space-y-4 max-w-2xl mx-auto print:hidden ${effectiveViewMode === 'agenda' ? 'block' : 'hidden'}`}>
+        {/* Continuous Stream of Upcoming Days - Google Calendar Schedule Widget Layout */}
+        <div className="space-y-4">
+          {upcomingDays.map((d) => {
+            const isToday = d.isToday;
+            const dayClassList = d.isFriday
+              ? []
+              : classes
+                  .filter((c) => c.dayOfWeek === d.dayKey)
+                  .sort((a, b) => a.startTime.localeCompare(b.startTime));
+
+            // Standalone indicator if today, during class hours, and before the first class of the day
+            const showStandaloneBeforeFirst =
+              isToday &&
+              isClassHours &&
+              dayClassList.length > 0 &&
+              currentDhakaTime.totalMinutes < timeToMinutes(dayClassList[0].startTime);
+
+            return (
+              <div
+                key={`agenda-day-${d.dayKey}-${d.formattedDate}`}
+                id={`agenda-day-${d.dayKey}`}
+                className="flex items-start gap-3 scroll-mt-20 pt-1"
+              >
+                {/* Left Date Pillar (Google Calendar Schedule Widget style) */}
+                <div className="w-12 shrink-0 pt-0.5 text-center flex flex-col items-center">
+                  <span
+                    className={`text-[11px] font-mono font-bold uppercase tracking-wider ${
+                      d.isToday ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'
+                    }`}
+                  >
+                    {d.dayShort}
+                  </span>
+                  <div
+                    className={`mt-0.5 flex items-center justify-center font-bold text-base font-mono ${
+                      d.isToday
+                        ? 'h-9 w-9 rounded-full bg-emerald-600 text-white shadow-xs'
+                        : 'h-9 w-9 text-slate-800 dark:text-slate-200'
+                    }`}
+                  >
+                    {d.dayNumber}
+                  </div>
+                  {d.isToday && (
+                    <span className="mt-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-700/60 px-1.5 py-0.2 text-[9px] font-mono font-bold tracking-tight">
+                      TODAY
+                    </span>
+                  )}
+                  {d.isFriday && (
+                    <span className="mt-1 rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300/60 dark:border-slate-700/60 px-1 py-0.2 text-[8px] font-mono font-bold tracking-tight">
+                      OFF
+                    </span>
+                  )}
+                </div>
+
+                {/* Right Content Column: Stack of Events / Empty Day */}
+                <div className="flex-1 min-w-0 space-y-2 pb-3">
+                  {/* Standalone Current Time Indicator if before first class today */}
+                  {showStandaloneBeforeFirst && (
+                    <div className="flex items-center -ml-2 py-1 pointer-events-none">
+                      <span className="h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900 shrink-0 shadow-xs" />
+                      <div className="h-[2px] w-full bg-red-500 shadow-xs" />
+                    </div>
+                  )}
+
+                  {d.isFriday ? (
+                    <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 p-3 flex items-center gap-2.5 text-xs text-slate-500 dark:text-slate-400 font-mono">
+                      <span className="h-2 w-2 rounded-full bg-amber-400 shrink-0" />
+                      <span>University Weekend • No classes scheduled</span>
+                    </div>
+                  ) : dayClassList.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 p-3 flex items-center gap-2.5 text-xs text-slate-500 dark:text-slate-400 font-mono">
+                      <span className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-600 shrink-0" />
+                      <span>No classes scheduled for {d.dayLabel} • Free day</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {dayClassList.map((classItem, idx) => {
+                        const [startH, startM] = classItem.startTime.split(':').map(Number);
+                        const [endH, endM] = classItem.endTime.split(':').map(Number);
+                        const classStartMins = startH * 60 + startM;
+                        const classEndMins = endH * 60 + endM;
+                        const durationMinutes = classEndMins - classStartMins;
+                        const isDoubleSlot = durationMinutes >= 150;
+                        const isLab = classItem.type === 'Lab';
+                        const cleanCourseCode = classItem.courseCode.split('(')[0].trim();
+                        const shortTitle = getCourseShortTitle(cleanCourseCode, classItem.courseTitle, isLab);
+
+                        const isLiveNow =
+                          isToday &&
+                          currentDhakaTime.totalMinutes >= classStartMins &&
+                          currentDhakaTime.totalMinutes < classEndMins;
+
+                        const classProgress = isLiveNow
+                          ? Math.min(
+                              100,
+                              Math.max(
+                                0,
+                                ((currentDhakaTime.totalMinutes - classStartMins) /
+                                  (classEndMins - classStartMins)) *
+                                  100
+                              )
+                            )
+                          : null;
+
+                        const nextClass = dayClassList[idx + 1];
+                        const nextClassStartMins = nextClass
+                          ? timeToMinutes(nextClass.startTime)
+                          : Infinity;
+
+                        // Check if current minute is after this class and before the next
+                        const showStandaloneAfterThis =
+                          isToday &&
+                          isClassHours &&
+                          currentDhakaTime.totalMinutes >= classEndMins &&
+                          currentDhakaTime.totalMinutes < nextClassStartMins;
+
+                        // Solid Google Calendar styling adapting across light (emerald-600) and dark (emerald-500)
+                        const cardThemeClass = 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-emerald-950 border border-emerald-700/25 dark:border-emerald-400/40 shadow-xs';
+
+                        const liveRingClass = isLiveNow
+                          ? 'ring-2 ring-emerald-400 dark:ring-emerald-400 ring-offset-2 ring-offset-slate-950'
+                          : '';
+
+                        return (
+                          <React.Fragment key={`agenda-class-${classItem.id}`}>
+                            <div
+                              aria-label={`${shortTitle} in Room ${classItem.room}, ${formatTime12(classItem.startTime)} to ${formatTime12(classItem.endTime)}`}
+                              className={`relative overflow-hidden rounded-xl p-2.5 sm:p-3 transition-all flex flex-col justify-center gap-1.5 ${cardThemeClass} ${liveRingClass}`}
+                            >
+                              {/* Current Time Bar across active card */}
+                              {isLiveNow && classProgress !== null && (
+                                <div
+                                  className="absolute left-0 right-0 pointer-events-none z-20 flex items-center -translate-y-1/2"
+                                  style={{ top: `${classProgress}%` }}
+                                >
+                                  <span className="h-2.5 w-2.5 -ml-1 rounded-full bg-red-400 ring-2 ring-white dark:ring-slate-900 shrink-0 shadow-xs" />
+                                  <div className="h-[2px] w-full bg-red-400 shadow-xs" />
+                                </div>
+                              )}
+
+                              {/* Line 1: Course Title (Once!), Code & Badges */}
+                              <div className="flex items-center justify-between gap-2 min-w-0">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  {isLab && (
+                                    <FlaskConical className="h-3.5 w-3.5 text-emerald-200 dark:text-emerald-900 shrink-0" />
+                                  )}
+                                  <span className="font-bold text-sm tracking-tight truncate">
+                                    {shortTitle}
+                                  </span>
+                                  <span className="text-xs font-mono font-semibold opacity-80 shrink-0">
+                                    {cleanCourseCode}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  {isLiveNow && (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-white/20 text-white dark:bg-black/15 dark:text-emerald-950 px-2 py-0.5 text-[10px] font-mono font-bold shadow-2xs">
+                                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 dark:bg-emerald-800 animate-pulse" />
+                                      NOW
+                                    </span>
+                                  )}
+                                  {isDoubleSlot && (
+                                    <span className="text-[10px] font-mono font-semibold bg-black/25 text-white border border-white/20 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20 px-1.5 py-0.5 rounded">
+                                      3h Lab
+                                    </span>
+                                  )}
+                                  {classItem.subSection && (
+                                    <span className="text-[10px] font-mono font-bold bg-white/20 text-white border border-white/25 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20 px-1.5 py-0.5 rounded">
+                                      Sec {section.sectionLetter}{classItem.subSection}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Line 2: Single Compact Meta Row: Time • Room • Faculty */}
+                              <div className="flex items-center gap-2 text-xs font-mono">
+                                <div className="flex items-center gap-1 shrink-0 font-medium opacity-95">
+                                  <Clock className="h-3 w-3 opacity-75" />
+                                  <span>
+                                    {formatTime12(classItem.startTime)} – {formatTime12(classItem.endTime)}
+                                  </span>
+                                </div>
+                                <span className="opacity-40">•</span>
+                                <div className="flex items-center gap-1 shrink-0 opacity-90">
+                                  <MapPin className="h-3 w-3 opacity-75" />
+                                  <span>{classItem.room.split('(')[0].trim()}</span>
+                                </div>
+                                <span className="opacity-40">•</span>
+                                <span className="opacity-95 font-bold shrink-0">
+                                  {classItem.teacherCode}
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Standalone Current Time Indicator between classes */}
+                            {showStandaloneAfterThis && (
+                              <div className="flex items-center -ml-2 py-1 pointer-events-none">
+                                <span className="h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900 shrink-0 shadow-xs" />
+                                <div className="h-[2px] w-full bg-red-500 shadow-xs" />
+                              </div>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

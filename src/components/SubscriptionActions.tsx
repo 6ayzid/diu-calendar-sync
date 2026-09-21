@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import {
   Copy,
   Check,
@@ -187,7 +188,7 @@ export function SubscriptionActions({
               <span className="truncate">Google Calendar</span>
               <ExternalLink className="h-3.5 w-3.5 shrink-0 text-slate-400 group-hover:text-slate-900 dark:text-slate-500 dark:group-hover:text-white transition-colors" />
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Android &amp; Web</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">PC / Desktop Mode</p>
           </div>
           <span className="sm:hidden ml-auto rounded bg-emerald-100 text-emerald-800 border border-emerald-300 px-2 py-0.5 text-xs font-mono font-medium dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 shrink-0">
             Live
@@ -244,6 +245,23 @@ export function SubscriptionActions({
             Offline
           </span>
         </a>
+      </div>
+
+      {/* Android Device Quick Notice */}
+      <div className="rounded-xl border border-amber-200 bg-amber-50/90 dark:border-amber-500/25 dark:bg-amber-950/30 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2.5">
+        <Smartphone className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0 leading-relaxed">
+          <span className="font-bold text-amber-950 dark:text-amber-100">Android Users:</span>{' '}
+          Adding URLs is not supported inside the Google Calendar phone app. Please subscribe using a{' '}
+          <strong className="text-amber-950 dark:text-amber-100">PC / Desktop (recommended)</strong> or open your mobile browser in{' '}
+          <strong className="text-amber-950 dark:text-amber-100">Desktop Mode</strong>, then turn on &quot;Sync&quot; in your calendar app settings.{' '}
+          <Link
+            href="/docs#android-setup"
+            className="inline-flex items-center gap-0.5 font-bold text-emerald-700 dark:text-emerald-400 underline hover:text-emerald-800 dark:hover:text-emerald-300 ml-1"
+          >
+            <span>See Guide &rarr;</span>
+          </Link>
+        </div>
       </div>
 
       {/* Copy Feed URL Bar */}
@@ -342,6 +360,22 @@ export function SubscriptionActions({
                 <span>If Google says &quot;Unable to add calendar&quot;:</span>
               </div>
               <ul className="space-y-2 text-slate-600 dark:text-slate-300 ml-5 list-disc">
+                <li>
+                  <strong className="text-slate-900 dark:text-white">Android phone limitation:</strong>{' '}
+                  Google Calendar mobile app has no &quot;Add URL&quot; option. You must add it via{' '}
+                  <a
+                    href="https://calendar.google.com/calendar/r/settings/addbyurl"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline text-sky-600 dark:text-sky-400 font-mono"
+                  >
+                    calendar.google.com
+                  </a>{' '}
+                  on a PC or mobile browser in Desktop site mode, then open the Google Calendar app &rarr; Settings &rarr; turn <strong className="text-slate-900 dark:text-white">Sync ON</strong>.{' '}
+                  <Link href="/docs#android-setup" className="font-semibold text-emerald-600 dark:text-emerald-400 underline">
+                    Read Guide &rarr;
+                  </Link>
+                </li>
                 <li>
                   <strong className="text-slate-900 dark:text-white">Already added:</strong> Google rejects duplicates.
                   Check <span className="text-slate-900 dark:text-white font-medium">Other calendars</span> in your sidebar.

@@ -33,17 +33,20 @@ export function getSection(id: string): SectionMeta | undefined {
  * @param sectionId e.g. "68_D"
  * @param subSection '1' | '2' | 'all' | null
  */
-export async function getScheduleForSection(
+export async function getScheduleWithMeta(
   sectionId: string,
   subSection?: '1' | '2' | 'all' | null
-): Promise<RoutineClass[]> {
+): Promise<{ classes: RoutineClass[]; version: string }> {
   const normalizedId = sectionId.replace('-', '_').toUpperCase();
 
   // 1. Try live scrape from routine.zohirrayhan.me
   try {
-    const liveClasses = await fetchLiveScheduleFromUpstream(normalizedId);
-    if (liveClasses && liveClasses.length > 0) {
-      return filterBySubSection(liveClasses, subSection);
+    const liveResult = await fetchLiveScheduleFromUpstream(normalizedId);
+    if (liveResult && liveResult.classes.length > 0) {
+      return {
+        classes: filterBySubSection(liveResult.classes, subSection),
+        version: liveResult.version || '2.2',
+      };
     }
   } catch (err) {
     console.warn(`Upstream fetch fallback for ${normalizedId}:`, err);
@@ -57,7 +60,10 @@ export async function getScheduleForSection(
         normalizedId
       );
       if (sheetData.length > 0) {
-        return filterBySubSection(sheetData, subSection);
+        return {
+          classes: filterBySubSection(sheetData, subSection),
+          version: '2.2',
+        };
       }
     } catch (err) {
       console.warn('Fallback to local database after Google Sheets fetch error:', err);
@@ -66,7 +72,18 @@ export async function getScheduleForSection(
 
   // 3. Fallback to curated dataset / local routine generator
   const fallbackSchedule = generateScheduleForSection(normalizedId);
-  return filterBySubSection(fallbackSchedule, subSection);
+  return {
+    classes: filterBySubSection(fallbackSchedule, subSection),
+    version: '2.2',
+  };
+}
+
+export async function getScheduleForSection(
+  sectionId: string,
+  subSection?: '1' | '2' | 'all' | null
+): Promise<RoutineClass[]> {
+  const res = await getScheduleWithMeta(sectionId, subSection);
+  return res.classes;
 }
 
 function filterBySubSection(

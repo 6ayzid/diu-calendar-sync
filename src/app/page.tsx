@@ -1,17 +1,16 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import { Navbar } from '@/components/Navbar';
-import { HeroSection } from '@/components/HeroSection';
-import { ClassRadar } from '@/components/ClassRadar';
 import { SectionSelector } from '@/components/SectionSelector';
 import { SubscriptionActions } from '@/components/SubscriptionActions';
 import { TimetableGrid } from '@/components/TimetableGrid';
-import { SyncExplainer } from '@/components/SyncExplainer';
 import { StickySyncBar } from '@/components/StickySyncBar';
 import { ALL_SECTIONS, getSectionById } from '@/data/sections';
 import { generateScheduleForSection } from '@/data/routines';
 import { DayOfWeek, RoutineClass, SectionMeta } from '@/types/schedule';
+import { Search, Sparkles } from 'lucide-react';
 
 export default function Home() {
   // 1. Initialize Section State with local storage fallback
@@ -19,9 +18,17 @@ export default function Home() {
     return getSectionById('68_D') || ALL_SECTIONS[0];
   });
   const [selectedSubSection, setSelectedSubSection] = useState<'1' | '2' | 'all'>('all');
+  const [hasSavedPreference, setHasSavedPreference] = useState(true);
 
-  // 2. View Mode & Day Navigation State (Default to Mobile-First Agenda)
-  const [viewMode, setViewMode] = useState<'agenda' | 'matrix'>('agenda');
+  // 2. View Mode (Default to Week View Matrix unless ?view=agenda)
+  const [viewMode, setViewMode] = useState<'matrix' | 'agenda'>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const v = params.get('view') || params.get('v');
+      if (v === 'agenda') return 'agenda';
+    }
+    return 'matrix';
+  });
   const [activeDay, setActiveDay] = useState<DayOfWeek>(() => {
     try {
       const parts = new Intl.DateTimeFormat('en-US', {
@@ -49,23 +56,39 @@ export default function Home() {
 
   // 4. Routine Data State
   const [liveSchedule, setLiveSchedule] = useState<RoutineClass[] | null>(null);
-  const [isLiveSynced, setIsLiveSynced] = useState(false);
+  const [routineVersion, setRoutineVersion] = useState<string>('v2.2');
 
-  // Read saved section & subsection from localStorage on mount
+  // Read saved section & subsection from localStorage or URL on mount
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
-        const savedSecId = localStorage.getItem('diu_routine_selected_section');
-        if (savedSecId) {
-          const found = getSectionById(savedSecId);
-          if (found) setSelectedSection(found);
+        let secToUse: string | null = null;
+        if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search);
+          secToUse = params.get('section') || params.get('s');
+          const v = params.get('view') || params.get('v');
+          if (v === 'agenda' || v === 'matrix') {
+            setViewMode(v);
+          }
+        }
+        if (!secToUse) {
+          secToUse = localStorage.getItem('diu_routine_selected_section');
+        }
+        if (secToUse) {
+          const found = getSectionById(secToUse);
+          if (found) {
+            setSelectedSection(found);
+            setHasSavedPreference(true);
+          }
+        } else {
+          setHasSavedPreference(false);
         }
         const savedSub = localStorage.getItem('diu_routine_selected_subsection');
         if (savedSub === '1' || savedSub === '2' || savedSub === 'all') {
           setSelectedSubSection(savedSub);
         }
-      } catch (e) {
-        console.warn('LocalStorage read error:', e);
+      } catch {
+        // Ignore storage errors
       }
     }, 0);
 
@@ -75,7 +98,8 @@ export default function Home() {
   // Save selected section to localStorage
   const handleSelectSection = (newSec: SectionMeta) => {
     setSelectedSection(newSec);
-    setLiveSchedule(null); // Trigger fresh schedule fetch
+    setLiveSchedule(null);
+    setHasSavedPreference(true);
     try {
       localStorage.setItem('diu_routine_selected_section', newSec.id);
     } catch (e) {
@@ -86,6 +110,7 @@ export default function Home() {
   // Save selected subsection to localStorage
   const handleSelectSubSection = (newSub: '1' | '2' | 'all') => {
     setSelectedSubSection(newSub);
+    setHasSavedPreference(true);
     try {
       localStorage.setItem('diu_routine_selected_subsection', newSub);
     } catch (e) {
@@ -96,7 +121,6 @@ export default function Home() {
   // Global Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input
       if (
         e.target instanceof HTMLInputElement ||
         e.target instanceof HTMLTextAreaElement ||
@@ -129,9 +153,13 @@ export default function Home() {
     fetch(`/api/schedule?section=${selectedSection.id}&sub=${selectedSubSection}`)
       .then((res) => res.json())
       .then((data) => {
-        if (!isCancelled && data.success && Array.isArray(data.classes)) {
-          setLiveSchedule(data.classes);
-          setIsLiveSynced(true);
+        if (!isCancelled && data.success) {
+          if (Array.isArray(data.classes)) {
+            setLiveSchedule(data.classes);
+          }
+          if (data.version) {
+            setRoutineVersion(data.version);
+          }
         }
       })
       .catch((err) => {
@@ -159,33 +187,23 @@ export default function Home() {
   }, [liveSchedule, selectedSection.id, selectedSubSection]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#080d1a] dark:text-slate-100 antialiased pb-[max(6rem,calc(5rem+env(safe-area-inset-bottom,1rem)))] print:pb-0 print:pt-0 relative overflow-x-hidden transition-colors duration-150">
-      {/* Uplifting Dawn/Spring Ambient Wash */}
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#080d1a] dark:text-slate-100 antialiased pb-28 sm:pb-8 print:pb-0 relative transition-colors duration-150">
+      {/* Background Ambience */}
       <div
         className="fixed inset-0 pointer-events-none -z-10 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(16,185,129,0.06),rgba(14,165,233,0.03),transparent_60%)] dark:bg-[radial-gradient(ellipse_80%_60%_at_50%_-15%,rgba(16,185,129,0.08),rgba(14,165,233,0.04),transparent_70%)] print:hidden"
         aria-hidden="true"
       />
 
-      {/* Accessibility Skip Link */}
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-3.5 focus:py-1.5 focus:rounded-md focus:bg-emerald-500 focus:text-emerald-950 focus:text-xs focus:font-bold focus:outline-none focus:ring-2 focus:ring-emerald-400 shadow-lg print:hidden"
-      >
-        Skip to timetable
-      </a>
-
-      {/* Top App Cockpit HUD Navbar */}
+      {/* Top HUD Navbar */}
       <Navbar
         selectedSection={selectedSection}
         selectedSubSection={selectedSubSection}
-        viewMode={viewMode}
-        onToggleViewMode={setViewMode}
         onOpenSectionPicker={() => setIsSectionPickerOpen(true)}
         onOpenSyncModal={() => setIsSyncModalOpen(true)}
       />
 
-      {/* Official Academic Print Header (Only visible on print / PDF export) */}
-      <div className="hidden print:block mx-auto max-w-7xl px-4 pt-4 mb-4 border-b-2 border-slate-900 pb-3">
+      {/* Official Academic Print Header */}
+      <div className="hidden print:block mx-auto max-w-7xl px-4 pt-4 mb-3 border-b-2 border-slate-900 pb-2">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-slate-900">
@@ -196,40 +214,42 @@ export default function Home() {
             </p>
           </div>
           <div className="text-right font-mono text-xs text-slate-700">
-            <div>Section: <strong className="text-slate-900 text-sm font-bold">{selectedSection.id}</strong> ({selectedSection.batch})</div>
-            <div>Subgroup: {selectedSubSection === 'all' ? 'All Classes (Both Labs)' : `Sub ${selectedSection.sectionLetter}${selectedSubSection}`}</div>
+            <div>Section: <strong className="text-slate-900 font-bold">{selectedSection.id}</strong> ({selectedSection.batch})</div>
+            <div>Subgroup: {selectedSubSection === 'all' ? 'All Classes' : `Sub ${selectedSection.sectionLetter}${selectedSubSection}`}</div>
             <div>Semester: Fall 2026 • Timezone: Asia/Dhaka (UTC+6)</div>
           </div>
         </div>
       </div>
 
-      <main id="main-content" className="mx-auto max-w-7xl px-3 py-6 sm:px-6 space-y-6 print:py-0 print:px-2">
-        {/* 1. Class Radar: Immediate Glanceability for Current/Next Lecture */}
-        <div className="print:hidden">
-          <ClassRadar
-            classes={currentSchedule}
-            selectedSection={selectedSection}
-            selectedSubSection={selectedSubSection}
-            onViewAgendaDay={(day) => {
-              setViewMode('agenda');
-              setActiveDay(day);
-            }}
-          />
-        </div>
+      <main id="main-content" className="mx-auto max-w-7xl px-2 sm:px-6 pt-2 sm:pt-4 space-y-3 sm:space-y-4 print:py-0 print:px-2">
+        {/* Minimal Onboarding Quick-Bar for First-Time Visitors */}
+        {!hasSavedPreference && (
+          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-50/70 p-3 sm:p-4 dark:border-emerald-500/25 dark:bg-emerald-950/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs print:hidden">
+            <div className="flex items-center gap-2.5">
+              <div className="h-8 w-8 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm font-bold text-emerald-950 dark:text-emerald-100">
+                  Welcome to DIU Routine
+                </p>
+                <p className="text-[11px] sm:text-xs text-emerald-800 dark:text-emerald-300">
+                  Showing default {selectedSection.id}. Type your batch &amp; lab (e.g. <span className="font-mono font-bold">66o2</span>) to switch.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsSectionPickerOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 text-xs font-bold transition-colors cursor-pointer min-h-[38px] shadow-xs shrink-0"
+            >
+              <Search className="h-3.5 w-3.5" />
+              <span>Choose Your Section</span>
+            </button>
+          </div>
+        )}
 
-        {/* 2. Brand Mission Header & Terminal Telemetry Console */}
-        <div className="print:hidden">
-          <HeroSection
-            selectedSection={selectedSection}
-            selectedSubSection={selectedSubSection}
-            isLiveSynced={isLiveSynced}
-            totalSectionsCount={ALL_SECTIONS.length}
-            onOpenSectionPicker={() => setIsSectionPickerOpen(true)}
-            onOpenSyncModal={() => setIsSyncModalOpen(true)}
-          />
-        </div>
-
-        {/* 3. Primary Class Timetable: Mobile-First Pocket Agenda ↔ Matrix Grid */}
+        {/* Primary Class Timetable Centerpiece: Week Matrix ↔ Agenda */}
         <TimetableGrid
           section={selectedSection}
           subSection={selectedSubSection}
@@ -238,23 +258,21 @@ export default function Home() {
           onViewModeChange={setViewMode}
           activeDay={activeDay}
           onActiveDayChange={setActiveDay}
+          routineVersion={routineVersion}
         />
-
-        {/* 4. Calendar Sync Architecture & Technical Guarantees */}
-        <div className="print:hidden">
-          <SyncExplainer />
-        </div>
       </main>
 
-      {/* Persistent Mobile-First Sticky Sync Bar */}
+      {/* Persistent Mobile Bottom Bar */}
       <StickySyncBar
         section={selectedSection}
         subSection={selectedSubSection}
+        viewMode={viewMode}
+        onToggleViewMode={setViewMode}
         onOpenSectionPicker={() => setIsSectionPickerOpen(true)}
         onOpenSyncModal={() => setIsSyncModalOpen(true)}
       />
 
-      {/* Dedicated Section Picker Modal Sheet */}
+      {/* Shorthand-Enabled Section Picker Modal */}
       <SectionSelector
         sections={ALL_SECTIONS}
         selectedSection={selectedSection}
@@ -265,7 +283,7 @@ export default function Home() {
         onClose={() => setIsSectionPickerOpen(false)}
       />
 
-      {/* Dedicated 1-Tap Calendar Subscription Modal Sheet */}
+      {/* Calendar Subscription Sheet */}
       <SubscriptionActions
         section={selectedSection}
         subSection={selectedSubSection}
@@ -273,15 +291,27 @@ export default function Home() {
         onClose={() => setIsSyncModalOpen(false)}
       />
 
-      {/* Footer */}
-      <footer className="mt-16 border-t border-slate-200 bg-slate-100/70 py-8 text-center text-xs text-slate-500 dark:border-slate-900 dark:bg-slate-950 dark:text-slate-400 print:hidden">
+      {/* App Footer */}
+      <footer className="mt-8 border-t border-slate-200/80 bg-slate-100/50 py-6 text-center text-xs text-slate-500 dark:border-slate-800/80 dark:bg-slate-950/50 dark:text-slate-400 print:hidden">
         <div className="mx-auto max-w-2xl px-4 space-y-3">
-          <p className="text-slate-700 dark:text-slate-300 max-w-prose mx-auto">
-            Dept. of Computer Science &amp; Engineering • Dynamic Calendar Subscription Engine
-          </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-prose mx-auto">
-            Compliant with RFC 5545 (iCalendar), RFC 7986 (Refresh Interval), and WebCal Protocol handlers. Timezone calibrated to Asia/Dhaka.
-          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px]">
+            <p className="font-mono">
+              DIU CSE Routine • UTC+6 Dhaka
+            </p>
+            <div className="flex items-center gap-4">
+              <Link href="/docs" className="hover:text-emerald-600 dark:hover:text-emerald-400 underline transition-colors">
+                Docs &amp; Calendar Setup
+              </Link>
+              <button
+                type="button"
+                onClick={() => setIsSectionPickerOpen(true)}
+                className="hover:text-emerald-600 dark:hover:text-emerald-400 underline transition-colors cursor-pointer"
+              >
+                Change Section (/)
+              </button>
+            </div>
+          </div>
+
           {/* Developer Attribution Tag */}
           <div className="pt-3 border-t border-slate-200/80 dark:border-slate-800/80 flex flex-wrap items-center justify-center gap-3 text-xs">
             <span className="text-slate-500 dark:text-slate-400">Developed by</span>

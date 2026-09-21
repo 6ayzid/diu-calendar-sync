@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Rich DIU emerald background gradient -->
+    <linearGradient id="diuBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+
+    <!-- Top binding bar gradient -->
+    <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#064E3B" />
+      <stop offset="100%" stop-color="#065F46" />
+    </linearGradient>
+
+    <!-- Soft ambient shadow -->
+    <filter id="cardShadow" x="-15%" y="-15%" width="130%" height="135%">
+      <feDropShadow dx="0" dy="16" stdDeviation="16" flood-color="#022C22" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <!-- Base App Squircle -->
+  <rect width="512" height="512" rx="120" fill="url(#diuBg)" />
+
+  <!-- Subtle glossy top edge highlight -->
+  <rect x="8" y="8" width="496" height="496" rx="112" fill="none" stroke="rgba(255, 255, 255, 0.28)" stroke-width="8" />
+
+  <!-- Main Calendar Page -->
+  <rect x="92" y="104" width="328" height="312" rx="44" fill="#FFFFFF" filter="url(#cardShadow)" />
+
+  <!-- Calendar Top Header Band -->
+  <path d="M 92 148 C 92 123.69 111.69 104 136 104 L 376 104 C 400.31 104 420 123.69 420 148 L 420 188 L 92 188 Z" fill="url(#headerGrad)" />
+
+  <!-- Calendar Binder Rings -->
+  <rect x="156" y="76" width="36" height="60" rx="18" fill="#F3F4F6" stroke="#064E3B" stroke-width="6" />
+  <rect x="320" y="76" width="36" height="60" rx="18" fill="#F3F4F6" stroke="#064E3B" stroke-width="6" />
+
+  <!-- Timetable Event Cards inside Calendar -->
+  <!-- Event 1: Morning Class (Left Column, Top) -->
+  <rect x="124" y="216" width="116" height="76" rx="16" fill="#10B981" />
+  <circle cx="146" cy="244" r="8" fill="#FFFFFF" />
+  <rect x="162" y="238" width="62" height="12" rx="6" fill="#FFFFFF" />
+  <rect x="146" y="264" width="78" height="8" rx="4" fill="#ECFDF5" opacity="0.85" />
+
+  <!-- Event 2: Afternoon Lab (Right Column, Tall 3h Slot) -->
+  <rect x="256" y="216" width="132" height="168" rx="18" fill="#047857" />
+  <!-- Lab Flask glyph simplified -->
+  <path d="M 284 238 L 284 246 L 276 258 C 274 261 276 264 280 264 L 296 264 C 300 264 302 261 300 258 L 292 246 L 292 238 Z" fill="#A7F3D0" />
+  <rect x="308" y="244" width="64" height="12" rx="6" fill="#FFFFFF" />
+  <rect x="274" y="278" width="98" height="10" rx="5" fill="#A7F3D0" opacity="0.8" />
+  <rect x="274" y="298" width="76" height="10" rx="5" fill="#A7F3D0" opacity="0.8" />
+  <!-- Room pill -->
+  <rect x="274" y="342" width="56" height="24" rx="8" fill="#064E3B" />
+  <rect x="282" y="350" width="40" height="8" rx="4" fill="#6EE7B7" />
+
+  <!-- Event 3: Evening Class (Left Column, Bottom) -->
+  <rect x="124" y="308" width="116" height="76" rx="16" fill="#059669" />
+  <circle cx="146" cy="336" r="8" fill="#FFFFFF" />
+  <rect x="162" y="330" width="62" height="12" rx="6" fill="#FFFFFF" />
+  <rect x="146" y="356" width="78" height="8" rx="4" fill="#ECFDF5" opacity="0.85" />
+</svg>

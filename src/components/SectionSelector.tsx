@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, Layers, Check, Users, Info, X } from 'lucide-react';
+import { Search, Layers, Check, Users, Info, X, Zap } from 'lucide-react';
 import { SectionMeta } from '@/types/schedule';
 import { BATCH_DEFINITIONS } from '@/data/sections';
+import { parseShorthandSectionQuery, ParsedSectionQuery } from '@/lib/section-parser';
 
 interface SectionSelectorProps {
   sections: SectionMeta[];
@@ -18,67 +19,72 @@ interface SectionSelectorProps {
 interface ScoredSection {
   section: SectionMeta;
   score: number;
+  matchedSubSection?: '1' | '2' | 'all';
 }
 
 function searchAndRankSections(
   sections: SectionMeta[],
   rawQuery: string,
   activeBatch: number | 'ALL'
-): SectionMeta[] {
+): { results: SectionMeta[]; shorthandMatch: { section: SectionMeta; parsed: ParsedSectionQuery } | null } {
   const query = rawQuery.trim().toLowerCase();
 
+  // 1. Check for shorthand match (e.g. "66o2", "68d1", "66o")
+  const parsed = parseShorthandSectionQuery(query);
+  let shorthandMatch: { section: SectionMeta; parsed: ParsedSectionQuery } | null = null;
+
+  if (parsed && parsed.targetId) {
+    const directHit = sections.find(
+      (s) => s.id.toLowerCase() === parsed.targetId.toLowerCase()
+    );
+    if (directHit) {
+      shorthandMatch = { section: directHit, parsed };
+    }
+  }
+
   if (!query) {
-    if (activeBatch === 'ALL') return sections;
-    return sections.filter((s) => s.batchNumber === activeBatch);
+    if (activeBatch === 'ALL') return { results: sections, shorthandMatch: null };
+    return { results: sections.filter((s) => s.batchNumber === activeBatch), shorthandMatch: null };
   }
 
   // Normalized alphanumeric query (e.g. "66o", "68d", "71a")
   const normQuery = query.replace(/[^a-z0-9]/g, '');
   const queryHasDigits = /\d/.test(query);
 
-  const results: ScoredSection[] = [];
+  const scoredList: ScoredSection[] = [];
 
   for (const s of sections) {
-    // If the query does not contain numbers, restrict to active batch if one is picked
     if (!queryHasDigits && activeBatch !== 'ALL' && s.batchNumber !== activeBatch) {
       continue;
     }
 
-    const normId = s.id.toLowerCase().replace(/[^a-z0-9]/g, ''); // e.g. "66o"
-    const compactCode = `${s.batchNumber}${s.sectionLetter}`.toLowerCase(); // e.g. "66o"
-    const batchStr = `batch${s.batchNumber}`.toLowerCase(); // e.g. "batch66"
-    const bStr = `b${s.batchNumber}`.toLowerCase(); // e.g. "b66"
-    const secLetter = s.sectionLetter.toLowerCase(); // e.g. "o"
+    const normId = s.id.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const compactCode = `${s.batchNumber}${s.sectionLetter}`.toLowerCase();
+    const batchStr = `batch${s.batchNumber}`.toLowerCase();
+    const bStr = `b${s.batchNumber}`.toLowerCase();
+    const secLetter = s.sectionLetter.toLowerCase();
 
     let score = -1;
 
-    // 1. Exact match on compact code (e.g. "66o" === "66o")
-    if (compactCode === normQuery || normId === normQuery) {
+    // Direct hit from shorthand or exact code
+    if (parsed && s.id.toLowerCase() === parsed.targetId.toLowerCase()) {
       score = 0;
-    }
-    // 2. Starts with compact code (e.g. "66" matches "66o" at start)
-    else if (compactCode.startsWith(normQuery) || normId.startsWith(normQuery)) {
+    } else if (compactCode === normQuery || normId === normQuery) {
+      score = 1;
+    } else if (compactCode.startsWith(normQuery) || normId.startsWith(normQuery)) {
       score = 10;
-    }
-    // 3. Compact code contains query
-    else if (compactCode.includes(normQuery) || normId.includes(normQuery)) {
+    } else if (compactCode.includes(normQuery) || normId.includes(normQuery)) {
       score = 20;
-    }
-    // 4. Matches batch string (e.g. "b66" or "batch 66")
-    else if (
+    } else if (
       normQuery === bStr ||
       normQuery === batchStr ||
       batchStr.includes(normQuery) ||
       bStr.includes(normQuery)
     ) {
       score = 30;
-    }
-    // 5. Query is a single letter matching section letter (e.g. "o")
-    else if (normQuery.length === 1 && secLetter === normQuery) {
+    } else if (normQuery.length === 1 && secLetter === normQuery) {
       score = 40;
-    }
-    // 6. Display name match (e.g. "Batch 66 - Section O")
-    else if (
+    } else if (
       s.displayName.toLowerCase().includes(query) ||
       s.displayName.toLowerCase().replace(/[^a-z0-9]/g, '').includes(normQuery)
     ) {
@@ -86,12 +92,11 @@ function searchAndRankSections(
     }
 
     if (score >= 0) {
-      results.push({ section: s, score });
+      scoredList.push({ section: s, score });
     }
   }
 
-  // Sort by score ascending (best match first), then batch descending, then section letter
-  results.sort((a, b) => {
+  scoredList.sort((a, b) => {
     if (a.score !== b.score) return a.score - b.score;
     if (b.section.batchNumber !== a.section.batchNumber) {
       return b.section.batchNumber - a.section.batchNumber;
@@ -99,7 +104,10 @@ function searchAndRankSections(
     return a.section.sectionLetter.localeCompare(b.section.sectionLetter);
   });
 
-  return results.map((r) => r.section);
+  return {
+    results: scoredList.map((r) => r.section),
+    shorthandMatch,
+  };
 }
 
 export function SectionSelector({
@@ -139,16 +147,28 @@ export function SectionSelector({
   }, [isOpen, onClose]);
 
   // Filter & rank sections using fuzzy/smart matcher
-  const filteredSections = useMemo(() => {
+  const { results: filteredSections, shorthandMatch } = useMemo(() => {
     return searchAndRankSections(sections, searchQuery, activeBatchFilter);
   }, [sections, searchQuery, activeBatchFilter]);
 
-  // Keyboard shortcut: pressing Enter selects the top matched section
+  // Quick select helper that updates both section and subsection if shorthand specified
+  const handleApplySelection = (sec: SectionMeta, sub?: '1' | '2' | 'all') => {
+    onSelectSection(sec);
+    if (sub) {
+      onSelectSubSection(sub);
+    }
+    if (onClose) onClose();
+  };
+
+  // Keyboard shortcut: pressing Enter selects the top match or shorthand
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && filteredSections.length > 0) {
+    if (e.key === 'Enter') {
       e.preventDefault();
-      onSelectSection(filteredSections[0]);
-      if (onClose) onClose();
+      if (shorthandMatch) {
+        handleApplySelection(shorthandMatch.section, shorthandMatch.parsed.subSection);
+      } else if (filteredSections.length > 0) {
+        handleApplySelection(filteredSections[0]);
+      }
     }
   };
 
@@ -159,17 +179,18 @@ export function SectionSelector({
       {/* Modal Header */}
       <div className="flex items-start justify-between gap-4 pb-3 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-sky-100 text-sky-600 border border-sky-200 dark:bg-sky-500/10 dark:border-sky-500/20 dark:text-sky-400">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 border border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400">
             <Layers className="h-4 w-4" />
           </div>
           <div>
             <h2 id="section-modal-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
-              Select Academic Section
+              Select Section &amp; Lab
             </h2>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Active:{' '}
+              Current:{' '}
               <strong className="text-slate-800 dark:text-slate-200 font-mono">
-                {selectedSection.id} ({selectedSection.batch})
+                {selectedSection.id}
+                {selectedSubSection !== 'all' ? ` (Lab ${selectedSubSection})` : ''}
               </strong>
             </p>
           </div>
@@ -187,30 +208,71 @@ export function SectionSelector({
         )}
       </div>
 
-      {/* 1. Search Input */}
-      <div className="relative w-full">
-        <Search className="absolute left-3 top-3.5 h-4 w-4 text-slate-400 dark:text-slate-500" />
-        <input
-          ref={searchInputRef}
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          placeholder="Search section (e.g. 66o, 68_D)..."
-          aria-label="Search academic section by name or batch"
-          className="w-full rounded-xl border border-slate-300 bg-slate-50 pl-9 pr-9 py-2.5 text-xs sm:text-sm text-slate-900 placeholder-slate-400 font-mono transition-colors outline-none focus:outline-none focus-visible:outline-none focus:border-slate-400 focus-visible:ring-0 focus:ring-0 min-h-[44px] dark:border-slate-800/90 dark:bg-slate-950/90 dark:text-slate-200 dark:placeholder-slate-500 dark:focus:border-slate-600"
-        />
-        {searchQuery && (
+      {/* 1. Search Input with Shorthand Tip */}
+      <div className="space-y-1.5">
+        <div className="relative w-full">
+          <Search className="absolute left-3 top-3.5 h-4 w-4 text-slate-400 dark:text-slate-500" />
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="Type your section (e.g. 66o2, 68d1, 70a)..."
+            aria-label="Search academic section or type shorthand like 66o2"
+            className="w-full rounded-xl border border-slate-300 bg-slate-50 pl-9 pr-9 py-2.5 text-xs sm:text-sm text-slate-900 placeholder-slate-400 font-mono transition-colors outline-none focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 min-h-[46px] dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:placeholder-slate-500 dark:focus:border-emerald-500"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              aria-label="Clear search"
+              className="absolute right-2.5 top-2.5 p-1 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors cursor-pointer min-h-[32px] min-w-[32px] flex items-center justify-center"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+        <p className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1 font-mono">
+          <Zap className="h-3 w-3 text-emerald-500 shrink-0" />
+          <span>Tip: Typing <strong className="text-slate-700 dark:text-slate-300">66o2</strong> selects Batch 66 Section O Lab 2 in one tap.</span>
+        </p>
+      </div>
+
+      {/* ⚡ Instant Shorthand Callout Card */}
+      {shorthandMatch && (
+        <div
+          onClick={() => handleApplySelection(shorthandMatch.section, shorthandMatch.parsed.subSection)}
+          className="rounded-xl border-2 border-emerald-500/80 bg-emerald-50/80 dark:bg-emerald-950/40 dark:border-emerald-500/60 p-3 flex items-center justify-between cursor-pointer hover:bg-emerald-100/80 dark:hover:bg-emerald-900/40 transition-all shadow-xs"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-2xs font-bold text-xs">
+              ↵
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-xs sm:text-sm text-emerald-950 dark:text-emerald-100 font-mono">
+                  {shorthandMatch.section.id}
+                </span>
+                <span className="text-[10px] uppercase tracking-wider font-bold bg-emerald-200 text-emerald-900 dark:bg-emerald-800 dark:text-emerald-200 px-1.5 py-0.5 rounded">
+                  {shorthandMatch.parsed.subSection === 'all'
+                    ? 'All Classes'
+                    : `Lab Group ${shorthandMatch.parsed.subSection}`}
+                </span>
+              </div>
+              <p className="text-xs text-emerald-800 dark:text-emerald-300 mt-0.5">
+                Press Enter or tap to activate immediately
+              </p>
+            </div>
+          </div>
           <button
             type="button"
-            onClick={() => setSearchQuery('')}
-            aria-label="Clear search"
-            className="absolute right-2.5 top-2.5 p-1 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors cursor-pointer min-h-[32px] min-w-[32px] flex items-center justify-center"
+            className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-1.5 cursor-pointer shadow-2xs"
           >
-            <X className="h-3.5 w-3.5" />
+            Apply
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* 2. Batch Quick Filter Tabs */}
       <div
@@ -222,7 +284,7 @@ export function SectionSelector({
           type="button"
           onClick={() => setActiveBatchFilter('ALL')}
           aria-pressed={activeBatchFilter === 'ALL'}
-          className={`whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium font-mono transition-colors cursor-pointer min-h-[40px] ${
+          className={`whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium font-mono transition-colors cursor-pointer min-h-[38px] ${
             activeBatchFilter === 'ALL'
               ? 'bg-slate-900 text-white border border-slate-900 shadow-2xs dark:bg-slate-800 dark:text-white dark:border-slate-700'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-transparent dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900/60'
@@ -236,7 +298,7 @@ export function SectionSelector({
             type="button"
             onClick={() => setActiveBatchFilter(b.batchNumber)}
             aria-pressed={activeBatchFilter === b.batchNumber}
-            className={`whitespace-nowrap rounded-lg px-2.5 py-2 text-xs font-medium font-mono transition-colors cursor-pointer min-h-[40px] ${
+            className={`whitespace-nowrap rounded-lg px-2.5 py-2 text-xs font-medium font-mono transition-colors cursor-pointer min-h-[38px] ${
               activeBatchFilter === b.batchNumber
                 ? 'bg-slate-900 text-white border border-slate-900 shadow-2xs dark:bg-slate-800 dark:text-white dark:border-slate-700'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-transparent dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900/60'
@@ -254,13 +316,13 @@ export function SectionSelector({
             {filteredSections.length} section{filteredSections.length !== 1 ? 's' : ''} available
           </span>
           {searchQuery && (
-            <span className="text-slate-500 font-mono hidden sm:inline">
+            <span className="text-slate-400 font-mono hidden sm:inline">
               Press ↵ to select first match
             </span>
           )}
         </div>
 
-        <div className="max-h-56 overflow-y-auto pr-1">
+        <div className="max-h-48 overflow-y-auto pr-1">
           {filteredSections.length === 0 ? (
             <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400 space-y-2">
               <p>
@@ -273,7 +335,7 @@ export function SectionSelector({
                   setSearchQuery('');
                   setActiveBatchFilter('ALL');
                 }}
-                className="inline-flex items-center gap-1 text-xs text-sky-600 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300 underline font-medium cursor-pointer"
+                className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 underline font-medium cursor-pointer"
               >
                 Reset search and batch filter
               </button>
@@ -290,28 +352,25 @@ export function SectionSelector({
                   <button
                     key={s.id}
                     type="button"
-                    onClick={() => {
-                      onSelectSection(s);
-                      if (onClose) onClose();
-                    }}
+                    onClick={() => handleApplySelection(s)}
                     aria-pressed={isSelected}
                     aria-label={`Select section ${s.displayName}`}
-                    className={`flex flex-col items-center justify-center min-h-[48px] rounded-xl p-2 text-center transition-colors border cursor-pointer ${
+                    className={`flex flex-col items-center justify-center min-h-[46px] rounded-xl p-2 text-center transition-colors border cursor-pointer ${
                       isSelected
-                        ? 'border-sky-500 bg-sky-50 text-sky-950 ring-1 ring-sky-400/50 shadow-2xs dark:border-sky-500/80 dark:bg-slate-800 dark:text-white dark:ring-sky-500/40'
+                        ? 'border-emerald-500 bg-emerald-50 text-emerald-950 ring-1 ring-emerald-400/50 shadow-2xs dark:border-emerald-500/80 dark:bg-slate-800 dark:text-white dark:ring-emerald-500/40'
                         : 'border-slate-200 bg-slate-50/70 text-slate-700 hover:border-slate-300 hover:bg-slate-100/80 shadow-2xs dark:border-slate-800/80 dark:bg-slate-950/70 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-800/60'
                     }`}
                   >
                     <div className="flex items-center gap-1">
                       <span className={`text-xs sm:text-sm font-bold font-mono tracking-tight ${
-                        isSelected ? 'text-sky-950 dark:text-white' : 'text-slate-900 dark:text-white'
+                        isSelected ? 'text-emerald-950 dark:text-white' : 'text-slate-900 dark:text-white'
                       }`}>
                         {s.id}
                       </span>
-                      {isSelected && <Check className="h-3 w-3 text-sky-600 dark:text-sky-400 shrink-0" />}
+                      {isSelected && <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />}
                     </div>
-                    <span className={`text-xs font-mono ${
-                      isSelected ? 'text-sky-700 dark:text-slate-400' : 'text-slate-500 dark:text-slate-400'
+                    <span className={`text-[10px] font-mono ${
+                      isSelected ? 'text-emerald-700 dark:text-slate-400' : 'text-slate-400 dark:text-slate-500'
                     }`}>
                       Batch {s.batchNumber}
                     </span>
@@ -327,13 +386,13 @@ export function SectionSelector({
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2 dark:border-slate-800/80 dark:bg-slate-950/80">
         <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
           <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
-            <Users className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400" />
+            <Users className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
             <span>
-              Lab Subgroup for <strong className="text-slate-900 dark:text-white font-mono">{selectedSection.id}</strong>:
+              Lab Group for <strong className="text-slate-900 dark:text-white font-mono">{selectedSection.id}</strong>:
             </span>
           </span>
-          <span className="text-slate-500 font-mono hidden sm:inline">
-            Filter lab periods
+          <span className="text-slate-400 font-mono hidden sm:inline">
+            Filters alternate lab sessions
           </span>
         </div>
 
@@ -343,7 +402,7 @@ export function SectionSelector({
             role="radio"
             onClick={() => onSelectSubSection('all')}
             aria-checked={selectedSubSection === 'all'}
-            className={`min-h-[44px] rounded-lg px-2 py-1.5 text-xs font-medium font-mono transition-colors cursor-pointer border ${
+            className={`min-h-[40px] rounded-lg px-2 py-1.5 text-xs font-medium font-mono transition-colors cursor-pointer border ${
               selectedSubSection === 'all'
                 ? 'bg-white text-slate-900 border-slate-300 shadow-2xs dark:bg-slate-800 dark:text-white dark:border-slate-700'
                 : 'border-slate-200 bg-white/50 text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:border-slate-800/80 dark:bg-slate-900/50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/60'
@@ -356,7 +415,7 @@ export function SectionSelector({
             role="radio"
             onClick={() => onSelectSubSection('1')}
             aria-checked={selectedSubSection === '1'}
-            className={`min-h-[44px] rounded-lg px-2 py-1.5 text-xs font-medium font-mono transition-colors cursor-pointer border ${
+            className={`min-h-[40px] rounded-lg px-2 py-1.5 text-xs font-medium font-mono transition-colors cursor-pointer border ${
               selectedSubSection === '1'
                 ? 'bg-amber-100 text-amber-900 border-amber-300 shadow-2xs dark:bg-slate-800 dark:text-amber-300 dark:border-amber-500/40'
                 : 'border-slate-200 bg-white/50 text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:border-slate-800/80 dark:bg-slate-900/50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/60'
@@ -369,7 +428,7 @@ export function SectionSelector({
             role="radio"
             onClick={() => onSelectSubSection('2')}
             aria-checked={selectedSubSection === '2'}
-            className={`min-h-[44px] rounded-lg px-2 py-1.5 text-xs font-medium font-mono transition-colors cursor-pointer border ${
+            className={`min-h-[40px] rounded-lg px-2 py-1.5 text-xs font-medium font-mono transition-colors cursor-pointer border ${
               selectedSubSection === '2'
                 ? 'bg-rose-100 text-rose-900 border-rose-300 shadow-2xs dark:bg-slate-800 dark:text-rose-300 dark:border-rose-500/40'
                 : 'border-slate-200 bg-white/50 text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:border-slate-800/80 dark:bg-slate-900/50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/60'
@@ -384,13 +443,13 @@ export function SectionSelector({
       <div className="pt-3 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
           <Info className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-          <span>Preference saves to browser storage automatically.</span>
+          <span>Saved to your browser automatically.</span>
         </div>
         {onClose && (
           <button
             type="button"
             onClick={onClose}
-            className="text-xs font-bold text-emerald-950 bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 px-4 py-2 rounded-xl transition-colors cursor-pointer min-h-[44px] shadow-sm border border-emerald-400/30"
+            className="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 px-4 py-2 rounded-xl transition-colors cursor-pointer min-h-[40px] shadow-sm border border-emerald-500/30"
           >
             Done
           </button>
@@ -399,7 +458,6 @@ export function SectionSelector({
     </div>
   );
 
-  // If used as a modal with onClose, render overlay
   if (onClose) {
     return (
       <div
@@ -416,6 +474,5 @@ export function SectionSelector({
     );
   }
 
-  // Inline fallback
   return <section aria-labelledby="section-modal-title">{content}</section>;
 }

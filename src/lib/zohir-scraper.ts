@@ -18,8 +18,13 @@ interface UpstreamApiResponse {
   version?: string;
 }
 
+export interface UpstreamScheduleResult {
+  classes: RoutineClass[];
+  version: string;
+}
+
 // In-memory cache for fast response times (<5ms) and rate limit protection
-const cache = new Map<string, { timestamp: number; data: RoutineClass[] }>();
+const cache = new Map<string, { timestamp: number; data: RoutineClass[]; version: string }>();
 const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
 
 function parse12HourTime(t: string): string {
@@ -38,13 +43,13 @@ function parse12HourTime(t: string): string {
  */
 export async function fetchLiveScheduleFromUpstream(
   sectionId: string
-): Promise<RoutineClass[] | null> {
+): Promise<UpstreamScheduleResult | null> {
   const normalizedSection = sectionId.toUpperCase().replace('-', '_');
 
   // Check cache
   const cached = cache.get(normalizedSection);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
-    return cached.data;
+    return { classes: cached.data, version: cached.version };
   }
 
   try {
@@ -100,11 +105,16 @@ export async function fetchLiveScheduleFromUpstream(
       const validDays = ['SATURDAY', 'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY'] as const;
       const dayOfWeek = (validDays.find((d) => d === dayRaw) || 'SATURDAY') as RoutineClass['dayOfWeek'];
 
-      // Lab detection: if title/room has "Lab", subsection is non-null, or duration is > 2 hours
+      const [startH, startM] = startTime.split(':').map(Number);
+      const [endH, endM] = endTime.split(':').map(Number);
+      const durationMins = endH * 60 + endM - (startH * 60 + startM);
+
+      // Lab detection: title explicitly mentions lab/sessional, has specific subsection (e.g. D1, D2), or slot is >= 2.5 hours
       const isLab =
         item.course_title.toLowerCase().includes('lab') ||
-        item.room.toLowerCase().includes('lab') ||
-        subSection !== null;
+        item.course_title.toLowerCase().includes('sessional') ||
+        subSection !== null ||
+        durationMins >= 150;
 
       const subId = subSection ? `sub${subSection}` : 'common';
       const slotId = `${normalizedSection}-${courseCode}-${subId}-${dayOfWeek}-${startTime.replace(':', '')}-${index}`;
@@ -127,13 +137,16 @@ export async function fetchLiveScheduleFromUpstream(
       };
     });
 
+    const rawVersion = data.version ? String(data.version).trim() : '2.2';
+
     // Store in cache
     cache.set(normalizedSection, {
       timestamp: Date.now(),
       data: mappedClasses,
+      version: rawVersion,
     });
 
-    return mappedClasses;
+    return { classes: mappedClasses, version: rawVersion };
   } catch (err) {
     console.warn(`Upstream routine fetch failed for ${sectionId}:`, err);
     return null;
