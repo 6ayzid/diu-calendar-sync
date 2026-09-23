@@ -420,7 +420,7 @@ export function SectionSelector({
           <div className="relative">
             <div className="max-h-[240px] overflow-y-auto pr-1.5 scrollbar-thin">
               {/* Empty spacer + divider scroll away with content */}
-              <div className="pt-6">
+              <div className="pt-4">
                 <div className="relative flex items-center py-1.5 mb-2">
                   <div className="flex-grow border-t border-slate-200/80 dark:border-slate-800/80"></div>
                   <span className="shrink-0 px-2.5 text-xs font-mono text-slate-400 dark:text-slate-500">

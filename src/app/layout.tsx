@@ -14,11 +14,56 @@ const monoFont = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DIU CSE Routine | Live Routine & Calendar Feeds",
+  metadataBase: new URL('https://diucal.vercel.app'),
+  title: "Routinly – DIU Class Routine, Section Finder & Faculty Timetable",
   description:
-    "Dynamic RFC 5545 calendar subscription system and academic timetable schedule for Daffodil International University CSE.",
+    "Fast fuzzy search routine finder for Daffodil International University (DIU). Quickly look up batches, sections, lab groups, and faculty initials (MSR, AS, FH).",
+  keywords: [
+    "DIU",
+    "Daffodil International University",
+    "DIU Routine",
+    "CSE Routine",
+    "DIU Class Routine",
+    "Faculty Routine",
+    "Empty Room Finder",
+    "DIU Calendar Sync",
+    "Routinly",
+  ],
   authors: [{ name: "@6ayzid", url: "https://github.com/6ayzid" }],
   creator: "@6ayzid",
+  publisher: "Routinly",
+  applicationName: "Routinly",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://diucal.vercel.app",
+    siteName: "Routinly",
+    title: "Routinly – DIU Class Routine, Section Finder & Faculty Timetable",
+    description:
+      "Fast fuzzy search routine finder for Daffodil International University (DIU). Quickly look up batches, sections, lab groups, and faculty initials (MSR, AS, FH).",
+    images: [
+      {
+        url: "/icon.svg",
+        width: 512,
+        height: 512,
+        alt: "Routinly DIU Calendar & Routine",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "Routinly – DIU Class Routine, Section Finder & Faculty Timetable",
+    description:
+      "Fast fuzzy search routine finder for Daffodil International University (DIU). Quickly look up batches, sections, lab groups, and faculty initials (MSR, AS, FH).",
+    images: ["/icon.svg"],
+    creator: "@6ayzid",
+  },
+  verification: {
+    google: "google49d1d0d24a1985a3.html",
+  },
   icons: {
     icon: [
       { url: "/icon.svg", type: "image/svg+xml" },
