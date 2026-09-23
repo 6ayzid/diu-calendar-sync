@@ -7,6 +7,8 @@ import ical, {
 import { DayOfWeek, RoutineClass, FacultyMeta } from '@/types/schedule';
 import { getSectionById } from '@/data/sections';
 import { getFacultyByCode } from '@/data/faculty';
+import { getCourseShortTitle } from '@/lib/course-utils';
+import { COURSE_CATALOG } from '@/lib/courses';
 
 // First occurrence dates of the semester effective week (Effective: Sept 09, 2026)
 const WEEKDAY_DATE_MAP: Record<DayOfWeek, string> = {
@@ -50,6 +52,7 @@ export interface BuildCalendarOptions {
   faculty?: FacultyMeta;
   timezone?: string;
   sourceDomain?: string;
+  routineVersion?: string;
 }
 
 /**
@@ -65,7 +68,14 @@ export function buildCalendarFeed(
   classes: RoutineClass[],
   options: BuildCalendarOptions
 ): ICalCalendar {
-  const { sectionId, subSection, faculty, timezone = 'Asia/Dhaka', sourceDomain = 'schedule.campus.edu' } = options;
+  const {
+    sectionId,
+    subSection,
+    faculty,
+    timezone = 'Asia/Dhaka',
+    sourceDomain = 'schedule.campus.edu',
+    routineVersion = 'v2.2',
+  } = options;
 
   let calendarName = 'DIU Routine';
   let calendarDesc = 'DIU CSE Class Schedule Feed';
@@ -101,6 +111,8 @@ export function buildCalendarFeed(
     },
   });
 
+  const formattedVersion = routineVersion.startsWith('v') ? routineVersion : `v${routineVersion}`;
+
   for (const item of classes) {
     const baseDate = WEEKDAY_DATE_MAP[item.dayOfWeek];
     if (!baseDate) continue;
@@ -121,7 +133,7 @@ export function buildCalendarFeed(
     // Deterministic UID:
     // Consistent across routine changes for identical slots so calendar engines replace/update in-place
     const subIdentifier = item.subSection ? `sub${item.subSection}` : 'common';
-    const cleanCourseCode = item.courseCode.split('(')[0].trim();
+    const cleanCourseCode = item.courseCode.split('(')[0].trim().toUpperCase();
     const cleanRoom = item.room.split('(')[0].trim();
     const sectionBadge = item.sectionId
       ? (item.subSection ? `${item.sectionId}${item.subSection}` : item.sectionId)
@@ -131,43 +143,42 @@ export function buildCalendarFeed(
       ? `slot-faculty-${faculty.code}-${cleanCourseCode}-${sectionBadge}-${item.dayOfWeek}-${item.startTime.replace(':', '')}@${sourceDomain}`
       : `slot-${item.sectionId}-${item.courseCode.replace(/[^a-zA-Z0-9]/g, '')}-${subIdentifier}-${item.dayOfWeek}-${item.startTime.replace(':', '')}@${sourceDomain}`;
 
-    const subTag = item.subSection
-      ? ` (${item.section || ''}${item.subSection})`
-      : '';
+    // 1. Title format: Site short title then course code. Nothing else.
+    // e.g., "SAD (CSE227)" or "SAD CSE227"
+    const isLab = item.type === 'Lab' || item.courseCode.toLowerCase().includes('lab') || item.courseTitle.toLowerCase().includes('lab');
+    const siteTitle = getCourseShortTitle(cleanCourseCode, item.courseTitle, isLab);
+    const summary = `${siteTitle} (${cleanCourseCode})`;
 
-    const summary = faculty
-      ? `${cleanCourseCode} — ${sectionBadge} (${cleanRoom})`
-      : `${cleanCourseCode} — ${item.courseTitle}${subTag}`;
-
+    // 2. Instructor display: Instructor name should be first in description
     const teacherMeta = item.teacherCode ? getFacultyByCode(item.teacherCode) : undefined;
-    const teacherDisplay = teacherMeta
+    const instructorName = teacherMeta
       ? `${teacherMeta.name} (${item.teacherCode})`
       : item.teacherName
       ? `${item.teacherName} (${item.teacherCode})`
-      : item.teacherCode || '';
+      : item.teacherCode || (faculty ? `${faculty.name} (${faculty.code})` : 'TBA');
+
+    // 3. Full course title
+    const catalogEntry = COURSE_CATALOG[cleanCourseCode];
+    const fullCourseTitle = (item.courseTitle && !item.courseTitle.toLowerCase().endsWith('course'))
+      ? item.courseTitle
+      : catalogEntry?.name || item.courseTitle || cleanCourseCode;
 
     const sectionDisplay = item.subSection
       ? `${item.sectionId} (Subsection ${item.section || ''}${item.subSection})`
-      : item.sectionId;
+      : item.sectionId || sectionBadge;
 
-    const description = faculty
-      ? [
-          `Course: ${cleanCourseCode} — ${item.courseTitle}`,
-          `Section: ${sectionBadge}`,
-          `Type: ${item.type}`,
-          `Room: ${item.room}`,
-          ``,
-          `DIU CSE Routine Sync`,
-        ].join('\n')
-      : [
-          `Course: ${cleanCourseCode} — ${item.courseTitle}`,
-          ...(teacherDisplay ? [`Instructor: ${teacherDisplay}`] : []),
-          `Section: ${sectionDisplay}`,
-          `Type: ${item.type}`,
-          `Room: ${item.room}`,
-          ``,
-          `DIU CSE Routine Sync`,
-        ].join('\n');
+    // 4. Description block structure:
+    // Instructor name first, followed by full course title, then details, routine version, and synced line
+    const description = [
+      `Instructor: ${instructorName}`,
+      `Course: ${fullCourseTitle} (${cleanCourseCode})`,
+      `Section: ${sectionDisplay}`,
+      `Room: ${item.room}`,
+      `Type: ${item.type}`,
+      `Routine Version: ${formattedVersion}`,
+      ``,
+      `synced from diucal.vercel.app`,
+    ].join('\n');
 
     const event = calendar.createEvent({
       id: deterministicUid,

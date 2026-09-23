@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getScheduleForSection, getSection, getScheduleForFacultyWithMeta } from '@/lib/schedule';
+import { getScheduleWithMeta, getSection, getScheduleForFacultyWithMeta } from '@/lib/schedule';
 import { buildCalendarFeed, serializeCalendarToIcs } from '@/lib/ical-builder';
 import { getFacultyByCode } from '@/data/faculty';
 
@@ -60,14 +60,15 @@ export async function handleCalendarFeedRequest(
 
   const host = req.headers.get('host') || 'schedule.campus.edu';
 
-  // Fetch schedule with subsection filtering
-  const classes = await getScheduleForSection(sectionId, subSection);
+  // Fetch schedule with subsection filtering and version
+  const { classes, version } = await getScheduleWithMeta(sectionId, subSection);
 
   // Generate RFC 5545 iCalendar string
   const calendar = buildCalendarFeed(classes, {
     sectionId,
     subSection,
     sourceDomain: host,
+    routineVersion: version,
   });
 
   const icsOutput = serializeCalendarToIcs(calendar);
@@ -115,12 +116,13 @@ export async function handleFacultyCalendarFeedRequest(
   const host = req.headers.get('host') || 'schedule.campus.edu';
 
   // Fetch schedule for faculty
-  const { classes } = await getScheduleForFacultyWithMeta(cleanCode);
+  const { classes, version } = await getScheduleForFacultyWithMeta(cleanCode);
 
   // Generate RFC 5545 iCalendar string with faculty formatting
   const calendar = buildCalendarFeed(classes, {
     faculty,
     sourceDomain: host,
+    routineVersion: version,
   });
 
   const icsOutput = serializeCalendarToIcs(calendar);
