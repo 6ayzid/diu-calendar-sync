@@ -34,6 +34,7 @@ export default function DocsPage() {
         <div className="flex items-center justify-between pb-4 border-b border-slate-200 dark:border-slate-800">
           <Link
             href="/"
+            prefetch={true}
             className="inline-flex items-center gap-2 text-xs font-semibold text-emerald-600 hover:text-emerald-500 dark:text-emerald-400 dark:hover:text-emerald-300 transition-colors cursor-pointer"
           >
             <ArrowLeft className="h-4 w-4" />

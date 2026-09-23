@@ -1,7 +1,8 @@
-import { RoutineClass, SectionMeta } from '@/types/schedule';
+import { RoutineClass, SectionMeta, FacultyMeta } from '@/types/schedule';
 import { ALL_SECTIONS, getSectionById } from '@/data/sections';
-import { generateScheduleForSection } from '@/data/routines';
-import { fetchLiveScheduleFromUpstream } from './zohir-scraper';
+import { generateScheduleForSection, CURATED_ROUTINES } from '@/data/routines';
+import { fetchLiveScheduleFromUpstream, fetchLiveTeacherScheduleFromUpstream } from './zohir-scraper';
+import { getFacultyByCode } from '@/data/faculty';
 
 /**
  * Retrieves all registered university sections (170+ sections across Batches 63-73)
@@ -83,6 +84,99 @@ export async function getScheduleForSection(
   subSection?: '1' | '2' | 'all' | null
 ): Promise<RoutineClass[]> {
   const res = await getScheduleWithMeta(sectionId, subSection);
+  return res.classes;
+}
+
+const DAY_ORDER: Record<string, number> = {
+  SATURDAY: 0,
+  SUNDAY: 1,
+  MONDAY: 2,
+  TUESDAY: 3,
+  WEDNESDAY: 4,
+  THURSDAY: 5,
+};
+
+function deduplicateAndSortClasses(classes: RoutineClass[]): RoutineClass[] {
+  const map = new Map<string, RoutineClass>();
+
+  for (const c of classes) {
+    const cleanCourse = c.courseCode.split('(')[0].trim();
+    // Key based on day, start time, end time, clean course code, and room
+    const key = `${c.dayOfWeek}_${c.startTime}_${c.endTime}_${cleanCourse}_${c.room}`;
+
+    if (map.has(key)) {
+      const existing = map.get(key)!;
+      // If sections differ, combine section label e.g. "66_A, 66_B"
+      if (c.sectionId && !existing.sectionId.includes(c.sectionId)) {
+        existing.sectionId = `${existing.sectionId}, ${c.sectionId}`;
+      }
+    } else {
+      map.set(key, { ...c });
+    }
+  }
+
+  const results = Array.from(map.values());
+  results.sort((a, b) => {
+    const dayDiff = (DAY_ORDER[a.dayOfWeek] ?? 0) - (DAY_ORDER[b.dayOfWeek] ?? 0);
+    if (dayDiff !== 0) return dayDiff;
+    return a.startTime.localeCompare(b.startTime);
+  });
+
+  return results;
+}
+
+/**
+ * Retrieves genuine routine classes for a faculty member directly from the live university system.
+ * If the faculty member has no classes scheduled this semester or is no longer teaching,
+ * this accurately returns an empty array with 0 classes (no fake mock classes are generated).
+ */
+export async function getScheduleForFacultyWithMeta(
+  teacherCode: string
+): Promise<{ classes: RoutineClass[]; version: string; faculty: FacultyMeta }> {
+  const cleanCode = teacherCode.trim().toUpperCase();
+  const faculty = getFacultyByCode(cleanCode) || {
+    code: cleanCode,
+    name: cleanCode,
+    department: 'CSE',
+  };
+
+  // 1. Fetch live schedule directly from university upstream service
+  try {
+    const liveResult = await fetchLiveTeacherScheduleFromUpstream(cleanCode);
+    if (liveResult !== null) {
+      const refreshedFaculty = getFacultyByCode(cleanCode) || faculty;
+      return {
+        classes: deduplicateAndSortClasses(liveResult.classes),
+        version: liveResult.version || 'v2.2',
+        faculty: refreshedFaculty,
+      };
+    }
+  } catch (err) {
+    console.warn(`Upstream faculty routine fetch failed for ${cleanCode}:`, err);
+  }
+
+  // 2. Fallback to local curated routines only if upstream was unreachable
+  const allCodes = new Set<string>([
+    cleanCode,
+    ...(faculty.aliases || []).map((a) => a.toUpperCase()),
+  ]);
+  const aggregatedClasses: RoutineClass[] = [];
+
+  for (const c of CURATED_ROUTINES) {
+    if (allCodes.has(c.teacherCode.toUpperCase())) {
+      aggregatedClasses.push({ ...c, teacherName: faculty.name });
+    }
+  }
+
+  return {
+    classes: deduplicateAndSortClasses(aggregatedClasses),
+    version: 'v2.2',
+    faculty,
+  };
+}
+
+export async function getScheduleForFaculty(teacherCode: string): Promise<RoutineClass[]> {
+  const res = await getScheduleForFacultyWithMeta(teacherCode);
   return res.classes;
 }
 

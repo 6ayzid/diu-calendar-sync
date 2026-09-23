@@ -1,5 +1,5 @@
 import { generateScheduleForSection } from '../src/data/routines';
-import { buildCalendarFeed } from '../src/lib/ical-builder';
+import { buildCalendarFeed, serializeCalendarToIcs } from '../src/lib/ical-builder';
 
 console.log('Testing Schedule & iCal Engine...');
 
@@ -27,18 +27,18 @@ const calD1 = buildCalendarFeed(d1Filtered, {
   timezone: 'Asia/Dhaka',
 });
 
-const icsText = calD1.toString();
+const icsText = serializeCalendarToIcs(calD1);
 
 // Assertions on RFC 5545 compliance
 const requiredSubstrings = [
   'BEGIN:VCALENDAR',
   'VERSION:2.0',
-  'TIMEZONE-ID:Asia/Dhaka',
   'X-WR-TIMEZONE:Asia/Dhaka',
+  'BEGIN:VTIMEZONE',
+  'TZID:Asia/Dhaka',
   'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
   'X-PUBLISHED-TTL:PT1H',
   'RRULE:FREQ=WEEKLY',
-  'TZID=Asia/Dhaka',
   'UID:slot-68_D-CSE228-common-SATURDAY-1000',
   'UID:slot-68_D-CSE22468D1-sub1-THURSDAY-0830',
   'TRIGGER:-PT15M',

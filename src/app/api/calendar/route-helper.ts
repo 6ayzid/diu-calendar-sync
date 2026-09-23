@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getScheduleForSection, getSection } from '@/lib/schedule';
+import { getScheduleForSection, getSection, getScheduleForFacultyWithMeta } from '@/lib/schedule';
 import { buildCalendarFeed, serializeCalendarToIcs } from '@/lib/ical-builder';
+import { getFacultyByCode } from '@/data/faculty';
 
 export async function handleCalendarFeedRequest(
   req: NextRequest,
@@ -35,6 +36,12 @@ export async function handleCalendarFeedRequest(
   // Validate section exists
   const sectionMeta = getSection(sectionId);
   if (!sectionMeta) {
+    // Check if user accidentally passed a teacher code (e.g. /api/calendar/MSR)
+    const facultyMeta = getFacultyByCode(cleanId);
+    if (facultyMeta) {
+      return handleFacultyCalendarFeedRequest(req, cleanId);
+    }
+
     return new NextResponse(
       `Section "${rawSectionId}" not found. Available batches include Batch 63 through Batch 73. Example: 68_D, 70_Q, 72_B.`,
       {
@@ -82,3 +89,54 @@ export async function handleCalendarFeedRequest(
     },
   });
 }
+
+/**
+ * Handles iCalendar subscriptions for faculty routines
+ * e.g., /api/calendar?teacher=MSR or /api/calendar/teacher/MSR.ics
+ */
+export async function handleFacultyCalendarFeedRequest(
+  req: NextRequest,
+  rawTeacherCode: string
+): Promise<Response> {
+  if (!rawTeacherCode) {
+    return new NextResponse('Missing faculty identifier. Example: /api/calendar?teacher=MSR', {
+      status: 400,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
+  }
+
+  const cleanCode = rawTeacherCode.trim().replace(/\.ics$/i, '').toUpperCase();
+  const faculty = getFacultyByCode(cleanCode) || {
+    code: cleanCode,
+    name: cleanCode,
+    department: 'CSE',
+  };
+
+  const host = req.headers.get('host') || 'schedule.campus.edu';
+
+  // Fetch schedule for faculty
+  const { classes } = await getScheduleForFacultyWithMeta(cleanCode);
+
+  // Generate RFC 5545 iCalendar string with faculty formatting
+  const calendar = buildCalendarFeed(classes, {
+    faculty,
+    sourceDomain: host,
+  });
+
+  const icsOutput = serializeCalendarToIcs(calendar);
+  const filename = `${faculty.code}-routine.ics`;
+
+  return new Response(icsOutput, {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/calendar; charset=utf-8',
+      'Content-Disposition': `inline; filename="${filename}"`,
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    },
+  });
+}
+

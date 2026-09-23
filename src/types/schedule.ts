@@ -38,8 +38,46 @@ export interface SectionMeta {
 }
 
 export interface CalendarFeedOptions {
-  sectionId: string;
+  sectionId?: string;
+  teacherCode?: string;
   subSection?: '1' | '2' | 'all' | null; // filter by subSection 1 or 2
   timezone?: string;                     // defaults to 'Asia/Dhaka'
   includeAlarms?: boolean;
 }
+
+export interface FacultyMeta {
+  code: string;           // e.g. "MSR", "SRH", "MIS"
+  name: string;           // e.g. "Dr. Sheak Rashed Haider Noori"
+  department: string;     // e.g. "CSE"
+  designation?: string;   // e.g. "Professor & Head"
+  email?: string;
+  phone?: string;         // e.g. "01818392800"
+  room?: string;          // e.g. "KT-212"
+  employeeId?: string;    // e.g. "710002096"
+  image?: string;         // profile picture URL
+  aliases?: string[];    // e.g. ["SRH"] for "MSR" or vice-versa
+}
+
+export type ActiveRoutineTarget =
+  | { type: 'section'; section: SectionMeta; subSection: '1' | '2' | 'all' }
+  | { type: 'faculty'; faculty: FacultyMeta };
+
+export interface CompareState {
+  active: boolean;
+  primaryTarget: ActiveRoutineTarget;
+  secondaryTarget: ActiveRoutineTarget | null;
+  priority: 'primary' | 'secondary'; // Which routine has highest priority (shows most info). Default 'secondary' (latest added)
+  secondaryVisibility: 'block' | 'hidden'; // Visibility of the lower priority routine: 'block' or 'hidden'
+  showFreeTimeHighlight: boolean; // Whether shared free time intervals are visually highlighted
+}
+
+export interface FreeTimeSlot {
+  dayOfWeek: DayOfWeek;
+  startMinutes: number;
+  endMinutes: number;
+  startTime: string;
+  endTime: string;
+  durationMinutes: number;
+  formattedRange: string;
+}
+

@@ -1,17 +1,24 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, Layers, Check, Users, Info, X, Zap } from 'lucide-react';
-import { SectionMeta } from '@/types/schedule';
+import { Search, X, Layers, GraduationCap, DoorOpen } from 'lucide-react';
+import { SectionMeta, FacultyMeta, ActiveRoutineTarget } from '@/types/schedule';
 import { BATCH_DEFINITIONS } from '@/data/sections';
 import { parseShorthandSectionQuery, ParsedSectionQuery } from '@/lib/section-parser';
+import { searchAndRankFaculty } from '@/data/faculty';
 
 interface SectionSelectorProps {
   sections: SectionMeta[];
   selectedSection: SectionMeta;
   selectedSubSection: '1' | '2' | 'all';
+  activeTarget?: ActiveRoutineTarget;
   onSelectSection: (section: SectionMeta) => void;
   onSelectSubSection: (sub: '1' | '2' | 'all') => void;
+  onSelectFaculty?: (faculty: FacultyMeta) => void;
+  isCompareMode?: boolean;
+  onToggleCompareMode?: (enabled: boolean) => void;
+  onSelectCompareTarget?: (target: ActiveRoutineTarget) => void;
+  onOpenRoomFinder?: (room?: string) => void;
   isOpen?: boolean;
   onClose?: () => void;
 }
@@ -19,17 +26,15 @@ interface SectionSelectorProps {
 interface ScoredSection {
   section: SectionMeta;
   score: number;
-  matchedSubSection?: '1' | '2' | 'all';
 }
 
 function searchAndRankSections(
   sections: SectionMeta[],
-  rawQuery: string,
-  activeBatch: number | 'ALL'
+  rawQuery: string
 ): { results: SectionMeta[]; shorthandMatch: { section: SectionMeta; parsed: ParsedSectionQuery } | null } {
   const query = rawQuery.trim().toLowerCase();
 
-  // 1. Check for shorthand match (e.g. "66o2", "68d1", "66o")
+  // 1. Shorthand match (e.g. "66o2", "68d1", "66o")
   const parsed = parseShorthandSectionQuery(query);
   let shorthandMatch: { section: SectionMeta; parsed: ParsedSectionQuery } | null = null;
 
@@ -43,21 +48,13 @@ function searchAndRankSections(
   }
 
   if (!query) {
-    if (activeBatch === 'ALL') return { results: sections, shorthandMatch: null };
-    return { results: sections.filter((s) => s.batchNumber === activeBatch), shorthandMatch: null };
+    return { results: sections, shorthandMatch: null };
   }
 
-  // Normalized alphanumeric query (e.g. "66o", "68d", "71a")
   const normQuery = query.replace(/[^a-z0-9]/g, '');
-  const queryHasDigits = /\d/.test(query);
-
   const scoredList: ScoredSection[] = [];
 
   for (const s of sections) {
-    if (!queryHasDigits && activeBatch !== 'ALL' && s.batchNumber !== activeBatch) {
-      continue;
-    }
-
     const normId = s.id.toLowerCase().replace(/[^a-z0-9]/g, '');
     const compactCode = `${s.batchNumber}${s.sectionLetter}`.toLowerCase();
     const batchStr = `batch${s.batchNumber}`.toLowerCase();
@@ -66,7 +63,6 @@ function searchAndRankSections(
 
     let score = -1;
 
-    // Direct hit from shorthand or exact code
     if (parsed && s.id.toLowerCase() === parsed.targetId.toLowerCase()) {
       score = 0;
     } else if (compactCode === normQuery || normId === normQuery) {
@@ -114,21 +110,42 @@ export function SectionSelector({
   sections,
   selectedSection,
   selectedSubSection,
+  activeTarget,
   onSelectSection,
   onSelectSubSection,
+  onSelectFaculty,
+  isCompareMode = false,
+  onToggleCompareMode,
+  onSelectCompareTarget,
+  onOpenRoomFinder,
   isOpen = true,
   onClose,
 }: SectionSelectorProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeBatchFilter, setActiveBatchFilter] = useState<number | 'ALL'>('ALL');
+  const [prevCompareProp, setPrevCompareProp] = useState(isCompareMode);
+  const [internalIsComparing, setInternalIsComparing] = useState(isCompareMode);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Auto-focus search input when modal opens
+  if (prevCompareProp !== isCompareMode) {
+    setPrevCompareProp(isCompareMode);
+    setInternalIsComparing(isCompareMode);
+  }
+
+  const isComparing = internalIsComparing;
+
+  const handleToggleComparing = (val?: boolean) => {
+    const next = typeof val === 'boolean' ? val : !isComparing;
+    setInternalIsComparing(next);
+    onToggleCompareMode?.(next);
+  };
+
+  // Keyboard auto-focus & clear previous input whenever the modal opens
   useEffect(() => {
-    if (isOpen && searchInputRef.current) {
+    if (isOpen) {
+      setSearchQuery('');
       const timer = setTimeout(() => {
         searchInputRef.current?.focus();
-      }, 50);
+      }, 40);
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
@@ -148,11 +165,115 @@ export function SectionSelector({
 
   // Filter & rank sections using fuzzy/smart matcher
   const { results: filteredSections, shorthandMatch } = useMemo(() => {
-    return searchAndRankSections(sections, searchQuery, activeBatchFilter);
-  }, [sections, searchQuery, activeBatchFilter]);
+    return searchAndRankSections(sections, searchQuery);
+  }, [sections, searchQuery]);
 
-  // Quick select helper that updates both section and subsection if shorthand specified
+  const [liveFacultyResults, setLiveFacultyResults] = useState<FacultyMeta[]>([]);
+
+  // Live faculty auto-discovery from backend
+  useEffect(() => {
+    const query = searchQuery.trim();
+    if (query.length < 2 || /^\d+$/.test(query)) {
+      return;
+    }
+
+    let active = true;
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/faculty/search?q=${encodeURIComponent(query)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (active && data.results && Array.isArray(data.results)) {
+            setLiveFacultyResults(
+              data.results.map((r: { code: string; name: string; department?: string; designation?: string; aliases?: string[] }) => ({
+                code: r.code,
+                name: r.name,
+                department: r.department || 'CSE',
+                designation: r.designation,
+                aliases: r.aliases || [],
+              }))
+            );
+          }
+        }
+      } catch {
+        // Ignore background fetch errors
+      }
+    }, 200);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [searchQuery]);
+
+  // Filter & rank faculty using local fuzzy/initials matcher
+  const facultyResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    return searchAndRankFaculty(searchQuery);
+  }, [searchQuery]);
+
+  // Combine local fuzzy results with live-discovered faculty
+  const combinedFacultyResults = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+
+    const map = new Map<string, { faculty: FacultyMeta; score: number; isLive: boolean }>();
+
+    for (const r of facultyResults) {
+      map.set(r.faculty.code.toUpperCase(), { ...r, isLive: false });
+    }
+
+    for (const lf of liveFacultyResults) {
+      const codeUpper = lf.code.toUpperCase();
+      if (!map.has(codeUpper)) {
+        map.set(codeUpper, {
+          faculty: lf,
+          score: 2,
+          isLive: true,
+        });
+      } else {
+        const existing = map.get(codeUpper)!;
+        existing.isLive = true;
+        if (lf.designation && !existing.faculty.designation) {
+          existing.faculty.designation = lf.designation;
+        }
+      }
+    }
+
+    const list = Array.from(map.values());
+    list.sort((a, b) => {
+      if (a.score !== b.score) return b.score - a.score;
+      return a.faculty.name.localeCompare(b.faculty.name);
+    });
+    return list;
+  }, [searchQuery, facultyResults, liveFacultyResults]);
+
+  const isFacultyTop = useMemo(() => {
+    if (combinedFacultyResults.length === 0) return false;
+    if (shorthandMatch) return false;
+    if (filteredSections.length === 0) return true;
+    return combinedFacultyResults[0].score >= 60 && !/\d/.test(searchQuery);
+  }, [combinedFacultyResults, shorthandMatch, filteredSections, searchQuery]);
+
+  // Detect if query looks like a classroom search (e.g. "201", "KT-502", "ANX1")
+  const roomMatch = useMemo(() => {
+    const q = searchQuery.trim().toUpperCase();
+    if (!q) return null;
+    if (/^(KT|ANX|G1|LAB|ROOM)/i.test(q)) {
+      const cleaned = q.replace(/^ROOM\s*/i, '').trim();
+      return cleaned || q;
+    }
+    if (/^\d{3}$/.test(q)) {
+      return `KT-${q}`;
+    }
+    return null;
+  }, [searchQuery]);
+
   const handleApplySelection = (sec: SectionMeta, sub?: '1' | '2' | 'all') => {
+    if (isComparing && onSelectCompareTarget) {
+      onSelectCompareTarget({ type: 'section', section: sec, subSection: sub || 'all' });
+      if (onClose) onClose();
+      return;
+    }
     onSelectSection(sec);
     if (sub) {
       onSelectSubSection(sub);
@@ -160,14 +281,40 @@ export function SectionSelector({
     if (onClose) onClose();
   };
 
-  // Keyboard shortcut: pressing Enter selects the top match or shorthand
+  const handleApplyFaculty = (fac: FacultyMeta) => {
+    if (isComparing && onSelectCompareTarget) {
+      onSelectCompareTarget({ type: 'faculty', faculty: fac });
+      if (onClose) onClose();
+      return;
+    }
+    if (onSelectFaculty) {
+      onSelectFaculty(fac);
+    }
+    if (onClose) onClose();
+  };
+
   const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       e.preventDefault();
       if (shorthandMatch) {
         handleApplySelection(shorthandMatch.section, shorthandMatch.parsed.subSection);
+      } else if (isFacultyTop && combinedFacultyResults.length > 0) {
+        handleApplyFaculty(combinedFacultyResults[0].faculty);
       } else if (filteredSections.length > 0) {
         handleApplySelection(filteredSections[0]);
+      } else if (combinedFacultyResults.length > 0) {
+        handleApplyFaculty(combinedFacultyResults[0].faculty);
+      } else if (roomMatch && onOpenRoomFinder) {
+        onOpenRoomFinder(roomMatch);
+        if (onClose) onClose();
+      }
+    } else if (e.key === 'Escape') {
+      if (searchQuery) {
+        e.preventDefault();
+        setSearchQuery('');
+      } else if (onClose) {
+        e.preventDefault();
+        onClose();
       }
     }
   };
@@ -175,286 +322,335 @@ export function SectionSelector({
   if (!isOpen) return null;
 
   const content = (
-    <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-2xl space-y-4 dark:border-slate-800 dark:bg-slate-900">
-      {/* Modal Header */}
-      <div className="flex items-start justify-between gap-4 pb-3 border-b border-slate-200 dark:border-slate-800">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 border border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400">
-            <Layers className="h-4 w-4" />
+    <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-2xl space-y-3 dark:border-slate-800 dark:bg-slate-900">
+      {/* ─── Modal Header ────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200/80 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 shrink-0">
+            {activeTarget?.type === 'faculty' ? (
+              <GraduationCap className="h-4 w-4" />
+            ) : (
+              <Layers className="h-4 w-4" />
+            )}
           </div>
-          <div>
-            <h2 id="section-modal-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
-              Select Section &amp; Lab
+          <div className="min-w-0">
+            <h2 id="section-modal-title" className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight truncate">
+              {isComparing ? 'Compare Routine' : 'Select Routine'}
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <p className="text-xs text-slate-400 dark:text-slate-500 font-mono truncate">
               Current:{' '}
-              <strong className="text-slate-800 dark:text-slate-200 font-mono">
-                {selectedSection.id}
-                {selectedSubSection !== 'all' ? ` (Lab ${selectedSubSection})` : ''}
-              </strong>
+              {activeTarget?.type === 'faculty' ? (
+                <strong className="text-slate-700 dark:text-slate-300">
+                  {activeTarget.faculty.name} ({activeTarget.faculty.code})
+                </strong>
+              ) : (
+                <strong className="text-slate-700 dark:text-slate-300">
+                  {selectedSection.id}
+                  {selectedSubSection !== 'all' ? ` (${selectedSection.sectionLetter}${selectedSubSection})` : ''}
+                </strong>
+              )}
             </p>
           </div>
         </div>
 
-        {onClose && (
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Header Compare Mode Pill Toggle */}
           <button
             type="button"
-            onClick={onClose}
-            aria-label="Close section selector modal"
-            className="flex items-center justify-center min-h-[40px] min-w-[40px] rounded-lg text-slate-500 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            onClick={() => handleToggleComparing()}
+            className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all border cursor-pointer ${
+              isComparing
+                ? 'bg-emerald-500 text-emerald-950 border-emerald-400 dark:bg-emerald-500 dark:text-emerald-950 shadow-2xs'
+                : 'bg-slate-100 text-slate-600 hover:text-slate-900 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 dark:hover:text-white'
+            }`}
+            title={isComparing ? 'Switch to primary selection' : 'Enable routine comparison'}
           >
-            <X className="h-4 w-4" />
+            {isComparing ? 'Comparing' : '+ Compare'}
           </button>
-        )}
-      </div>
 
-      {/* 1. Search Input with Shorthand Tip */}
-      <div className="space-y-1.5">
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-3.5 h-4 w-4 text-slate-400 dark:text-slate-500" />
-          <input
-            ref={searchInputRef}
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleSearchKeyDown}
-            placeholder="Type your section (e.g. 66o2, 68d1, 70a)..."
-            aria-label="Search academic section or type shorthand like 66o2"
-            className="w-full rounded-xl border border-slate-300 bg-slate-50 pl-9 pr-9 py-2.5 text-xs sm:text-sm text-slate-900 placeholder-slate-400 font-mono transition-colors outline-none focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 min-h-[46px] dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:placeholder-slate-500 dark:focus:border-emerald-500"
-          />
-          {searchQuery && (
+          {onClose && (
             <button
               type="button"
-              onClick={() => setSearchQuery('')}
-              aria-label="Clear search"
-              className="absolute right-2.5 top-2.5 p-1 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors cursor-pointer min-h-[32px] min-w-[32px] flex items-center justify-center"
+              onClick={onClose}
+              aria-label="Close selector modal"
+              className="flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-4 w-4" />
             </button>
           )}
         </div>
-        <p className="text-[11px] text-slate-400 dark:text-slate-500 flex items-center gap-1 font-mono">
-          <Zap className="h-3 w-3 text-emerald-500 shrink-0" />
-          <span>Tip: Typing <strong className="text-slate-700 dark:text-slate-300">66o2</strong> selects Batch 66 Section O Lab 2 in one tap.</span>
-        </p>
       </div>
 
-      {/* ⚡ Instant Shorthand Callout Card */}
-      {shorthandMatch && (
-        <div
-          onClick={() => handleApplySelection(shorthandMatch.section, shorthandMatch.parsed.subSection)}
-          className="rounded-xl border-2 border-emerald-500/80 bg-emerald-50/80 dark:bg-emerald-950/40 dark:border-emerald-500/60 p-3 flex items-center justify-between cursor-pointer hover:bg-emerald-100/80 dark:hover:bg-emerald-900/40 transition-all shadow-xs"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-2xs font-bold text-xs">
-              ↵
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-xs sm:text-sm text-emerald-950 dark:text-emerald-100 font-mono">
-                  {shorthandMatch.section.id}
-                </span>
-                <span className="text-[10px] uppercase tracking-wider font-bold bg-emerald-200 text-emerald-900 dark:bg-emerald-800 dark:text-emerald-200 px-1.5 py-0.5 rounded">
-                  {shorthandMatch.parsed.subSection === 'all'
-                    ? 'All Classes'
-                    : `Lab Group ${shorthandMatch.parsed.subSection}`}
-                </span>
-              </div>
-              <p className="text-xs text-emerald-800 dark:text-emerald-300 mt-0.5">
-                Press Enter or tap to activate immediately
-              </p>
-            </div>
-          </div>
+      {/* ─── Search Bar (The ONLY Primary Focus) ──────────────────────── */}
+      <div className="relative w-full">
+        <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+        <input
+          ref={searchInputRef}
+          autoFocus
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={handleSearchKeyDown}
+          placeholder={
+            isComparing
+              ? "Search routine to compare (e.g. 66o2, 67e, MSR)..."
+              : "Search routine (e.g. 66o2, 67e, MSR, or teacher name)..."
+          }
+          aria-label="Search section, teacher, or room"
+          className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-500 placeholder:font-sans font-mono transition-all duration-150 outline-none focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/30 focus:shadow-[0_0_12px_rgba(16,185,129,0.15)] min-h-[44px] dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:placeholder:text-slate-400"
+        />
+        {searchQuery && (
           <button
             type="button"
-            className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-1.5 cursor-pointer shadow-2xs"
+            onClick={() => setSearchQuery('')}
+            aria-label="Clear search query"
+            className="absolute right-2.5 top-2.5 h-6 w-6 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
-            Apply
-          </button>
-        </div>
-      )}
-
-      {/* 2. Batch Quick Filter Tabs */}
-      <div
-        className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin touch-pan-x overscroll-x-contain"
-        role="toolbar"
-        aria-label="Batch filter tabs"
-      >
-        <button
-          type="button"
-          onClick={() => setActiveBatchFilter('ALL')}
-          aria-pressed={activeBatchFilter === 'ALL'}
-          className={`whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium font-mono transition-colors cursor-pointer min-h-[38px] ${
-            activeBatchFilter === 'ALL'
-              ? 'bg-slate-900 text-white border border-slate-900 shadow-2xs dark:bg-slate-800 dark:text-white dark:border-slate-700'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-transparent dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900/60'
-          }`}
-        >
-          All Batches
-        </button>
-        {BATCH_DEFINITIONS.map((b) => (
-          <button
-            key={b.batchNumber}
-            type="button"
-            onClick={() => setActiveBatchFilter(b.batchNumber)}
-            aria-pressed={activeBatchFilter === b.batchNumber}
-            className={`whitespace-nowrap rounded-lg px-2.5 py-2 text-xs font-medium font-mono transition-colors cursor-pointer min-h-[38px] ${
-              activeBatchFilter === b.batchNumber
-                ? 'bg-slate-900 text-white border border-slate-900 shadow-2xs dark:bg-slate-800 dark:text-white dark:border-slate-700'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-transparent dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-900/60'
-            }`}
-          >
-            Batch {b.batchNumber}
-          </button>
-        ))}
-      </div>
-
-      {/* 3. Section Results Grid */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-0.5">
-          <span>
-            {filteredSections.length} section{filteredSections.length !== 1 ? 's' : ''} available
-          </span>
-          {searchQuery && (
-            <span className="text-slate-400 font-mono hidden sm:inline">
-              Press ↵ to select first match
-            </span>
-          )}
-        </div>
-
-        <div className="max-h-48 overflow-y-auto pr-1">
-          {filteredSections.length === 0 ? (
-            <div className="py-8 text-center text-xs text-slate-500 dark:text-slate-400 space-y-2">
-              <p>
-                No sections match &quot;{searchQuery}&quot;
-                {activeBatchFilter !== 'ALL' ? ` in Batch ${activeBatchFilter}` : ''}.
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery('');
-                  setActiveBatchFilter('ALL');
-                }}
-                className="inline-flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 underline font-medium cursor-pointer"
-              >
-                Reset search and batch filter
-              </button>
-            </div>
-          ) : (
-            <div
-              className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2"
-              role="group"
-              aria-label="Available academic sections"
-            >
-              {filteredSections.map((s) => {
-                const isSelected = selectedSection.id === s.id;
-                return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => handleApplySelection(s)}
-                    aria-pressed={isSelected}
-                    aria-label={`Select section ${s.displayName}`}
-                    className={`flex flex-col items-center justify-center min-h-[46px] rounded-xl p-2 text-center transition-colors border cursor-pointer ${
-                      isSelected
-                        ? 'border-emerald-500 bg-emerald-50 text-emerald-950 ring-1 ring-emerald-400/50 shadow-2xs dark:border-emerald-500/80 dark:bg-slate-800 dark:text-white dark:ring-emerald-500/40'
-                        : 'border-slate-200 bg-slate-50/70 text-slate-700 hover:border-slate-300 hover:bg-slate-100/80 shadow-2xs dark:border-slate-800/80 dark:bg-slate-950/70 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-800/60'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1">
-                      <span className={`text-xs sm:text-sm font-bold font-mono tracking-tight ${
-                        isSelected ? 'text-emerald-950 dark:text-white' : 'text-slate-900 dark:text-white'
-                      }`}>
-                        {s.id}
-                      </span>
-                      {isSelected && <Check className="h-3 w-3 text-emerald-600 dark:text-emerald-400 shrink-0" />}
-                    </div>
-                    <span className={`text-[10px] font-mono ${
-                      isSelected ? 'text-emerald-700 dark:text-slate-400' : 'text-slate-400 dark:text-slate-500'
-                    }`}>
-                      Batch {s.batchNumber}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* 4. Lab Subgroup Segmented Control */}
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2 dark:border-slate-800/80 dark:bg-slate-950/80">
-        <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-          <span className="flex items-center gap-1.5 font-medium text-slate-700 dark:text-slate-300">
-            <Users className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-            <span>
-              Lab Group for <strong className="text-slate-900 dark:text-white font-mono">{selectedSection.id}</strong>:
-            </span>
-          </span>
-          <span className="text-slate-400 font-mono hidden sm:inline">
-            Filters alternate lab sessions
-          </span>
-        </div>
-
-        <div className="grid grid-cols-3 gap-1.5" role="radiogroup" aria-label="Lab subgroup filter">
-          <button
-            type="button"
-            role="radio"
-            onClick={() => onSelectSubSection('all')}
-            aria-checked={selectedSubSection === 'all'}
-            className={`min-h-[40px] rounded-lg px-2 py-1.5 text-xs font-medium font-mono transition-colors cursor-pointer border ${
-              selectedSubSection === 'all'
-                ? 'bg-white text-slate-900 border-slate-300 shadow-2xs dark:bg-slate-800 dark:text-white dark:border-slate-700'
-                : 'border-slate-200 bg-white/50 text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:border-slate-800/80 dark:bg-slate-900/50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/60'
-            }`}
-          >
-            All Classes (Both)
-          </button>
-          <button
-            type="button"
-            role="radio"
-            onClick={() => onSelectSubSection('1')}
-            aria-checked={selectedSubSection === '1'}
-            className={`min-h-[40px] rounded-lg px-2 py-1.5 text-xs font-medium font-mono transition-colors cursor-pointer border ${
-              selectedSubSection === '1'
-                ? 'bg-amber-100 text-amber-900 border-amber-300 shadow-2xs dark:bg-slate-800 dark:text-amber-300 dark:border-amber-500/40'
-                : 'border-slate-200 bg-white/50 text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:border-slate-800/80 dark:bg-slate-900/50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/60'
-            }`}
-          >
-            {selectedSection.sectionLetter}1 Only (Lab)
-          </button>
-          <button
-            type="button"
-            role="radio"
-            onClick={() => onSelectSubSection('2')}
-            aria-checked={selectedSubSection === '2'}
-            className={`min-h-[40px] rounded-lg px-2 py-1.5 text-xs font-medium font-mono transition-colors cursor-pointer border ${
-              selectedSubSection === '2'
-                ? 'bg-rose-100 text-rose-900 border-rose-300 shadow-2xs dark:bg-slate-800 dark:text-rose-300 dark:border-rose-500/40'
-                : 'border-slate-200 bg-white/50 text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:border-slate-800/80 dark:bg-slate-900/50 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/60'
-            }`}
-          >
-            {selectedSection.sectionLetter}2 Only (Lab)
-          </button>
-        </div>
-      </div>
-
-      {/* 5. Modal Footer */}
-      <div className="pt-3 border-t border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400 flex items-center justify-between">
-        <div className="flex items-center gap-1.5">
-          <Info className="h-3.5 w-3.5 text-slate-400 shrink-0" />
-          <span>Saved to your browser automatically.</span>
-        </div>
-        {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 px-4 py-2 rounded-xl transition-colors cursor-pointer min-h-[40px] shadow-sm border border-emerald-500/30"
-          >
-            Done
+            <X className="h-3.5 w-3.5" />
           </button>
         )}
       </div>
+
+      {/* ─── Content Area: Browsing Peek vs Search Results ───────────── */}
+      {!searchQuery ? (
+        /* ─────────────────────────────────────────────────────────────────
+           VIEW A: COMPACT BATCH BROWSING (Peek with scroll reveal)
+        ─────────────────────────────────────────────────────────────────── */
+        <div>
+          <div className="relative">
+            <div className="max-h-[240px] overflow-y-auto pr-1.5 scrollbar-thin">
+              {/* Empty spacer + divider scroll away with content */}
+              <div className="pt-6">
+                <div className="relative flex items-center py-1.5 mb-2">
+                  <div className="flex-grow border-t border-slate-200/80 dark:border-slate-800/80"></div>
+                  <span className="shrink-0 px-2.5 text-xs font-mono text-slate-400 dark:text-slate-500">
+                    or browse manually
+                  </span>
+                  <div className="flex-grow border-t border-slate-200/80 dark:border-slate-800/80"></div>
+                </div>
+              </div>
+              <div className="space-y-2">
+              {BATCH_DEFINITIONS.map((b) => (
+                <div key={b.batchNumber} className="flex items-start gap-2 py-0.5">
+                  <span className="w-12 shrink-0 text-xs font-mono font-semibold text-slate-400 dark:text-slate-500 pt-1">
+                    B-{b.batchNumber}
+                  </span>
+                  <div className="flex flex-wrap gap-1 flex-1">
+                    {b.letters.map((letter) => {
+                      const secId = `${b.batchNumber}_${letter}`;
+                      const isSelected = activeTarget?.type !== 'faculty' && selectedSection.id === secId;
+
+                      return (
+                        <button
+                          key={secId}
+                          type="button"
+                          onClick={() => {
+                            const sec = sections.find((s) => s.id === secId);
+                            if (sec) handleApplySelection(sec);
+                          }}
+                          className={`h-7 min-w-[1.85rem] px-1 rounded-lg text-xs font-mono font-bold transition-all text-center cursor-pointer ${
+                            isSelected
+                              ? 'bg-emerald-500 text-emerald-950 border border-emerald-400 shadow-xs dark:bg-emerald-500 dark:text-emerald-950'
+                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900 border border-slate-200/80 dark:bg-slate-800/80 dark:text-slate-300 dark:border-slate-700/60 dark:hover:bg-slate-700 dark:hover:text-white'
+                          }`}
+                          title={`Select section ${secId}`}
+                          aria-label={`Section ${secId}`}
+                        >
+                          {letter}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              </div>
+            </div>
+            {/* Subtle bottom fade hint indicating scrollable content */}
+            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-white dark:from-slate-900 to-transparent" />
+          </div>
+
+          {/* Compact Inline Lab Group Selector (Only in student browsing mode) */}
+          {activeTarget?.type !== 'faculty' && (
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+              <span className="font-mono text-slate-400 text-xs">
+                Lab group: <strong className="text-slate-800 dark:text-slate-200 font-semibold">{selectedSection.id}</strong>
+              </span>
+              <div className="flex items-center gap-1 font-mono">
+                <button
+                  type="button"
+                  onClick={() => onSelectSubSection('all')}
+                  className={`px-2.5 py-0.5 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                    selectedSubSection === 'all'
+                      ? 'bg-emerald-500 text-emerald-950 font-bold dark:bg-emerald-500 dark:text-emerald-950 shadow-2xs'
+                      : 'bg-slate-100 text-slate-600 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white'
+                  }`}
+                >
+                  All
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onSelectSubSection('1')}
+                  className={`px-2.5 py-0.5 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                    selectedSubSection === '1'
+                      ? 'bg-emerald-500 text-emerald-950 font-bold dark:bg-emerald-500 dark:text-emerald-950 shadow-2xs'
+                      : 'bg-slate-100 text-slate-600 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white'
+                  }`}
+                >
+                  {selectedSection.sectionLetter}1
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onSelectSubSection('2')}
+                  className={`px-2.5 py-0.5 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                    selectedSubSection === '2'
+                      ? 'bg-emerald-500 text-emerald-950 font-bold dark:bg-emerald-500 dark:text-emerald-950 shadow-2xs'
+                      : 'bg-slate-100 text-slate-600 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white'
+                  }`}
+                >
+                  {selectedSection.sectionLetter}2
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        /* ─────────────────────────────────────────────────────────────────
+           VIEW B: ACTIVE SEARCH RESULTS (Sections, Faculty & Rooms)
+        ─────────────────────────────────────────────────────────────────── */
+        <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1.5 scrollbar-thin">
+          {/* Shorthand Quick Match (e.g. 66o2) */}
+          {shorthandMatch && (
+            <button
+              type="button"
+              onClick={() => handleApplySelection(shorthandMatch.section, shorthandMatch.parsed.subSection)}
+              className="w-full rounded-xl border border-emerald-500/80 bg-emerald-50/80 dark:bg-emerald-950/40 dark:border-emerald-500/60 p-2.5 flex items-center justify-between cursor-pointer hover:bg-emerald-100/80 dark:hover:bg-emerald-900/40 transition-colors shadow-2xs text-left"
+            >
+              <div className="flex items-center gap-2">
+                <span className="h-6 w-6 rounded-md bg-emerald-500 text-white flex items-center justify-center font-mono font-bold text-xs shrink-0">
+                  ↵
+                </span>
+                <span className="font-bold text-xs sm:text-sm text-emerald-950 dark:text-emerald-100 font-mono">
+                  {shorthandMatch.section.id}
+                  {shorthandMatch.parsed.subSection !== 'all' ? ` (Lab ${shorthandMatch.parsed.subSection})` : ''}
+                </span>
+              </div>
+              <span className="text-xs font-mono font-bold text-emerald-700 dark:text-emerald-300">
+                Press Enter to select →
+              </span>
+            </button>
+          )}
+
+          {/* Room Inspection Match */}
+          {roomMatch && onOpenRoomFinder && (
+            <button
+              type="button"
+              onClick={() => {
+                onOpenRoomFinder(roomMatch);
+                if (onClose) onClose();
+              }}
+              className="w-full rounded-xl border border-sky-400/80 bg-sky-50/80 dark:bg-sky-950/40 dark:border-sky-500/60 p-2.5 flex items-center justify-between cursor-pointer hover:bg-sky-100/80 dark:hover:bg-sky-900/40 transition-colors shadow-2xs text-left"
+            >
+              <div className="flex items-center gap-2">
+                <DoorOpen className="h-4 w-4 text-sky-600 dark:text-sky-400 shrink-0" />
+                <span className="font-bold text-xs sm:text-sm text-sky-950 dark:text-sky-100 font-mono">
+                  Room {roomMatch}
+                </span>
+              </div>
+              <span className="text-xs font-mono font-bold text-sky-700 dark:text-sky-300">
+                View Schedule →
+              </span>
+            </button>
+          )}
+
+          {/* Faculty Results */}
+          {combinedFacultyResults.length > 0 && (
+            <div className={`space-y-1 ${isFacultyTop ? 'order-first' : 'order-last'}`}>
+              <div className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-0.5">
+                Faculty ({combinedFacultyResults.length})
+              </div>
+              <div className="space-y-1">
+                {combinedFacultyResults.slice(0, 10).map(({ faculty: f }) => (
+                  <button
+                    key={f.code}
+                    type="button"
+                    onClick={() => handleApplyFaculty(f)}
+                    className="w-full flex items-center justify-between p-2 sm:p-2.5 rounded-xl border border-slate-200 bg-white hover:border-emerald-400 hover:bg-emerald-50/20 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-emerald-500/50 dark:hover:bg-slate-800/40 text-left transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="shrink-0 px-2 py-0.5 rounded-md font-mono font-bold text-xs bg-emerald-100 text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-700/60">
+                        {f.code}
+                      </span>
+                      <div className="min-w-0">
+                        <span className="font-semibold text-xs sm:text-sm text-slate-900 dark:text-white truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                          {f.name}
+                        </span>
+                        <span className="text-xs text-slate-400 font-mono truncate block">
+                          {f.designation ? `${f.designation} • ` : ''}CSE
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-xs font-mono font-medium text-slate-400 group-hover:text-emerald-600 transition-colors shrink-0 ml-2">
+                      {isComparing ? 'Compare →' : 'Select →'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Section Results */}
+          {filteredSections.length > 0 && (
+            <div className="space-y-1">
+              <div className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-0.5">
+                Sections ({filteredSections.length})
+              </div>
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
+                {filteredSections.slice(0, 24).map((s) => {
+                  const isSelected = activeTarget?.type !== 'faculty' && selectedSection.id === s.id;
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => handleApplySelection(s)}
+                      className={`py-2 px-1.5 rounded-xl border text-center transition-colors cursor-pointer ${
+                        isSelected
+                          ? 'bg-emerald-500 text-emerald-950 border-emerald-400 shadow-xs dark:bg-emerald-500 dark:text-emerald-950 font-bold'
+                          : 'bg-white border-slate-200 text-slate-800 hover:border-emerald-400 hover:bg-emerald-50/20 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-200 dark:hover:border-emerald-500/50'
+                      }`}
+                    >
+                      <span className="text-xs sm:text-sm font-bold font-mono block">
+                        {s.id}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Empty Search State */}
+          {combinedFacultyResults.length === 0 && filteredSections.length === 0 && !roomMatch && (
+            <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500 space-y-2">
+              <p>No sections or teachers found matching &quot;{searchQuery}&quot;.</p>
+              {searchQuery.trim().length >= 2 && !/\d/.test(searchQuery.trim()) && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleApplyFaculty({
+                      code: searchQuery.trim().toUpperCase(),
+                      name: searchQuery.trim().toUpperCase(),
+                      department: 'CSE',
+                    })
+                  }
+                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs cursor-pointer"
+                >
+                  Load teacher &quot;{searchQuery.trim().toUpperCase()}&quot; schedule
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 
@@ -467,7 +663,7 @@ export function SectionSelector({
         aria-modal="true"
         aria-labelledby="section-modal-title"
       >
-        <div onClick={(e) => e.stopPropagation()} className="w-full max-w-2xl">
+        <div onClick={(e) => e.stopPropagation()} className="w-full max-w-xl">
           {content}
         </div>
       </div>

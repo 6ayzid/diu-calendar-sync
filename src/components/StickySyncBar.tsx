@@ -1,41 +1,35 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Calendar, Copy, Check, ChevronUp, LayoutGrid, CalendarDays } from 'lucide-react';
-import { SectionMeta } from '@/types/schedule';
+import React from 'react';
+import { Calendar, ChevronUp, DoorOpen, Search, Plus } from 'lucide-react';
+import { SectionMeta, ActiveRoutineTarget, CompareState } from '@/types/schedule';
 
 interface StickySyncBarProps {
   section: SectionMeta;
   subSection: '1' | '2' | 'all';
-  viewMode?: 'matrix' | 'agenda';
-  onToggleViewMode?: (mode: 'matrix' | 'agenda') => void;
+  activeTarget?: ActiveRoutineTarget;
+  compareState?: CompareState;
+  hasSavedPreference?: boolean;
   onOpenSectionPicker: () => void;
+  onOpenComparePicker?: () => void;
   onOpenSyncModal: () => void;
+  onOpenRoomFinder?: () => void;
 }
 
 export function StickySyncBar({
   section,
   subSection,
-  viewMode,
-  onToggleViewMode,
+  activeTarget,
+  compareState,
+  hasSavedPreference = true,
   onOpenSectionPicker,
+  onOpenComparePicker,
   onOpenSyncModal,
+  onOpenRoomFinder,
 }: StickySyncBarProps) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopyUrl = async () => {
-    if (typeof window === 'undefined') return;
-    const subQuery = subSection !== 'all' ? `?sub=${subSection}` : '';
-    const fullUrl = `${window.location.origin}/api/calendar/${section.id}.ics${subQuery}`;
-    try {
-      await navigator.clipboard.writeText(fullUrl);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
+  const isFaculty = activeTarget?.type === 'faculty';
+  const faculty = isFaculty ? activeTarget.faculty : null;
+  const isComparing = Boolean(compareState?.active);
 
   return (
     <aside
@@ -44,66 +38,89 @@ export function StickySyncBar({
       style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom, 0.75rem))' }}
     >
       <div className="flex items-center justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white/95 p-1.5 px-3 shadow-xl backdrop-blur-md dark:border-slate-800/90 dark:bg-slate-950/95">
-        {/* Left: Active Section Trigger */}
+        {/* Left: Active Section / Faculty Trigger */}
         <button
           type="button"
           onClick={onOpenSectionPicker}
-          aria-label={`Change academic section, currently ${section.displayName}`}
-          className="flex items-center gap-1.5 rounded-xl p-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors cursor-pointer text-left min-h-[40px]"
+          aria-label={
+            !hasSavedPreference
+              ? 'Select section or teacher'
+              : isFaculty && faculty
+              ? `Change routine target, currently Faculty ${faculty.name} (${faculty.code})`
+              : `Change academic section, currently ${section.displayName}`
+          }
+          className="flex items-center gap-1.5 rounded-xl p-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors cursor-pointer text-left min-h-[38px] min-w-0 flex-1"
         >
-          <div className="flex items-center gap-1 font-mono">
-            <span className="rounded bg-slate-100 border border-slate-200 px-2 py-0.5 text-xs font-bold text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-white">
-              {section.id}
-            </span>
-            {subSection !== 'all' && (
-              <span className="rounded bg-emerald-100 border border-emerald-300 px-1 py-0.5 text-[10px] font-bold text-emerald-900 dark:bg-emerald-500/20 dark:border-emerald-500/30 dark:text-emerald-300">
-                Lab {subSection}
+          {!hasSavedPreference ? (
+            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+              <Search className="h-3.5 w-3.5" />
+              <span>Select Section</span>
+            </div>
+          ) : isFaculty && faculty ? (
+            <div className="flex items-center gap-1 font-mono truncate">
+              <span className="rounded bg-emerald-50 border border-emerald-300 px-2 py-0.5 text-xs font-bold text-emerald-950 dark:bg-emerald-950/60 dark:border-emerald-600/50 dark:text-emerald-300">
+                {faculty.code}
               </span>
-            )}
-          </div>
-          <ChevronUp className="h-3.5 w-3.5 text-slate-400" />
+              <span className="rounded bg-slate-100 border border-slate-200 px-1 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
+                Faculty
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1 font-mono truncate">
+              <span className="rounded bg-slate-100 border border-slate-200 px-2 py-0.5 text-xs font-bold text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-white">
+                {section.id}
+              </span>
+              {subSection !== 'all' && (
+                <span className="rounded bg-emerald-100 border border-emerald-300 px-1 py-0.5 text-[10px] font-bold text-emerald-900 dark:bg-emerald-500/20 dark:border-emerald-500/30 dark:text-emerald-300">
+                  Lab {subSection}
+                </span>
+              )}
+            </div>
+          )}
+          <ChevronUp className="h-3.5 w-3.5 text-slate-400 shrink-0" />
         </button>
 
-        {/* Right: Quick View Switcher & Sync Button */}
-        <div className="flex items-center gap-1.5">
-          {/* Mobile View Toggle */}
-          {onToggleViewMode && (
+        {/* Right: Rooms, Compare & Sync Action Buttons */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Room Finder */}
+          {onOpenRoomFinder && (
             <button
               type="button"
-              onClick={() => onToggleViewMode(viewMode === 'matrix' ? 'agenda' : 'matrix')}
-              aria-label={`Switch to ${viewMode === 'matrix' ? 'Agenda' : 'Week Matrix'} view`}
-              className="flex items-center justify-center min-h-[40px] min-w-[40px] rounded-xl border border-slate-200 bg-slate-100/80 p-2 text-slate-600 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors cursor-pointer"
-              title={viewMode === 'matrix' ? 'Switch to Day Agenda' : 'Switch to Week View'}
+              onClick={onOpenRoomFinder}
+              aria-label="Find empty rooms"
+              className="flex items-center justify-center h-[38px] w-[38px] rounded-xl border border-slate-200 bg-slate-100/80 text-slate-600 hover:text-emerald-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:text-emerald-400 transition-colors cursor-pointer"
+              title="Find empty rooms"
             >
-              {viewMode === 'matrix' ? (
-                <CalendarDays className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-              ) : (
-                <LayoutGrid className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+              <DoorOpen className="h-4 w-4" />
+            </button>
+          )}
+
+          {/* Routine Compare Button */}
+          {hasSavedPreference && onOpenComparePicker && (
+            <button
+              type="button"
+              onClick={onOpenComparePicker}
+              aria-label={isComparing ? 'Routine compare active' : 'Compare routine with another section or teacher'}
+              title={isComparing ? 'Routine compare active (tap to change)' : 'Compare routines'}
+              className={`relative flex items-center justify-center h-[38px] w-[38px] rounded-xl border transition-colors cursor-pointer ${
+                isComparing
+                  ? 'border-emerald-400/80 bg-emerald-50 text-emerald-800 dark:border-emerald-600/70 dark:bg-emerald-950/70 dark:text-emerald-300 shadow-2xs'
+                  : 'border-slate-200 bg-slate-100/80 text-slate-600 hover:text-emerald-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:text-emerald-400'
+              }`}
+            >
+              <Plus className="h-4 w-4" />
+              {isComparing && (
+                <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-950 animate-pulse" />
               )}
             </button>
           )}
 
-          {/* Quick Copy Link */}
-          <button
-            type="button"
-            onClick={handleCopyUrl}
-            aria-label="Copy live iCal subscription URL"
-            className="flex items-center justify-center min-h-[40px] min-w-[40px] rounded-xl border border-slate-200 bg-slate-100/80 p-2 text-slate-600 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors cursor-pointer"
-            title="Copy permanent calendar feed URL"
-          >
-            {copied ? (
-              <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            ) : (
-              <Copy className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-            )}
-          </button>
-
           {/* Primary 1-Tap Calendar Subscription Button */}
           <button
             type="button"
-            onClick={onOpenSyncModal}
-            aria-label="Open Calendar Sync Modal"
-            className="flex items-center gap-1.5 min-h-[40px] rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 px-3.5 py-2 text-xs font-bold text-white dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:text-emerald-950 transition-colors cursor-pointer shadow-sm border border-emerald-500/30"
+            onClick={hasSavedPreference ? onOpenSyncModal : onOpenSectionPicker}
+            aria-label={hasSavedPreference ? 'Open Calendar Sync Modal' : 'Select section to sync calendar'}
+            className="flex items-center gap-1.5 h-[38px] rounded-xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 px-3 py-1.5 text-xs font-bold text-white dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:text-emerald-950 transition-colors cursor-pointer shadow-sm border border-emerald-500/30"
           >
             <Calendar className="h-3.5 w-3.5" />
             <span>Sync</span>

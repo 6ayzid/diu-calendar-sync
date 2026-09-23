@@ -4,8 +4,9 @@ import ical, {
   ICalEventRepeatingFreq,
   ICalWeekday,
 } from 'ical-generator';
-import { DayOfWeek, RoutineClass } from '@/types/schedule';
+import { DayOfWeek, RoutineClass, FacultyMeta } from '@/types/schedule';
 import { getSectionById } from '@/data/sections';
+import { getFacultyByCode } from '@/data/faculty';
 
 // First occurrence dates of the semester effective week (Effective: Sept 09, 2026)
 const WEEKDAY_DATE_MAP: Record<DayOfWeek, string> = {
@@ -44,8 +45,9 @@ END:VTIMEZONE`;
 const SEMESTER_END_DATE = new Date(Date.UTC(2027, 0, 31, 17, 59, 59));
 
 export interface BuildCalendarOptions {
-  sectionId: string;
+  sectionId?: string;
   subSection?: '1' | '2' | 'all' | null;
+  faculty?: FacultyMeta;
   timezone?: string;
   sourceDomain?: string;
 }
@@ -63,30 +65,38 @@ export function buildCalendarFeed(
   classes: RoutineClass[],
   options: BuildCalendarOptions
 ): ICalCalendar {
-  const { sectionId, subSection, timezone = 'Asia/Dhaka', sourceDomain = 'schedule.campus.edu' } = options;
-  const sectionMeta = getSectionById(sectionId);
+  const { sectionId, subSection, faculty, timezone = 'Asia/Dhaka', sourceDomain = 'schedule.campus.edu' } = options;
 
-  let subLabel = '';
-  if (subSection === '1' && sectionMeta) {
-    subLabel = ` (Subsection ${sectionMeta.sectionLetter}1)`;
-  } else if (subSection === '2' && sectionMeta) {
-    subLabel = ` (Subsection ${sectionMeta.sectionLetter}2)`;
+  let calendarName = 'DIU Routine';
+  let calendarDesc = 'DIU CSE Class Schedule Feed';
+
+  if (faculty) {
+    calendarName = `DIU Routine — ${faculty.code}`;
+    calendarDesc = `Teaching routine for ${faculty.name} (${faculty.code}), Dept. of CSE, DIU.`;
+  } else if (sectionId) {
+    const sectionMeta = getSectionById(sectionId);
+    let subLabel = '';
+    if (subSection === '1') {
+      const letter = sectionMeta?.sectionLetter || sectionId.split('_')[1] || '';
+      subLabel = ` (${letter}1)`;
+    } else if (subSection === '2') {
+      const letter = sectionMeta?.sectionLetter || sectionId.split('_')[1] || '';
+      subLabel = ` (${letter}2)`;
+    }
+    calendarName = `DIU Routine — ${sectionId}${subLabel}`;
+    calendarDesc = `Class routine feed for ${sectionId}${subLabel}, Dept. of CSE, DIU.`;
   }
-
-  const calendarName = sectionMeta
-    ? `CSE Routine: ${sectionMeta.displayName}${subLabel}`
-    : `CSE Routine: Section ${sectionId}${subLabel}`;
 
   // Do not set timezone on the top-level calendar options, because ical-generator
   // strips the mandatory 'Z' from DTSTAMP and RRULE:UNTIL when top-level timezone is present.
   // Instead, we set timezone on each event and inject the RFC 5545 VTIMEZONE component into the serialized output.
   const calendar = ical({
     name: calendarName,
-    description: `Official class schedule feed for Dept. of CSE, Routine V1.1 by @6ayzid. Auto-syncs weekly routine changes directly to Google and Apple Calendars.`,
+    description: calendarDesc,
     ttl: 3600, // 1 hour refresh interval (X-PUBLISHED-TTL:PT1H & REFRESH-INTERVAL)
     prodId: {
-      company: 'Dept. of CSE, DIU (@6ayzid)',
-      product: 'Live WebCal Feed Generator',
+      company: 'DIU CSE (@6ayzid)',
+      product: 'Routine Feed Generator',
       language: 'EN',
     },
   });
@@ -111,27 +121,53 @@ export function buildCalendarFeed(
     // Deterministic UID:
     // Consistent across routine changes for identical slots so calendar engines replace/update in-place
     const subIdentifier = item.subSection ? `sub${item.subSection}` : 'common';
-    const deterministicUid = `slot-${item.sectionId}-${item.courseCode.replace(/[^a-zA-Z0-9]/g, '')}-${subIdentifier}-${item.dayOfWeek}-${item.startTime.replace(':', '')}@${sourceDomain}`;
+    const cleanCourseCode = item.courseCode.split('(')[0].trim();
+    const cleanRoom = item.room.split('(')[0].trim();
+    const sectionBadge = item.sectionId
+      ? (item.subSection ? `${item.sectionId}${item.subSection}` : item.sectionId)
+      : (item.batch && item.section ? `${item.batch}_${item.section}` : 'All');
+
+    const deterministicUid = faculty
+      ? `slot-faculty-${faculty.code}-${cleanCourseCode}-${sectionBadge}-${item.dayOfWeek}-${item.startTime.replace(':', '')}@${sourceDomain}`
+      : `slot-${item.sectionId}-${item.courseCode.replace(/[^a-zA-Z0-9]/g, '')}-${subIdentifier}-${item.dayOfWeek}-${item.startTime.replace(':', '')}@${sourceDomain}`;
 
     const subTag = item.subSection
-      ? ` [Sub-Sec ${item.section}${item.subSection}]`
+      ? ` (${item.section || ''}${item.subSection})`
       : '';
 
-    const summary = `[${item.courseCode}] ${item.courseTitle}${subTag}`;
+    const summary = faculty
+      ? `${cleanCourseCode} — ${sectionBadge} (${cleanRoom})`
+      : `${cleanCourseCode} — ${item.courseTitle}${subTag}`;
 
-    const description = [
-      `Course: ${item.courseCode} - ${item.courseTitle}`,
-      `Type: ${item.type} Class`,
-      `Teacher: ${item.teacherCode}${item.teacherName ? ` (${item.teacherName})` : ''}`,
-      `Room / Venue: ${item.room}`,
-      `Section: ${item.sectionId}${item.subSection ? ` (Sub-section ${item.section}${item.subSection})` : ' (All Sub-sections)'}`,
-      `Day & Time: ${item.dayOfWeek} ${item.startTime} - ${item.endTime}`,
-      ``,
-      `---`,
-      `Dept. of CSE, DIU (Version V2.2)`,
-      `Effective From: 09 September, 2026`,
-      `Live Subscription Feed: Automatically reflects room and instructor changes.`
-    ].join('\n');
+    const teacherMeta = item.teacherCode ? getFacultyByCode(item.teacherCode) : undefined;
+    const teacherDisplay = teacherMeta
+      ? `${teacherMeta.name} (${item.teacherCode})`
+      : item.teacherName
+      ? `${item.teacherName} (${item.teacherCode})`
+      : item.teacherCode || '';
+
+    const sectionDisplay = item.subSection
+      ? `${item.sectionId} (Subsection ${item.section || ''}${item.subSection})`
+      : item.sectionId;
+
+    const description = faculty
+      ? [
+          `Course: ${cleanCourseCode} — ${item.courseTitle}`,
+          `Section: ${sectionBadge}`,
+          `Type: ${item.type}`,
+          `Room: ${item.room}`,
+          ``,
+          `DIU CSE Routine Sync`,
+        ].join('\n')
+      : [
+          `Course: ${cleanCourseCode} — ${item.courseTitle}`,
+          ...(teacherDisplay ? [`Instructor: ${teacherDisplay}`] : []),
+          `Section: ${sectionDisplay}`,
+          `Type: ${item.type}`,
+          `Room: ${item.room}`,
+          ``,
+          `DIU CSE Routine Sync`,
+        ].join('\n');
 
     const event = calendar.createEvent({
       id: deterministicUid,
@@ -152,7 +188,7 @@ export function buildCalendarFeed(
     event.createAlarm({
       type: ICalAlarmType.display,
       trigger: 900, // 15 mins
-      description: `Class Reminder: ${item.courseCode} in Room ${item.room}`,
+      description: `Class Reminder: ${cleanCourseCode} in Room ${cleanRoom}`,
     });
   }
 

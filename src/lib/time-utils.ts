@@ -293,4 +293,129 @@ export function getUpcomingDays(count = 7): UpcomingDay[] {
   }
 }
 
+// ─── University Schedule Slot Constants ───────────────────────────────────────
 
+/** The 6 standard university class time slots. */
+export const UNIVERSITY_TIME_SLOTS = [
+  '08:30-10:00',
+  '10:00-11:30',
+  '11:30-01:00',
+  '01:00-02:30',
+  '02:30-04:00',
+  '04:00-05:30',
+] as const;
+
+export type UniversityTimeSlot = (typeof UNIVERSITY_TIME_SLOTS)[number];
+
+/** Parsed slot boundaries in minutes from midnight. */
+const SLOT_BOUNDARIES: { slot: UniversityTimeSlot; startMin: number; endMin: number }[] = [
+  { slot: '08:30-10:00', startMin: 510,  endMin: 600  },
+  { slot: '10:00-11:30', startMin: 600,  endMin: 690  },
+  { slot: '11:30-01:00', startMin: 690,  endMin: 780  },
+  { slot: '01:00-02:30', startMin: 780,  endMin: 870  },
+  { slot: '02:30-04:00', startMin: 870,  endMin: 960  },
+  { slot: '04:00-05:30', startMin: 960,  endMin: 1050 },
+];
+
+export interface CurrentSlotInfo {
+  /** Whether classes are currently in session (within 08:30–17:30 window on a weekday). */
+  isClassHours: boolean;
+  /** The slot currently active right now, or null if between slots / outside hours. */
+  currentSlot: UniversityTimeSlot | null;
+  /** The next upcoming slot, or null if past the last slot. */
+  nextSlot: UniversityTimeSlot | null;
+  /** Whether today is Friday (no classes). */
+  isFriday: boolean;
+  /** Current Dhaka day as DayOfWeek, or null if Friday. */
+  day: DayOfWeek | null;
+  /** Display label for the active slot, e.g. "10:00 – 11:30 AM". */
+  slotLabel: string;
+  /** Current Dhaka time formatted as 12h. */
+  timeLabel: string;
+}
+
+/**
+ * Determines the current university time slot based on live Dhaka clock.
+ */
+export function getDhakaCurrentSlotInfo(): CurrentSlotInfo {
+  const clock = getDhakaClock();
+  const min = clock.minuteInt;
+
+  const result: CurrentSlotInfo = {
+    isClassHours: false,
+    currentSlot: null,
+    nextSlot: null,
+    isFriday: clock.isFriday,
+    day: clock.day,
+    slotLabel: '',
+    timeLabel: clock.formatted12,
+  };
+
+  if (clock.isFriday || !clock.day) {
+    return result;
+  }
+
+  // Before first class
+  if (min < SLOT_BOUNDARIES[0].startMin) {
+    result.nextSlot = SLOT_BOUNDARIES[0].slot;
+    result.slotLabel = 'Before classes';
+    return result;
+  }
+
+  // After last class
+  if (min >= SLOT_BOUNDARIES[SLOT_BOUNDARIES.length - 1].endMin) {
+    result.slotLabel = 'After classes';
+    return result;
+  }
+
+  result.isClassHours = true;
+
+  for (let i = 0; i < SLOT_BOUNDARIES.length; i++) {
+    const b = SLOT_BOUNDARIES[i];
+    if (min >= b.startMin && min < b.endMin) {
+      result.currentSlot = b.slot;
+      result.nextSlot = i + 1 < SLOT_BOUNDARIES.length ? SLOT_BOUNDARIES[i + 1].slot : null;
+      result.slotLabel = formatSlotLabel(b.slot);
+      return result;
+    }
+  }
+
+  // Between slots (shouldn't happen with contiguous slots, but just in case)
+  for (let i = 0; i < SLOT_BOUNDARIES.length - 1; i++) {
+    if (min >= SLOT_BOUNDARIES[i].endMin && min < SLOT_BOUNDARIES[i + 1].startMin) {
+      result.nextSlot = SLOT_BOUNDARIES[i + 1].slot;
+      result.slotLabel = 'Between classes';
+      return result;
+    }
+  }
+
+  return result;
+}
+
+const UNIVERSITY_SLOT_DISPLAY_LABELS: Record<string, string> = {
+  '08:30-10:00': '8:30 AM – 10:00 AM',
+  '10:00-11:30': '10:00 AM – 11:30 AM',
+  '11:30-01:00': '11:30 AM – 1:00 PM',
+  '01:00-02:30': '1:00 PM – 2:30 PM',
+  '02:30-04:00': '2:30 PM – 4:00 PM',
+  '04:00-05:30': '4:00 PM – 5:30 PM',
+};
+
+/** Formats a slot like "02:30-04:00" into "2:30 PM – 4:00 PM". */
+export function formatSlotLabel(slot: string): string {
+  if (UNIVERSITY_SLOT_DISPLAY_LABELS[slot]) {
+    return UNIVERSITY_SLOT_DISPLAY_LABELS[slot];
+  }
+  const [start, end] = slot.split('-');
+  return `${formatTime12(start)} – ${formatTime12(end)}`;
+}
+
+/** The 6 academic days (Saturday through Thursday). */
+export const ACADEMIC_DAYS: DayOfWeek[] = [
+  'SATURDAY', 'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY',
+];
+
+/** Converts DayOfWeek to the capitalized form the upstream API expects (e.g. "Saturday"). */
+export function dayOfWeekToApiDay(day: DayOfWeek): string {
+  return day.charAt(0) + day.slice(1).toLowerCase();
+}

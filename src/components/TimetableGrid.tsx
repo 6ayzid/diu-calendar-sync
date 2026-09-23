@@ -1,27 +1,44 @@
 'use client';
 
-import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { DayOfWeek, RoutineClass, SectionMeta } from '@/types/schedule';
+import React, { useState, useMemo, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+import { DayOfWeek, RoutineClass, SectionMeta, ActiveRoutineTarget, CompareState, FreeTimeSlot } from '@/types/schedule';
 import {
   Clock,
   MapPin,
   FlaskConical,
   LayoutGrid,
   CalendarDays,
+  Sparkles,
+  Info,
 } from 'lucide-react';
 import { getCourseShortTitle } from '@/lib/course-utils';
 import { formatTime12, getDhakaClock, DhakaClockState, getUpcomingDays, getCurrentWeekScheduleDays, WeekScheduleDay, timeToMinutes } from '@/lib/time-utils';
 import { HOURLY_MARKS, layoutDayEvents, getCurrentTimeTopPercent, PositionedEvent } from '@/lib/timeline-layout';
+import { getTimelinePercentForInterval, getTargetLabel } from '@/lib/compare-utils';
 
 interface TimetableGridProps {
   section: SectionMeta;
   subSection?: '1' | '2' | 'all';
+  activeTarget?: ActiveRoutineTarget;
   classes: RoutineClass[];
+  compareState?: CompareState;
+  secondaryClasses?: RoutineClass[];
+  sharedFreeSlotsMap?: Record<DayOfWeek, FreeTimeSlot[]>;
   viewMode?: 'matrix' | 'agenda';
   onViewModeChange?: (mode: 'matrix' | 'agenda') => void;
   activeDay?: DayOfWeek;
   onActiveDayChange?: (day: DayOfWeek) => void;
   routineVersion?: string;
+  onOpenFacultyInfo?: (facultyCode: string) => void;
+  onOpenSectionInfo?: (sectionId: string) => void;
+}
+
+export interface AugmentedPositionedEvent extends PositionedEvent {
+  isHighPriority?: boolean;
+  isBlockMode?: boolean;
+  targetBadge?: string;
 }
 
 const DAYS: { key: DayOfWeek; label: string; short: string; colIndex: number }[] = [
@@ -35,13 +52,22 @@ const DAYS: { key: DayOfWeek; label: string; short: string; colIndex: number }[]
 
 export function TimetableGrid({
   section,
+  activeTarget,
   classes,
+  compareState,
+  secondaryClasses,
+  sharedFreeSlotsMap,
   viewMode,
   onViewModeChange,
   onActiveDayChange,
   routineVersion = 'v2.2',
+  onOpenFacultyInfo,
+  onOpenSectionInfo,
 }: TimetableGridProps) {
-  // Default to matrix (week view) unless ?view=agenda is passed in URL
+  const isFaculty = activeTarget?.type === 'faculty';
+  const faculty = isFaculty ? activeTarget.faculty : null;
+
+  // Default to agenda on mobile screens (< 768px), matrix (week view) on desktop unless ?view=agenda is passed in URL
   const [internalViewMode, setInternalViewMode] = useState<'matrix' | 'agenda'>('matrix');
   const effectiveViewMode = viewMode !== undefined ? viewMode : internalViewMode;
   const setEffectiveViewMode = onViewModeChange || setInternalViewMode;
@@ -51,8 +77,10 @@ export function TimetableGrid({
       if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
         const v = params.get('view') || params.get('v');
-        if (v === 'agenda') {
-          setInternalViewMode('agenda');
+        if (v === 'agenda' || v === 'matrix') {
+          setInternalViewMode(v);
+        } else {
+          setInternalViewMode(window.innerWidth < 768 ? 'agenda' : 'matrix');
         }
       }
     }, 0);
@@ -93,6 +121,59 @@ export function TimetableGrid({
 
   const minZoomLimit = 1.0;
 
+  // Measure time column width dynamically from DOM or fallback to CSS defaults
+  const getTimeColWidth = useCallback(() => {
+    if (!matrixScrollRef.current) return window.innerWidth < 640 ? 64 : 72;
+    const timeHeader = matrixScrollRef.current.querySelector<HTMLElement>(
+      'div[style*="grid-column: 1"], div[style*="gridColumn: 1"], div[style*="grid-column:1"]'
+    );
+    if (timeHeader && timeHeader.offsetWidth > 0) {
+      return timeHeader.offsetWidth;
+    }
+    return window.innerWidth < 640 ? 64 : 72;
+  }, []);
+
+  // Zoom anchor: keeps the exact day coordinate static under the user's cursor / touch midpoint
+  const zoomAnchorRef = useRef<{
+    dayUnits: number;
+    viewportX: number;
+  } | null>(null);
+
+  const prevZoomDaysRef = useRef<number>(zoomDays);
+
+  // Synchronous layout adjustment so the focal point never shifts or drifts
+  useIsomorphicLayoutEffect(() => {
+    const container = matrixScrollRef.current;
+    const prevZoom = prevZoomDaysRef.current;
+    prevZoomDaysRef.current = zoomDays;
+
+    if (!container || prevZoom === zoomDays) return;
+
+    const timeWidth = getTimeColWidth();
+    const dayAreaWidth = Math.max(1, container.clientWidth - timeWidth);
+
+    let anchor = zoomAnchorRef.current;
+    if (!anchor) {
+      // Fallback: anchor around the center of the visible day area
+      const centerOffsetX = dayAreaWidth / 2;
+      const centerViewportX = timeWidth + centerOffsetX;
+      const dayX = container.scrollLeft + centerOffsetX;
+      const dayUnits = Math.max(0, Math.min(6, (dayX * prevZoom) / dayAreaWidth));
+      anchor = {
+        dayUnits,
+        viewportX: centerViewportX,
+      };
+    }
+
+    const targetOffsetX = Math.max(0, anchor.viewportX - timeWidth);
+    const currentDayWidth = dayAreaWidth / zoomDays;
+    const newDayX = anchor.dayUnits * currentDayWidth;
+    const newScrollLeft = newDayX - targetOffsetX;
+
+    const maxScroll = Math.max(0, dayAreaWidth * (6 / zoomDays - 1));
+    container.scrollLeft = Math.max(0, Math.min(maxScroll, newScrollLeft));
+  }, [zoomDays, getTimeColWidth]);
+
   // Spring animation ref for realistic damped bounce effect
   const springRafRef = useRef<number | null>(null);
 
@@ -125,6 +206,7 @@ export function TimetableGrid({
       if (Math.abs(displacement) < 0.005 && Math.abs(velocity) < 0.02) {
         setZoomDays(targetZoom);
         springRafRef.current = null;
+        zoomAnchorRef.current = null;
         return;
       }
 
@@ -225,70 +307,13 @@ export function TimetableGrid({
     });
   };
 
-  // Pinch-to-zoom touch handlers for continuous mobile zoom with rubber-band resistance & spring bounce
+  // Continuous pinch & wheel zoom handlers attached with { passive: false }
   const initialTouchDistRef = useRef<number | null>(null);
   const initialZoomDaysRef = useRef<number>(3);
+  const touchAnchorRef = useRef<{
+    dayUnits: number;
+  } | null>(null);
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (springRafRef.current !== null) {
-      cancelAnimationFrame(springRafRef.current);
-      springRafRef.current = null;
-    }
-
-    if (e.touches.length === 2) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      initialTouchDistRef.current = dist;
-      initialZoomDaysRef.current = zoomDaysRef.current;
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 2 && initialTouchDistRef.current !== null) {
-      if (e.cancelable) {
-        e.preventDefault();
-      }
-      const currentDist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      const scale = currentDist / initialTouchDistRef.current;
-      const rawZoom = initialZoomDaysRef.current / scale;
-
-      const limit = getCompressionLimit();
-      let nextZoom = rawZoom;
-
-      // Over-compression past limit: allow peeking with elastic rubber-band resistance
-      if (rawZoom > limit) {
-        const over = rawZoom - limit;
-        nextZoom = limit + over * 0.45;
-        nextZoom = Math.min(6.2, nextZoom);
-      } else if (rawZoom < minZoomLimit) {
-        const under = minZoomLimit - rawZoom;
-        nextZoom = minZoomLimit - under * 0.45;
-        nextZoom = Math.max(0.7, nextZoom);
-      }
-
-      setZoomDays(Math.round(nextZoom * 100) / 100);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    initialTouchDistRef.current = null;
-    const limit = getCompressionLimit();
-    const current = zoomDaysRef.current;
-
-    // Trigger spring bounce if over-compressed or over-stretched
-    if (current > limit) {
-      triggerSpringBounce(limit);
-    } else if (current < minZoomLimit) {
-      triggerSpringBounce(minZoomLimit);
-    }
-  };
-
-  // Trackpad pinch zoom on laptops (Ctrl + wheel) with bounce
   useEffect(() => {
     const el = matrixScrollRef.current;
     if (!el) return;
@@ -303,6 +328,25 @@ export function TimetableGrid({
           springRafRef.current = null;
         }
 
+        const rect = el.getBoundingClientRect();
+        const viewportX = e.clientX - rect.left;
+        const timeWidth = getTimeColWidth();
+        const dayAreaWidth = Math.max(1, el.clientWidth - timeWidth);
+        const offsetX = Math.max(0, viewportX - timeWidth);
+
+        // Update or establish anchor at the cursor's location
+        if (
+          !zoomAnchorRef.current ||
+          Math.abs(viewportX - zoomAnchorRef.current.viewportX) > 15
+        ) {
+          const currentDayX = el.scrollLeft + offsetX;
+          const dayUnits = Math.max(0, Math.min(6, (currentDayX * zoomDaysRef.current) / dayAreaWidth));
+          zoomAnchorRef.current = {
+            dayUnits,
+            viewportX,
+          };
+        }
+
         const delta = (e.deltaY / 100) * 0.4;
         const limit = getCompressionLimit();
         const next = Math.max(0.8, Math.min(6.2, zoomDaysRef.current + delta));
@@ -315,17 +359,125 @@ export function TimetableGrid({
             triggerSpringBounce(limit);
           } else if (current < minZoomLimit) {
             triggerSpringBounce(minZoomLimit);
+          } else {
+            zoomAnchorRef.current = null;
           }
-        }, 120);
+        }, 150);
+      }
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (springRafRef.current !== null) {
+        cancelAnimationFrame(springRafRef.current);
+        springRafRef.current = null;
+      }
+
+      if (e.touches.length === 2) {
+        const t0 = e.touches[0];
+        const t1 = e.touches[1];
+        const dist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+        const midX = (t0.clientX + t1.clientX) / 2;
+
+        initialTouchDistRef.current = dist;
+        initialZoomDaysRef.current = zoomDaysRef.current;
+
+        const rect = el.getBoundingClientRect();
+        const viewportX = midX - rect.left;
+        const timeWidth = getTimeColWidth();
+        const dayAreaWidth = Math.max(1, el.clientWidth - timeWidth);
+        const offsetX = Math.max(0, viewportX - timeWidth);
+
+        const currentDayX = el.scrollLeft + offsetX;
+        const dayUnits = Math.max(0, Math.min(6, (currentDayX * zoomDaysRef.current) / dayAreaWidth));
+
+        touchAnchorRef.current = {
+          dayUnits,
+        };
+
+        zoomAnchorRef.current = {
+          dayUnits,
+          viewportX,
+        };
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (
+        e.touches.length === 2 &&
+        initialTouchDistRef.current !== null &&
+        touchAnchorRef.current
+      ) {
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+
+        const t0 = e.touches[0];
+        const t1 = e.touches[1];
+        const currentDist = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+        const currentMidX = (t0.clientX + t1.clientX) / 2;
+
+        const scale = currentDist / initialTouchDistRef.current;
+        const rawZoom = initialZoomDaysRef.current / scale;
+
+        const limit = getCompressionLimit();
+        let nextZoom = rawZoom;
+
+        // Over-compression past limit: allow peeking with elastic rubber-band resistance
+        if (rawZoom > limit) {
+          const over = rawZoom - limit;
+          nextZoom = limit + over * 0.45;
+          nextZoom = Math.min(6.2, nextZoom);
+        } else if (rawZoom < minZoomLimit) {
+          const under = minZoomLimit - rawZoom;
+          nextZoom = minZoomLimit - under * 0.45;
+          nextZoom = Math.max(0.7, nextZoom);
+        }
+
+        const rect = el.getBoundingClientRect();
+        const currentViewportX = currentMidX - rect.left;
+
+        zoomAnchorRef.current = {
+          dayUnits: touchAnchorRef.current.dayUnits,
+          viewportX: currentViewportX,
+        };
+
+        setZoomDays(Math.round(nextZoom * 100) / 100);
+      }
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        initialTouchDistRef.current = null;
+        touchAnchorRef.current = null;
+
+        const limit = getCompressionLimit();
+        const current = zoomDaysRef.current;
+
+        if (current > limit) {
+          triggerSpringBounce(limit);
+        } else if (current < minZoomLimit) {
+          triggerSpringBounce(minZoomLimit);
+        } else {
+          zoomAnchorRef.current = null;
+        }
       }
     };
 
     el.addEventListener('wheel', handleWheel, { passive: false });
+    el.addEventListener('touchstart', handleTouchStart, { passive: true });
+    el.addEventListener('touchmove', handleTouchMove, { passive: false });
+    el.addEventListener('touchend', handleTouchEnd, { passive: true });
+    el.addEventListener('touchcancel', handleTouchEnd, { passive: true });
+
     return () => {
       el.removeEventListener('wheel', handleWheel);
+      el.removeEventListener('touchstart', handleTouchStart);
+      el.removeEventListener('touchmove', handleTouchMove);
+      el.removeEventListener('touchend', handleTouchEnd);
+      el.removeEventListener('touchcancel', handleTouchEnd);
       if (wheelTimer) clearTimeout(wheelTimer);
     };
-  }, [getCompressionLimit, triggerSpringBounce]);
+  }, [getCompressionLimit, getTimeColWidth, triggerSpringBounce]);
 
   // Mouse drag-to-scroll for desktop
   const isMouseDownRef = useRef(false);
@@ -420,9 +572,25 @@ export function TimetableGrid({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setEffectiveViewMode]);
 
-  // Memoize positioned events for each day (Google Calendar Timeline Layout)
+
+
+  const isComparing = !!compareState?.active;
+  const isSecondaryPriority = compareState?.priority === 'secondary';
+  const isBlockVisible = compareState?.secondaryVisibility === 'block';
+
+  const highTarget = isComparing
+    ? (isSecondaryPriority ? compareState.secondaryTarget : compareState.primaryTarget)
+    : activeTarget;
+  const highBadge = highTarget ? getTargetLabel(highTarget).badge : (section?.id || 'Class');
+
+  const lowTarget = isComparing
+    ? (isSecondaryPriority ? compareState.primaryTarget : compareState.secondaryTarget)
+    : null;
+  const lowBadge = lowTarget ? getTargetLabel(lowTarget).badge : '';
+
+  // Memoize positioned events for each day (Google Calendar Timeline Layout + Compare Mode Support)
   const dayEventsMap = useMemo(() => {
-    const map: Record<DayOfWeek, PositionedEvent[]> = {
+    const map: Record<DayOfWeek, AugmentedPositionedEvent[]> = {
       SATURDAY: [],
       SUNDAY: [],
       MONDAY: [],
@@ -431,13 +599,36 @@ export function TimetableGrid({
       THURSDAY: [],
     };
 
+    const highClasses = isComparing
+      ? (isSecondaryPriority ? (secondaryClasses || []) : classes)
+      : classes;
+
+    const lowClasses = isComparing && isBlockVisible
+      ? (isSecondaryPriority ? classes : (secondaryClasses || []))
+      : [];
+
     for (const d of DAYS) {
-      const classesForDay = classes.filter((c) => c.dayOfWeek === d.key);
-      map[d.key] = layoutDayEvents(classesForDay);
+      const highDay = highClasses.filter((c) => c.dayOfWeek === d.key);
+      const lowDay = lowClasses.filter((c) => c.dayOfWeek === d.key);
+
+      const highIdSet = new Set(highDay.map((c) => c.id));
+      const combined = [...highDay, ...lowDay];
+
+      const positioned = layoutDayEvents(combined);
+
+      map[d.key] = positioned.map((pe) => {
+        const isHigh = !isComparing || highIdSet.has(pe.event.id);
+        return {
+          ...pe,
+          isHighPriority: isHigh,
+          isBlockMode: isComparing && !isHigh,
+          targetBadge: isHigh ? highBadge : lowBadge,
+        };
+      });
     }
 
     return map;
-  }, [classes]);
+  }, [classes, secondaryClasses, isComparing, isSecondaryPriority, isBlockVisible, highBadge, lowBadge]);
 
   // Google Calendar style current time bar metrics
   const isClassHours = currentDhakaTime.totalMinutes >= 480 && currentDhakaTime.totalMinutes <= 1080;
@@ -452,9 +643,9 @@ export function TimetableGrid({
     >
       {/* Calendar Header & View Switcher (ONLY Week and Agenda) */}
       <div className="flex items-center justify-between gap-2.5 print:hidden select-none">
-        {/* Left: Date Title + Routine Version */}
-        <div className="flex items-center gap-2">
-          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5">
+        {/* Left: Date Title + Routine Version + Attribution Subheader */}
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 shrink-0">
             <span>{notionDateTitle}</span>
           </h2>
           <span
@@ -463,6 +654,37 @@ export function TimetableGrid({
           >
             {routineVersion || 'v2.2'}
           </span>
+          {isFaculty && faculty ? (
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium text-slate-600 dark:text-slate-300 max-w-[280px] sm:max-w-none">
+              <span className="truncate">{faculty.name}</span>
+              {onOpenFacultyInfo && (
+                <button
+                  type="button"
+                  onClick={() => onOpenFacultyInfo(faculty.code)}
+                  title={`View details & contact info for ${faculty.name}`}
+                  aria-label={`View details for ${faculty.name}`}
+                  className="inline-flex items-center justify-center p-0.5 rounded text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+                >
+                  <Info className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-mono font-medium text-slate-500 dark:text-slate-400 max-w-[280px] sm:max-w-none">
+              <span className="truncate">{section.displayName}</span>
+              {onOpenSectionInfo && (
+                <button
+                  type="button"
+                  onClick={() => onOpenSectionInfo(section.id)}
+                  title={`View details for ${section.displayName}`}
+                  aria-label={`View details for ${section.displayName}`}
+                  className="inline-flex items-center justify-center p-0.5 rounded text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+                >
+                  <Info className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </span>
+          )}
         </div>
 
         {/* Right: ONLY Week and Agenda Toggle */}
@@ -501,6 +723,22 @@ export function TimetableGrid({
         </div>
       </div>
 
+      {/* Informative notice if faculty member has 0 classes scheduled in active routine */}
+      {isFaculty && classes.length === 0 && (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/80 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60 flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2.5 text-slate-700 dark:text-slate-300">
+            <Info className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            <span>
+              No active classes scheduled for{' '}
+              <strong>
+                {faculty?.name || activeTarget?.faculty.name} ({activeTarget?.faculty.code})
+              </strong>{' '}
+              in routine version <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">{routineVersion}</span>.
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* ============================================================== */}
       {/* 1. Zoomable Google Calendar Timeline Grid (1 Day to 6 Days Full Week) */}
       {/* ============================================================== */}
@@ -510,9 +748,6 @@ export function TimetableGrid({
         <div
           ref={matrixScrollRef}
           onScroll={handleMatrixScroll}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUpOrLeave}
@@ -629,14 +864,100 @@ export function TimetableGrid({
                     ))}
                   </div>
 
-                  {/* Floating Event Blocks (Google Calendar Style) */}
+                  {/* Floating Event Blocks (Google Calendar Style) + Shared Free Time Highlights */}
                   <div className="absolute inset-0">
+                    {/* Shared Free Time Highlights (Rendered in vibrant primary emerald color) */}
+                    {compareState?.active && compareState.showFreeTimeHighlight && (sharedFreeSlotsMap?.[day.key] || []).map((fs, fIdx) => {
+                      const { topPercent, heightPercent } = getTimelinePercentForInterval(fs.startMinutes, fs.endMinutes);
+                      const durationHours = Math.round((fs.durationMinutes / 60) * 10) / 10;
+
+                      return (
+                        <div
+                          key={`free-${day.key}-${fIdx}`}
+                          title={`Shared Free Time: ${fs.formattedRange} (${durationHours}h)`}
+                          className="absolute rounded-xl border border-emerald-500/70 bg-emerald-500/15 dark:border-emerald-400/60 dark:bg-emerald-500/20 z-0 flex items-center justify-center p-1.5 pointer-events-none transition-all shadow-xs"
+                          style={{
+                            top: `calc(${topPercent}% + 2px)`,
+                            height: `calc(${heightPercent}% - 4px)`,
+                            left: '2px',
+                            right: '2px',
+                          }}
+                        >
+                          <div className="px-2 py-0.5 rounded-lg bg-emerald-600 text-white dark:bg-emerald-500 dark:text-emerald-950 font-mono font-bold text-[9.5px] sm:text-[10px] flex items-center gap-1.5 shadow-xs">
+                            <Sparkles className="h-3 w-3 shrink-0 text-white dark:text-emerald-950" />
+                            <span className="tracking-tight">Free {durationHours}h</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Off-Day Status: When a day has no classes for high priority or both */}
+                    {!positionedEvents.some((pe) => pe.isHighPriority) && !positionedEvents.some((pe) => pe.isBlockMode) && (
+                      <div className="absolute inset-0 flex items-center justify-center p-2 pointer-events-none z-10">
+                        <span className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-100/80 dark:border-slate-800/80 dark:bg-slate-900/70 px-2.5 py-1 text-[11px] font-mono font-medium text-slate-500 dark:text-slate-400 shadow-2xs">
+                          <span className="h-1.5 w-1.5 rounded-full bg-slate-400 dark:bg-slate-500 shrink-0" />
+                          <span>{isComparing ? `Off day for ${highBadge} & ${lowBadge}` : `Off day for ${highBadge}`}</span>
+                        </span>
+                      </div>
+                    )}
+
+                    {!positionedEvents.some((pe) => pe.isHighPriority) && positionedEvents.some((pe) => pe.isBlockMode) && (
+                      <div className="absolute top-2 left-2 right-2 z-20 pointer-events-none flex justify-center">
+                        <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200/90 bg-white/90 dark:border-slate-800 dark:bg-slate-900/90 backdrop-blur-xs px-2 py-0.5 text-[10px] font-mono font-semibold text-slate-600 dark:text-slate-400 shadow-xs">
+                          <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
+                          <span>Off day for {highBadge}</span>
+                        </span>
+                      </div>
+                    )}
+
+                    {positionedEvents.some((pe) => pe.isHighPriority) && !positionedEvents.some((pe) => pe.isBlockMode) && isComparing && (
+                      <div className="absolute top-2 left-2 right-2 z-20 pointer-events-none flex justify-center">
+                        <span className="inline-flex items-center gap-1 rounded-lg border border-slate-200/90 bg-white/90 dark:border-slate-800 dark:bg-slate-900/90 backdrop-blur-xs px-2 py-0.5 text-[10px] font-mono font-medium text-slate-500 dark:text-slate-400 shadow-xs">
+                          <span className="h-1.5 w-1.5 rounded-full bg-slate-400 dark:bg-slate-500 shrink-0" />
+                          <span>Off day for {lowBadge}</span>
+                        </span>
+                      </div>
+                    )}
+
                     {positionedEvents.map((pe) => {
                       const c = pe.event;
                       const cleanCode = c.courseCode.split('(')[0].trim();
-                      const shortTitle = getCourseShortTitle(cleanCode, c.courseTitle, c.type === 'Lab');
-                      const isLab = c.type === 'Lab';
                       const durationMins = pe.endMinutes - pe.startMinutes;
+                      const compactTime = pe.formattedRange.replace(/\s*–\s*/, '–');
+
+                      // 1. Render Block Mode (Low-Priority Background Routine in Compare Mode)
+                      if (pe.isBlockMode) {
+                        return (
+                          <div
+                            key={`block-${c.id}`}
+                            title={`${pe.targetBadge}: ${c.courseCode} (${pe.formattedRange}) in ${c.room}`}
+                            className="absolute rounded-lg overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 select-none z-10 transition-all border border-dashed border-slate-300 bg-slate-100/90 text-slate-700 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:border-slate-600 shadow-2xs opacity-85 hover:opacity-100"
+                            style={{
+                              top: `calc(${pe.topPercent}% + 2px)`,
+                              height: `calc(${pe.heightPercent}% - 4px)`,
+                              left: `calc(${pe.leftPercent}% + 2px)`,
+                              width: `calc(${pe.widthPercent}% - 4px)`,
+                            }}
+                          >
+                            <div className="flex items-center justify-between gap-1 min-w-0">
+                              <span className="font-mono font-bold text-[9px] px-1 py-0.2 rounded bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 shrink-0">
+                                {pe.targetBadge}
+                              </span>
+                              <span className="font-mono font-bold text-[10px] sm:text-[11px] truncate opacity-90">
+                                {cleanCode}
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-[9px] sm:text-[9.5px] font-mono text-slate-500 dark:text-slate-400 truncate pt-0.5 border-t border-slate-200/60 dark:border-slate-700/60">
+                              <span className="truncate">{compactTime}</span>
+                              <span className="truncate font-semibold">{c.room.split('(')[0].trim()}</span>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // 2. Render Full Info Card (High-Priority Active Routine)
+                      const isLab = c.type === 'Lab';
+                      const shortTitle = getCourseShortTitle(cleanCode, c.courseTitle, isLab);
 
                       // If shortTitle already contains cleanCode or is identical, do not show cleanCode separately
                       const isCodeSameAsTitle =
@@ -648,13 +969,19 @@ export function TimetableGrid({
                       const cardTheme =
                         'bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:text-emerald-950 border border-emerald-700/25 dark:border-emerald-400/40 shadow-xs';
 
-                      // Compact time string without space around en-dash: "1–2:30pm" or "8:30–11:30am"
-                      const compactTime = pe.formattedRange.replace(/\s*–\s*/, '–');
+                      const isLiveNow =
+                        isToday &&
+                        currentDhakaTime.totalMinutes >= pe.startMinutes &&
+                        currentDhakaTime.totalMinutes < pe.endMinutes;
+
+                      const liveRing = isLiveNow
+                        ? 'ring-2 ring-emerald-400 dark:ring-emerald-300 ring-offset-1 ring-offset-slate-900 shadow-md'
+                        : '';
 
                       return (
                         <div
                           key={c.id}
-                          className={`absolute rounded-lg transition-all overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 cursor-pointer select-none group z-10 ${cardTheme}`}
+                          className={`absolute rounded-lg transition-all overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 cursor-pointer select-none group z-10 ${cardTheme} ${liveRing}`}
                           style={{
                             top: `calc(${pe.topPercent}% + 2px)`,
                             height: `calc(${pe.heightPercent}% - 4px)`,
@@ -679,16 +1006,23 @@ export function TimetableGrid({
                                 )}
                               </div>
 
-                              {/* Subsection badge */}
-                              {c.subSection ? (
-                                <span className="shrink-0 rounded px-1.5 py-0.2 text-[9px] font-bold font-mono bg-black/25 text-white border border-white/20 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20">
-                                  {section.sectionLetter}{c.subSection}
-                                </span>
-                              ) : durationMins >= 150 && zoomDays <= 3.5 ? (
-                                <span className="shrink-0 rounded px-1.5 py-0.2 text-[9px] font-mono font-bold bg-black/25 text-white border border-white/20 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20">
-                                  3h
-                                </span>
-                              ) : null}
+                              {/* Subsection badge (only in student mode) */}
+                              <div className="flex items-center gap-1 shrink-0">
+                                {!isFaculty && (
+                                  c.subSection ? (
+                                    <span className="shrink-0 rounded px-1.5 py-0.2 text-[9px] font-bold font-mono bg-black/25 text-white border border-white/20 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20">
+                                      {section.sectionLetter}{c.subSection}
+                                    </span>
+                                  ) : durationMins >= 150 && zoomDays <= 3.5 ? (
+                                    <span className="shrink-0 rounded px-1.5 py-0.2 text-[9px] font-mono font-bold bg-black/25 text-white border border-white/20 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20">
+                                      3h
+                                    </span>
+                                  ) : null
+                                )}
+                                {isLiveNow && (
+                                  <span className="h-1.5 w-1.5 rounded-full bg-white dark:bg-emerald-950 animate-pulse shrink-0" title="Class in session" />
+                                )}
+                              </div>
                             </div>
 
                             {/* Line 2: Time Range (Single Line, Never Wraps, Clean Descenders) */}
@@ -697,29 +1031,51 @@ export function TimetableGrid({
                             </div>
                           </div>
 
-                          {/* Line 3: Room & Teacher Bottom Row */}
+                          {/* Line 3: Room & Teacher/Section Bottom Row */}
                           <div className="pt-1 border-t border-black/15 dark:border-black/20 flex items-center justify-between text-[10px] sm:text-[10.5px] font-mono leading-tight gap-1 min-w-0">
                             <span className="flex items-center gap-0.5 font-bold truncate min-w-0">
                               <MapPin className="h-2.5 w-2.5 shrink-0 opacity-80" />
                               <span className="truncate">{c.room.split('(')[0].trim()}</span>
                             </span>
-                            <span className="shrink-0 rounded px-1 py-0.2 font-bold text-[9.5px] bg-black/25 text-white border border-white/15 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20">
-                              {c.teacherCode}
-                            </span>
+                            {isFaculty ? (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (c.sectionId) onOpenSectionInfo?.(c.sectionId);
+                                }}
+                                title={`Click to view info for ${c.sectionId || 'section'}`}
+                                className="shrink-0 rounded px-1 py-0.2 font-bold text-[9.5px] bg-black/25 text-white border border-white/15 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20 hover:bg-black/45 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                              >
+                                {c.sectionId ? (c.subSection ? `${c.sectionId}${c.subSection}` : c.sectionId) : (c.batch && c.section ? `${c.batch}_${c.section}` : 'Sec')}
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onOpenFacultyInfo?.(c.teacherCode);
+                                }}
+                                title={`Click to view info for ${c.teacherCode}`}
+                                className="shrink-0 rounded px-1 py-0.2 font-bold text-[9.5px] bg-black/25 text-white border border-white/15 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20 hover:bg-black/45 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                              >
+                                {c.teacherCode}
+                              </button>
+                            )}
                           </div>
                         </div>
                       );
                     })}
                   </div>
 
-                  {/* Google Calendar Current Time Red Line across Today's column */}
+                  {/* Current Time Indicator across Today's column */}
                   {isToday && currentTimeTopPercent !== null && (
                     <div
-                      className="absolute left-0 right-0 z-30 pointer-events-none flex items-center -translate-y-1/2"
+                      className="absolute left-0 right-0 z-20 pointer-events-none flex items-center -translate-y-1/2"
                       style={{ top: `${currentTimeTopPercent}%` }}
                     >
-                      <span className="h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-[#080d1a] -ml-1.5 shrink-0 shadow-xs" />
-                      <div className="h-[2px] w-full bg-red-500 shadow-xs" />
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 dark:bg-emerald-400 ring-2 ring-white dark:ring-[#080d1a] -ml-1 shrink-0 shadow-xs" />
+                      <div className="h-[1.5px] w-full bg-emerald-500/70 dark:bg-emerald-400/70 shadow-xs" />
                     </div>
                   )}
                 </div>
@@ -736,7 +1092,9 @@ export function TimetableGrid({
         {/* Continuous Stream of Upcoming Days - Google Calendar Schedule Widget Layout */}
         <div className="space-y-4">
           {upcomingDays.map((d) => {
-            const isToday = d.isToday;
+            // Compare mode is ONLY for week view, not on agenda mode.
+            const targetBadge = activeTarget ? getTargetLabel(activeTarget).badge : (section?.id || 'Class');
+
             const dayClassList = d.isFriday
               ? []
               : classes
@@ -745,7 +1103,7 @@ export function TimetableGrid({
 
             // Standalone indicator if today, during class hours, and before the first class of the day
             const showStandaloneBeforeFirst =
-              isToday &&
+              d.isToday &&
               isClassHours &&
               dayClassList.length > 0 &&
               currentDhakaTime.totalMinutes < timeToMinutes(dayClassList[0].startTime);
@@ -790,21 +1148,28 @@ export function TimetableGrid({
                 <div className="flex-1 min-w-0 space-y-2 pb-3">
                   {/* Standalone Current Time Indicator if before first class today */}
                   {showStandaloneBeforeFirst && (
-                    <div className="flex items-center -ml-2 py-1 pointer-events-none">
-                      <span className="h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900 shrink-0 shadow-xs" />
-                      <div className="h-[2px] w-full bg-red-500 shadow-xs" />
+                    <div className="flex items-center gap-2 py-1.5 -ml-1 pointer-events-none select-none">
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 dark:bg-emerald-400/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs font-mono font-bold tracking-tight shrink-0 shadow-2xs">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
+                        <span>Now {currentDhakaTime.formatted12}</span>
+                      </div>
+                      <div className="h-px flex-1 bg-gradient-to-r from-emerald-500/30 dark:from-emerald-400/30 via-emerald-500/15 to-transparent" />
                     </div>
                   )}
 
                   {d.isFriday ? (
-                    <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 p-3 flex items-center gap-2.5 text-xs text-slate-500 dark:text-slate-400 font-mono">
-                      <span className="h-2 w-2 rounded-full bg-amber-400 shrink-0" />
-                      <span>University Weekend • No classes scheduled</span>
+                    <div className="py-1.5 flex items-center">
+                      <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-100/70 px-2.5 py-1 text-[11px] font-mono font-medium text-slate-500 dark:border-slate-800/80 dark:bg-slate-900/60 dark:text-slate-400">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
+                        <span>Weekend</span>
+                      </span>
                     </div>
                   ) : dayClassList.length === 0 ? (
-                    <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 p-3 flex items-center gap-2.5 text-xs text-slate-500 dark:text-slate-400 font-mono">
-                      <span className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-600 shrink-0" />
-                      <span>No classes scheduled for {d.dayLabel} • Free day</span>
+                    <div className="py-1 flex items-center">
+                      <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-100/70 px-2.5 py-1 text-[11px] font-mono font-medium text-slate-500 dark:border-slate-800/80 dark:bg-slate-900/60 dark:text-slate-400">
+                        <span className="h-1.5 w-1.5 rounded-full bg-slate-400 dark:bg-slate-500 shrink-0" />
+                        <span>Off day for {targetBadge}</span>
+                      </span>
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -820,7 +1185,7 @@ export function TimetableGrid({
                         const shortTitle = getCourseShortTitle(cleanCourseCode, classItem.courseTitle, isLab);
 
                         const isLiveNow =
-                          isToday &&
+                          d.isToday &&
                           currentDhakaTime.totalMinutes >= classStartMins &&
                           currentDhakaTime.totalMinutes < classEndMins;
 
@@ -843,7 +1208,7 @@ export function TimetableGrid({
 
                         // Check if current minute is after this class and before the next
                         const showStandaloneAfterThis =
-                          isToday &&
+                          d.isToday &&
                           isClassHours &&
                           currentDhakaTime.totalMinutes >= classEndMins &&
                           currentDhakaTime.totalMinutes < nextClassStartMins;
@@ -861,14 +1226,13 @@ export function TimetableGrid({
                               aria-label={`${shortTitle} in Room ${classItem.room}, ${formatTime12(classItem.startTime)} to ${formatTime12(classItem.endTime)}`}
                               className={`relative overflow-hidden rounded-xl p-2.5 sm:p-3 transition-all flex flex-col justify-center gap-1.5 ${cardThemeClass} ${liveRingClass}`}
                             >
-                              {/* Current Time Bar across active card */}
+                              {/* Class progress bar along bottom edge */}
                               {isLiveNow && classProgress !== null && (
-                                <div
-                                  className="absolute left-0 right-0 pointer-events-none z-20 flex items-center -translate-y-1/2"
-                                  style={{ top: `${classProgress}%` }}
-                                >
-                                  <span className="h-2.5 w-2.5 -ml-1 rounded-full bg-red-400 ring-2 ring-white dark:ring-slate-900 shrink-0 shadow-xs" />
-                                  <div className="h-[2px] w-full bg-red-400 shadow-xs" />
+                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20 dark:bg-black/30 overflow-hidden">
+                                  <div
+                                    className="h-full bg-emerald-200 dark:bg-emerald-950 transition-all duration-500 rounded-r-full"
+                                    style={{ width: `${classProgress}%` }}
+                                  />
                                 </div>
                               )}
 
@@ -898,7 +1262,7 @@ export function TimetableGrid({
                                       3h Lab
                                     </span>
                                   )}
-                                  {classItem.subSection && (
+                                  {!isFaculty && classItem.subSection && (
                                     <span className="text-[10px] font-mono font-bold bg-white/20 text-white border border-white/25 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20 px-1.5 py-0.5 rounded">
                                       Sec {section.sectionLetter}{classItem.subSection}
                                     </span>
@@ -906,7 +1270,7 @@ export function TimetableGrid({
                                 </div>
                               </div>
 
-                              {/* Line 2: Single Compact Meta Row: Time • Room • Faculty */}
+                              {/* Line 2: Single Compact Meta Row: Time • Room • Faculty/Section */}
                               <div className="flex items-center gap-2 text-xs font-mono">
                                 <div className="flex items-center gap-1 shrink-0 font-medium opacity-95">
                                   <Clock className="h-3 w-3 opacity-75" />
@@ -920,17 +1284,47 @@ export function TimetableGrid({
                                   <span>{classItem.room.split('(')[0].trim()}</span>
                                 </div>
                                 <span className="opacity-40">•</span>
-                                <span className="opacity-95 font-bold shrink-0">
-                                  {classItem.teacherCode}
-                                </span>
+                                {isFaculty ? (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const secId =
+                                        classItem.sectionId ||
+                                        (classItem.batch && classItem.section
+                                          ? `${classItem.batch}_${classItem.section}`
+                                          : null);
+                                      if (secId) onOpenSectionInfo?.(secId);
+                                    }}
+                                    title={`Click to view info for ${classItem.sectionId || 'section'}`}
+                                    className="opacity-95 font-bold shrink-0 hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer"
+                                  >
+                                    {classItem.sectionId ? (classItem.subSection ? `${classItem.sectionId}${classItem.subSection}` : classItem.sectionId) : (classItem.batch && classItem.section ? `${classItem.batch}_${classItem.section}` : 'Sec')}
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onOpenFacultyInfo?.(classItem.teacherCode);
+                                    }}
+                                    title={`Click to view info for ${classItem.teacherCode}`}
+                                    className="opacity-95 font-bold shrink-0 hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer"
+                                  >
+                                    {classItem.teacherCode}
+                                  </button>
+                                )}
                               </div>
                             </div>
 
                             {/* Standalone Current Time Indicator between classes */}
                             {showStandaloneAfterThis && (
-                              <div className="flex items-center -ml-2 py-1 pointer-events-none">
-                                <span className="h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-slate-900 shrink-0 shadow-xs" />
-                                <div className="h-[2px] w-full bg-red-500 shadow-xs" />
+                              <div className="flex items-center gap-2 py-1.5 -ml-1 pointer-events-none select-none">
+                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 dark:bg-emerald-400/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs font-mono font-bold tracking-tight shrink-0 shadow-2xs">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
+                                  <span>Now {currentDhakaTime.formatted12}</span>
+                                </div>
+                                <div className="h-px flex-1 bg-gradient-to-r from-emerald-500/30 dark:from-emerald-400/30 via-emerald-500/15 to-transparent" />
                               </div>
                             )}
                           </React.Fragment>

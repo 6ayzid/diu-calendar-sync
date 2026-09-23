@@ -17,11 +17,12 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import { SectionMeta } from '@/types/schedule';
+import { SectionMeta, ActiveRoutineTarget } from '@/types/schedule';
 
 interface SubscriptionActionsProps {
   section: SectionMeta;
   subSection: '1' | '2' | 'all';
+  activeTarget?: ActiveRoutineTarget;
   isOpen?: boolean;
   onClose?: () => void;
 }
@@ -29,6 +30,7 @@ interface SubscriptionActionsProps {
 export function SubscriptionActions({
   section,
   subSection,
+  activeTarget,
   isOpen = true,
   onClose,
 }: SubscriptionActionsProps) {
@@ -37,6 +39,9 @@ export function SubscriptionActions({
   const [customDomain, setCustomDomain] = useState('');
   const [showDomainInput, setShowDomainInput] = useState(false);
   const [showGoogleGuide, setShowGoogleGuide] = useState(false);
+
+  const isFaculty = activeTarget?.type === 'faculty';
+  const faculty = isFaculty ? activeTarget.faculty : null;
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -74,7 +79,13 @@ export function SubscriptionActions({
 
   // Build the live API path with .ics extension for strict calendar client compatibility
   const subQuery = subSection !== 'all' ? `?sub=${subSection}` : '';
-  const apiPath = `/api/calendar/${section.id}.ics${subQuery}`;
+  const apiPath = isFaculty && faculty
+    ? `/api/calendar?teacher=${faculty.code}.ics`
+    : `/api/calendar/${section.id}.ics${subQuery}`;
+
+  const downloadFilename = isFaculty && faculty
+    ? `${faculty.code}-routine.ics`
+    : `${section.id}-routine.ics`;
 
   const DEFAULT_PUBLIC_URL = 'https://diu-calendar-sync.vercel.app';
 
@@ -100,7 +111,9 @@ export function SubscriptionActions({
   const cloudWebcalUrl = `webcal://${cloudOrigin.replace(/^https?:\/\//i, '')}${apiPath}`;
 
   // Fresh Sync URL (cache buster to force Google Calendar crawler to fetch fresh feed immediately)
-  const freshPublicApiPath = `/api/calendar/${section.id}.ics${subQuery}${subQuery ? '&' : '?'}v=2`;
+  const freshPublicApiPath = isFaculty && faculty
+    ? `/api/calendar?teacher=${faculty.code}.ics&v=2`
+    : `/api/calendar/${section.id}.ics${subQuery}${subQuery ? '&' : '?'}v=2`;
   const freshCloudWebcalUrl = `webcal://${cloudOrigin.replace(/^https?:\/\//i, '')}${freshPublicApiPath}`;
 
   // Google Calendar direct web-add URL:
@@ -139,18 +152,29 @@ export function SubscriptionActions({
             >
               Live Calendar Feed
             </h2>
-            {/* Section badge tight to title on mobile */}
+            {/* Section / Faculty badge tight to title on mobile */}
             <div className="font-mono text-xs text-slate-700 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-lg dark:text-slate-300 dark:bg-slate-950 dark:border-slate-800 shrink-0 whitespace-nowrap self-start">
-              <strong className="text-slate-900 dark:text-white">{section.id}</strong>
-              {subSection !== 'all' && (
-                <span className="text-amber-700 dark:text-amber-400 ml-1">
-                  ({section.sectionLetter}{subSection})
-                </span>
+              {isFaculty && faculty ? (
+                <>
+                  <span className="text-slate-400 font-sans mr-1">Faculty:</span>
+                  <strong className="text-emerald-700 dark:text-emerald-300">{faculty.code}</strong>
+                </>
+              ) : (
+                <>
+                  <strong className="text-slate-900 dark:text-white">{section.id}</strong>
+                  {subSection !== 'all' && (
+                    <span className="text-amber-700 dark:text-amber-400 ml-1">
+                      ({section.sectionLetter}{subSection})
+                    </span>
+                  )}
+                </>
               )}
             </div>
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1.5 leading-relaxed">
-            A permanent live link — room changes and schedule updates sync to your device automatically.
+            {isFaculty && faculty
+              ? `A permanent live link for ${faculty.name} (${faculty.code}) — schedule updates and room changes sync automatically.`
+              : 'A permanent live link — room changes and schedule updates sync to your device automatically.'}
           </p>
         </div>
 
@@ -223,7 +247,7 @@ export function SubscriptionActions({
         {/* 3. Static .ICS Download */}
         <a
           href={apiPath}
-          download={`${section.id}-routine.ics`}
+          download={downloadFilename}
           className="group rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-100 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950/70 dark:hover:bg-slate-900 dark:hover:border-slate-700 px-3.5 py-3 sm:p-4 transition-colors flex sm:flex-col sm:justify-between items-center sm:items-start gap-3 sm:gap-3 min-h-[60px] sm:min-h-[110px] cursor-pointer shadow-2xs"
         >
           <div className="flex items-center gap-3 sm:w-full sm:justify-between min-w-0">
