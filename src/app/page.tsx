@@ -259,18 +259,24 @@ export default function Home() {
   };
 
   // Save selected section to state, localStorage & URL
-  const handleSelectSection = (newSec: SectionMeta) => {
-    setActiveTarget({ type: 'section', section: newSec, subSection: 'all' });
+  const handleSelectSection = (newSec: SectionMeta, subSection?: '1' | '2' | 'all') => {
+    const finalSub = subSection || 'all';
+    setActiveTarget({ type: 'section', section: newSec, subSection: finalSub });
     setLiveSchedule(null);
     setHasSavedPreference(true);
     try {
       localStorage.setItem('diu_routine_selected_type', 'section');
       localStorage.setItem('diu_routine_selected_section', newSec.id);
+      localStorage.setItem('diu_routine_selected_subsection', finalSub);
       if (typeof window !== 'undefined') {
         const newUrl = new URL(window.location.href);
         newUrl.searchParams.delete('teacher');
         newUrl.searchParams.delete('t');
-        newUrl.searchParams.delete('sub');
+        if (finalSub !== 'all') {
+          newUrl.searchParams.set('sub', finalSub);
+        } else {
+          newUrl.searchParams.delete('sub');
+        }
         newUrl.searchParams.set('section', newSec.id);
         if (compareState.active && compareState.secondaryTarget) {
           newUrl.searchParams.set('compare', targetToParamString(compareState.secondaryTarget));
@@ -284,26 +290,29 @@ export default function Home() {
 
   // Save selected subsection to state, localStorage & URL
   const handleSelectSubSection = (newSub: '1' | '2' | 'all') => {
-    if (activeTarget && activeTarget.type === 'section') {
-      setActiveTarget({ type: 'section', section: activeTarget.section, subSection: newSub });
-      setHasSavedPreference(true);
-      try {
-        localStorage.setItem('diu_routine_selected_subsection', newSub);
-        if (typeof window !== 'undefined') {
-          const newUrl = new URL(window.location.href);
-          if (newSub !== 'all') {
-            newUrl.searchParams.set('sub', newSub);
-          } else {
-            newUrl.searchParams.delete('sub');
-          }
-          if (compareState.active && compareState.secondaryTarget) {
-            newUrl.searchParams.set('compare', targetToParamString(compareState.secondaryTarget));
-          }
-          window.history.replaceState({}, '', newUrl.toString());
-        }
-      } catch (e) {
-        console.warn('LocalStorage write error:', e);
+    setActiveTarget((prev) => {
+      if (prev && prev.type === 'section') {
+        return { type: 'section', section: prev.section, subSection: newSub };
       }
+      return prev;
+    });
+    setHasSavedPreference(true);
+    try {
+      localStorage.setItem('diu_routine_selected_subsection', newSub);
+      if (typeof window !== 'undefined') {
+        const newUrl = new URL(window.location.href);
+        if (newSub !== 'all') {
+          newUrl.searchParams.set('sub', newSub);
+        } else {
+          newUrl.searchParams.delete('sub');
+        }
+        if (compareState.active && compareState.secondaryTarget) {
+          newUrl.searchParams.set('compare', targetToParamString(compareState.secondaryTarget));
+        }
+        window.history.replaceState({}, '', newUrl.toString());
+      }
+    } catch (e) {
+      console.warn('LocalStorage write error:', e);
     }
   };
 

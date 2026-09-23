@@ -13,7 +13,7 @@ interface SectionSelectorProps {
   selectedSection?: SectionMeta | null;
   selectedSubSection?: '1' | '2' | 'all' | null;
   activeTarget?: ActiveRoutineTarget | null;
-  onSelectSection: (section: SectionMeta) => void;
+  onSelectSection: (section: SectionMeta, subSection?: '1' | '2' | 'all') => void;
   onSelectSubSection: (sub: '1' | '2' | 'all') => void;
   onSelectFaculty?: (faculty: FacultyMeta) => void;
   isCompareMode?: boolean;
@@ -275,10 +275,7 @@ export function SectionSelector({
       if (onClose) onClose();
       return;
     }
-    onSelectSection(sec);
-    if (sub) {
-      onSelectSubSection(sub);
-    }
+    onSelectSection(sec, sub || 'all');
     if (onClose) onClose();
   };
 
@@ -532,20 +529,31 @@ export function SectionSelector({
             <button
               type="button"
               onClick={() => handleApplySelection(shorthandMatch.section, shorthandMatch.parsed.subSection)}
-              className="w-full rounded-xl border border-emerald-500/80 bg-emerald-50/80 dark:bg-emerald-950/40 dark:border-emerald-500/60 p-2.5 flex items-center justify-between cursor-pointer hover:bg-emerald-100/80 dark:hover:bg-emerald-900/40 transition-colors shadow-2xs text-left"
+              className="group w-full rounded-xl border border-slate-200/90 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900/80 hover:border-emerald-500/40 hover:bg-slate-100/80 dark:hover:border-emerald-500/30 dark:hover:bg-slate-800/60 p-2.5 flex items-center justify-between cursor-pointer transition-all shadow-xs text-left"
             >
-              <div className="flex items-center gap-2">
-                <span className="h-6 w-6 rounded-md bg-emerald-500 text-white flex items-center justify-center font-mono font-bold text-xs shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="h-6 w-6 rounded-md bg-slate-200/90 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 flex items-center justify-center font-mono font-semibold text-xs shrink-0 group-hover:border-emerald-500/40 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                   ↵
                 </span>
-                <span className="font-bold text-xs sm:text-sm text-emerald-950 dark:text-emerald-100 font-mono">
-                  {shorthandMatch.section.id}
-                  {shorthandMatch.parsed.subSection !== 'all' ? ` (Lab ${shorthandMatch.parsed.subSection})` : ''}
+                <div className="flex items-center gap-1.5 font-mono truncate">
+                  <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
+                    {shorthandMatch.section.id}
+                  </span>
+                  {shorthandMatch.parsed.subSection !== 'all' && (
+                    <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20">
+                      Lab {shorthandMatch.parsed.subSection}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0 pl-2">
+                <span className="text-xs font-mono text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
+                  Press Enter to select
+                </span>
+                <span className="text-xs font-mono text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform">
+                  →
                 </span>
               </div>
-              <span className="text-xs font-mono font-bold text-emerald-700 dark:text-emerald-300">
-                Press Enter to select →
-              </span>
             </button>
           )}
 
