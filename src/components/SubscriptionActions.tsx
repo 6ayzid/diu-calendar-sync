@@ -20,9 +20,9 @@ import {
 import { SectionMeta, ActiveRoutineTarget } from '@/types/schedule';
 
 interface SubscriptionActionsProps {
-  section: SectionMeta;
+  section?: SectionMeta | null;
   subSection: '1' | '2' | 'all';
-  activeTarget?: ActiveRoutineTarget;
+  activeTarget?: ActiveRoutineTarget | null;
   isOpen?: boolean;
   onClose?: () => void;
 }
@@ -81,11 +81,15 @@ export function SubscriptionActions({
   const subQuery = subSection !== 'all' ? `?sub=${subSection}` : '';
   const apiPath = isFaculty && faculty
     ? `/api/calendar?teacher=${faculty.code}.ics`
-    : `/api/calendar/${section.id}.ics${subQuery}`;
+    : section
+    ? `/api/calendar/${section.id}.ics${subQuery}`
+    : '';
 
   const downloadFilename = isFaculty && faculty
     ? `${faculty.code}-routine.ics`
-    : `${section.id}-routine.ics`;
+    : section
+    ? `${section.id}-routine.ics`
+    : 'routine.ics';
 
   const DEFAULT_PUBLIC_URL = 'https://diu-calendar-sync.vercel.app';
 
@@ -113,7 +117,9 @@ export function SubscriptionActions({
   // Fresh Sync URL (cache buster to force Google Calendar crawler to fetch fresh feed immediately)
   const freshPublicApiPath = isFaculty && faculty
     ? `/api/calendar?teacher=${faculty.code}.ics&v=2`
-    : `/api/calendar/${section.id}.ics${subQuery}${subQuery ? '&' : '?'}v=2`;
+    : section
+    ? `/api/calendar/${section.id}.ics${subQuery}${subQuery ? '&' : '?'}v=2`
+    : '';
   const freshCloudWebcalUrl = `webcal://${cloudOrigin.replace(/^https?:\/\//i, '')}${freshPublicApiPath}`;
 
   // Google Calendar direct web-add URL:
@@ -159,7 +165,7 @@ export function SubscriptionActions({
                   <span className="text-slate-400 font-sans mr-1">Faculty:</span>
                   <strong className="text-emerald-700 dark:text-emerald-300">{faculty.code}</strong>
                 </>
-              ) : (
+              ) : section ? (
                 <>
                   <strong className="text-slate-900 dark:text-white">{section.id}</strong>
                   {subSection !== 'all' && (
@@ -168,6 +174,8 @@ export function SubscriptionActions({
                     </span>
                   )}
                 </>
+              ) : (
+                <span className="text-slate-400 italic">No target</span>
               )}
             </div>
           </div>

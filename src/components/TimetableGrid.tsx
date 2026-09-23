@@ -19,9 +19,9 @@ import { HOURLY_MARKS, layoutDayEvents, getCurrentTimeTopPercent, PositionedEven
 import { getTimelinePercentForInterval, getTargetLabel } from '@/lib/compare-utils';
 
 interface TimetableGridProps {
-  section: SectionMeta;
+  section?: SectionMeta | null;
   subSection?: '1' | '2' | 'all';
-  activeTarget?: ActiveRoutineTarget;
+  activeTarget?: ActiveRoutineTarget | null;
   classes: RoutineClass[];
   compareState?: CompareState;
   secondaryClasses?: RoutineClass[];
@@ -669,7 +669,7 @@ export function TimetableGrid({
                 </button>
               )}
             </span>
-          ) : (
+          ) : section ? (
             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-mono font-medium text-slate-500 dark:text-slate-400 max-w-[280px] sm:max-w-none">
               <span className="truncate">{section.displayName}</span>
               {onOpenSectionInfo && (
@@ -684,7 +684,7 @@ export function TimetableGrid({
                 </button>
               )}
             </span>
-          )}
+          ) : null}
         </div>
 
         {/* Right: ONLY Week and Agenda Toggle */}
@@ -1011,7 +1011,7 @@ export function TimetableGrid({
                                 {!isFaculty && (
                                   c.subSection ? (
                                     <span className="shrink-0 rounded px-1.5 py-0.2 text-[9px] font-bold font-mono bg-black/25 text-white border border-white/20 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20">
-                                      {section.sectionLetter}{c.subSection}
+                                      {section ? section.sectionLetter : ''}{c.subSection}
                                     </span>
                                   ) : durationMins >= 150 && zoomDays <= 3.5 ? (
                                     <span className="shrink-0 rounded px-1.5 py-0.2 text-[9px] font-mono font-bold bg-black/25 text-white border border-white/20 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20">
@@ -1264,7 +1264,7 @@ export function TimetableGrid({
                                   )}
                                   {!isFaculty && classItem.subSection && (
                                     <span className="text-[10px] font-mono font-bold bg-white/20 text-white border border-white/25 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20 px-1.5 py-0.5 rounded">
-                                      Sec {section.sectionLetter}{classItem.subSection}
+                                      Sec {section ? section.sectionLetter : ''}{classItem.subSection}
                                     </span>
                                   )}
                                 </div>

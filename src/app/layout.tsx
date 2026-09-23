@@ -15,16 +15,19 @@ const monoFont = JetBrains_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://diucal.vercel.app'),
-  title: "Routinly – DIU Class Routine, Section Finder & Faculty Timetable",
+  title: "DIU Routine & Routine Scraper – Class Schedule Finder | DIU CSE",
   description:
-    "Fast fuzzy search routine finder for Daffodil International University (DIU). Quickly look up batches, sections, lab groups, and faculty initials (MSR, AS, FH).",
+    "Fast DIU routine scraper and timetable finder for Daffodil International University. Look up your DIU class routine by batch, section shortcut, or faculty initial.",
   keywords: [
+    "diu routine",
+    "routine scrapper diu",
+    "diu routine scraper",
+    "daffodil class routine",
+    "diu cse routine",
+    "diu timetable",
+    "diu faculty initial",
     "DIU",
     "Daffodil International University",
-    "DIU Routine",
-    "CSE Routine",
-    "DIU Class Routine",
-    "Faculty Routine",
     "Empty Room Finder",
     "DIU Calendar Sync",
     "Routinly",
@@ -41,23 +44,23 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://diucal.vercel.app",
     siteName: "Routinly",
-    title: "Routinly – DIU Class Routine, Section Finder & Faculty Timetable",
+    title: "DIU Routine & Routine Scraper – Class Schedule Finder | DIU CSE",
     description:
-      "Fast fuzzy search routine finder for Daffodil International University (DIU). Quickly look up batches, sections, lab groups, and faculty initials (MSR, AS, FH).",
+      "Fast DIU routine scraper and timetable finder for Daffodil International University. Look up your DIU class routine by batch, section shortcut, or faculty initial.",
     images: [
       {
         url: "/icon.svg",
         width: 512,
         height: 512,
-        alt: "Routinly DIU Calendar & Routine",
+        alt: "DIU Routine & Routine Scraper - Routinly",
       },
     ],
   },
   twitter: {
     card: "summary",
-    title: "Routinly – DIU Class Routine, Section Finder & Faculty Timetable",
+    title: "DIU Routine & Routine Scraper – Class Schedule Finder | DIU CSE",
     description:
-      "Fast fuzzy search routine finder for Daffodil International University (DIU). Quickly look up batches, sections, lab groups, and faculty initials (MSR, AS, FH).",
+      "Fast DIU routine scraper and timetable finder for Daffodil International University. Look up your DIU class routine by batch, section shortcut, or faculty initial.",
     images: ["/icon.svg"],
     creator: "@6ayzid",
   },

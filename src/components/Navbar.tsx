@@ -15,11 +15,12 @@ import {
 import { SectionMeta, ActiveRoutineTarget, CompareState } from '@/types/schedule';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { getTargetLabel } from '@/lib/compare-utils';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface NavbarProps {
-  selectedSection: SectionMeta;
-  selectedSubSection: '1' | '2' | 'all';
-  activeTarget?: ActiveRoutineTarget;
+  selectedSection?: SectionMeta | null;
+  selectedSubSection?: '1' | '2' | 'all';
+  activeTarget?: ActiveRoutineTarget | null;
   compareState?: CompareState;
   hasSavedPreference?: boolean;
   onOpenSectionPicker: () => void;
@@ -106,7 +107,7 @@ export function Navbar({
                   aria-label={
                     isFaculty && faculty
                       ? `Select routine target, currently Faculty ${faculty.name} (${faculty.code})`
-                      : `Select section, currently ${selectedSection.displayName}`
+                      : `Select section, currently ${selectedSection?.displayName || 'none'}`
                   }
                   className="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200/80 dark:border-slate-800 dark:bg-slate-900/70 dark:hover:bg-slate-800/80 px-2.5 py-1.5 transition-colors cursor-pointer min-h-[40px]"
                 >
@@ -121,7 +122,7 @@ export function Navbar({
                     <div className="flex items-center gap-1.5 font-mono text-xs">
                       <span className="text-slate-400 font-sans hidden md:inline">Section:</span>
                       <strong className="text-slate-900 dark:text-white font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded shadow-2xs">
-                        {selectedSection.id}
+                        {selectedSection?.id || '—'}
                       </strong>
                       {selectedSubSection !== 'all' && (
                         <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">
@@ -146,16 +147,17 @@ export function Navbar({
               )}
 
               {hasSavedPreference && (
-                <button
-                  type="button"
-                  onClick={onOpenComparePicker}
-                  title="Compare with another section or teacher routine"
-                  aria-label="Compare with another section or teacher routine"
-                  className="flex items-center justify-center h-[40px] px-2.5 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200/80 hover:border-emerald-400/60 text-slate-600 dark:border-slate-800 dark:bg-slate-900/70 dark:hover:bg-slate-800/80 dark:text-slate-300 transition-colors cursor-pointer gap-1 text-xs font-mono font-bold"
-                >
-                  <Plus className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                  <span className="hidden lg:inline text-[11px]">Compare</span>
-                </button>
+                <Tooltip content="Compare with another section or teacher routine" side="bottom">
+                  <button
+                    type="button"
+                    onClick={onOpenComparePicker}
+                    aria-label="Compare with another section or teacher routine"
+                    className="flex items-center justify-center h-[40px] px-2.5 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200/80 hover:border-emerald-400/60 text-slate-600 dark:border-slate-800 dark:bg-slate-900/70 dark:hover:bg-slate-800/80 dark:text-slate-300 transition-colors cursor-pointer gap-1 text-xs font-mono font-bold"
+                  >
+                    <Plus className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    <span className="hidden lg:inline text-[11px]">Compare</span>
+                  </button>
+                </Tooltip>
               )}
             </>
           )}
@@ -165,29 +167,31 @@ export function Navbar({
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Room Finder Button - Hidden on mobile where StickySyncBar dock has it, visible from sm up */}
           {onOpenRoomFinder && (
-            <button
-              type="button"
-              onClick={onOpenRoomFinder}
-              className="hidden sm:flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 rounded-xl px-2 lg:px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors min-h-[36px] cursor-pointer"
-              title="Find empty rooms & room occupancy"
-              aria-label="Find empty rooms"
-            >
-              <DoorOpen className="h-4 w-4 shrink-0" />
-              <span className="hidden lg:inline">Rooms</span>
-            </button>
+            <Tooltip content="Find empty rooms & room occupancy" side="bottom">
+              <button
+                type="button"
+                onClick={onOpenRoomFinder}
+                className="hidden sm:flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 rounded-xl px-2 lg:px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors min-h-[36px] cursor-pointer"
+                aria-label="Find empty rooms"
+              >
+                <DoorOpen className="h-4 w-4 shrink-0" />
+                <span className="hidden lg:inline">Rooms</span>
+              </button>
+            </Tooltip>
           )}
 
           {/* Docs / Guide Link */}
-          <Link
-            href="/docs"
-            prefetch={true}
-            className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-xl px-2 lg:px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors min-h-[36px]"
-            title="Setup guide & technical docs"
-            aria-label="Technical documentation and guide"
-          >
-            <BookOpen className="h-4 w-4 text-slate-400 shrink-0" />
-            <span className="hidden lg:inline">Docs</span>
-          </Link>
+          <Tooltip content="Setup guide & technical docs" side="bottom">
+            <Link
+              href="/docs"
+              prefetch={true}
+              className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-xl px-2 lg:px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors min-h-[36px]"
+              aria-label="Technical documentation and guide"
+            >
+              <BookOpen className="h-4 w-4 text-slate-400 shrink-0" />
+              <span className="hidden lg:inline">Docs</span>
+            </Link>
+          </Tooltip>
 
           {/* Theme Mode Toggle (Light / System / Dark) */}
           <ThemeToggle />

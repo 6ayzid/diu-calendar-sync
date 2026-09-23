@@ -33,22 +33,17 @@ import {
 import { Search, Sparkles, CalendarDays, ArrowRight } from 'lucide-react';
 
 export default function Home() {
-  // 1. Initialize Active Target State (Section or Faculty)
-  const [activeTarget, setActiveTarget] = useState<ActiveRoutineTarget>(() => {
-    const defaultSec = getSectionById('68_D') || ALL_SECTIONS[0];
-    return { type: 'section', section: defaultSec, subSection: 'all' };
-  });
+  // 1. Initialize Active Target State (Section or Faculty) - null when unselected
+  const [activeTarget, setActiveTarget] = useState<ActiveRoutineTarget | null>(null);
 
   const [hasSavedPreference, setHasSavedPreference] = useState(false);
 
-  // Derived student helpers for backward-compatible fallback
-  const selectedSection: SectionMeta =
-    activeTarget.type === 'section'
-      ? activeTarget.section
-      : getSectionById('68_D') || ALL_SECTIONS[0];
+  // Derived student helpers
+  const selectedSection: SectionMeta | null =
+    activeTarget && activeTarget.type === 'section' ? activeTarget.section : null;
 
   const selectedSubSection: '1' | '2' | 'all' =
-    activeTarget.type === 'section' ? activeTarget.subSection : 'all';
+    activeTarget && activeTarget.type === 'section' ? activeTarget.subSection : 'all';
 
   // 2. View Mode (Defaults: agenda in mobile, matrix/week in desktop, unless changed by user or URL)
   const [viewMode, setViewMode] = useState<'matrix' | 'agenda'>('matrix');
@@ -219,6 +214,8 @@ export default function Home() {
         setHasSavedPreference(true);
       } else {
         setHasSavedPreference(false);
+        // Automatically open the standard Select Routine modal directly for new visitors
+        setIsSectionPickerOpen(true);
       }
 
       // Check if compare target was passed in URL
@@ -287,7 +284,7 @@ export default function Home() {
 
   // Save selected subsection to state, localStorage & URL
   const handleSelectSubSection = (newSub: '1' | '2' | 'all') => {
-    if (activeTarget.type === 'section') {
+    if (activeTarget && activeTarget.type === 'section') {
       setActiveTarget({ type: 'section', section: activeTarget.section, subSection: newSub });
       setHasSavedPreference(true);
       try {
@@ -377,7 +374,7 @@ export default function Home() {
 
   // Fetch live schedule whenever activeTarget changes
   useEffect(() => {
-    if (!isInitialized || !hasSavedPreference) {
+    if (!isInitialized || !hasSavedPreference || !activeTarget) {
       return;
     }
 
@@ -391,10 +388,11 @@ export default function Home() {
       }
     }, 150);
 
+    const currentTarget = activeTarget;
     const endpoint =
-      activeTarget.type === 'faculty'
-        ? `/api/schedule?teacher=${encodeURIComponent(activeTarget.faculty.code)}`
-        : `/api/schedule?section=${activeTarget.section.id}&sub=${activeTarget.subSection}`;
+      currentTarget.type === 'faculty'
+        ? `/api/schedule?teacher=${encodeURIComponent(currentTarget.faculty.code)}`
+        : `/api/schedule?section=${currentTarget.section.id}&sub=${currentTarget.subSection}`;
 
     fetch(endpoint)
       .then((res) => res.json())
@@ -406,9 +404,9 @@ export default function Home() {
           if (data.version) {
             setRoutineVersion(data.version);
           }
-          if (data.faculty && activeTarget.type === 'faculty') {
+          if (data.faculty && currentTarget.type === 'faculty') {
             setActiveTarget((prev) =>
-              prev.type === 'faculty' ? { ...prev, faculty: { ...prev.faculty, ...data.faculty } } : prev
+              prev && prev.type === 'faculty' ? { ...prev, faculty: { ...prev.faculty, ...data.faculty } } : prev
             );
           }
         }
@@ -465,7 +463,7 @@ export default function Home() {
 
   // Fallback / Optimistic local schedule
   const currentSchedule = useMemo(() => {
-    if (!hasSavedPreference) {
+    if (!hasSavedPreference || !activeTarget) {
       return [];
     }
     if (liveSchedule && liveSchedule.length > 0) {
@@ -473,6 +471,9 @@ export default function Home() {
     }
     if (activeTarget.type === 'faculty') {
       return liveSchedule || [];
+    }
+    if (!selectedSection) {
+      return [];
     }
     const raw = generateScheduleForSection(selectedSection.id);
     if (selectedSubSection === 'all') {
@@ -482,7 +483,7 @@ export default function Home() {
       if (c.subSection === null || c.subSection === undefined) return true;
       return c.subSection === selectedSubSection;
     });
-  }, [hasSavedPreference, liveSchedule, activeTarget, selectedSection.id, selectedSubSection]);
+  }, [hasSavedPreference, liveSchedule, activeTarget, selectedSection, selectedSubSection]);
 
   // Fallback / Optimistic local secondary schedule
   const secondarySchedule = useMemo(() => {
@@ -637,24 +638,27 @@ export default function Home() {
             </p>
           </div>
           <div className="text-right font-mono text-xs text-slate-700">
-            {activeTarget.type === 'faculty' ? (
+            {activeTarget?.type === 'faculty' ? (
               <>
                 <div><strong className="text-slate-900 font-bold">{activeTarget.faculty.name}</strong></div>
                 <div>Department: {activeTarget.faculty.department}</div>
                 <div>Semester: Fall 2026 • Timezone: Asia/Dhaka (UTC+6)</div>
               </>
-            ) : (
+            ) : selectedSection ? (
               <>
                 <div>Section: <strong className="text-slate-900 font-bold">{selectedSection.id}</strong> ({selectedSection.batch})</div>
                 <div>Subgroup: {selectedSubSection === 'all' ? 'All Classes' : `Sub ${selectedSection.sectionLetter}${selectedSubSection}`}</div>
                 <div>Semester: Fall 2026 • Timezone: Asia/Dhaka (UTC+6)</div>
               </>
-            )}
+            ) : null}
           </div>
         </div>
       </div>
 
       <main id="main-content" className="mx-auto max-w-7xl px-2 sm:px-6 pt-2 sm:pt-4 space-y-3 sm:space-y-4 print:py-0 print:px-2">
+        {/* Semantic H1 for crawler SEO matching exact high-volume queries */}
+        <h1 className="sr-only">DIU Routine &amp; Routine Scraper – CSE Department</h1>
+
         {/* Routine Compare Bar HUD - Only shown in Week View */}
         {compareState.active && viewMode === 'matrix' && (
           <CompareBar
@@ -668,73 +672,8 @@ export default function Home() {
           />
         )}
 
-        {/* Primary Class Timetable Centerpiece: Week Matrix ↔ Agenda, Skeleton Loader, or First-Time Guidance */}
-        {!isInitialized ? (
-          <TimetableSkeleton viewMode={viewMode} />
-        ) : !hasSavedPreference ? (
-          <div className="space-y-6 pt-2 sm:pt-4">
-            {/* First-time visitor guidance card */}
-            <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-white/90 p-6 sm:p-10 shadow-sm backdrop-blur-md dark:border-slate-800/90 dark:bg-slate-900/90 text-center max-w-2xl mx-auto space-y-6">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/70">
-                <CalendarDays className="h-7 w-7" />
-              </div>
-
-              <div className="space-y-2">
-                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                  Select Your Section or Teacher
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
-                  Choose your class section or search by teacher initial to view your weekly routine, check room schedules, and sync to Google Calendar.
-                </p>
-              </div>
-
-              {/* Action Button */}
-              <div className="flex items-center justify-center">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsComparePickerOpen(false);
-                    setIsSectionPickerOpen(true);
-                  }}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-3.5 text-sm font-bold shadow-md shadow-emerald-600/20 hover:shadow-lg hover:shadow-emerald-600/30 transition-all cursor-pointer min-h-[48px]"
-                >
-                  <Search className="h-4 w-4" />
-                  <span>Choose Section or Teacher</span>
-                  <span className="hidden sm:inline-block rounded bg-emerald-700/60 px-1.5 py-0.5 text-[10px] font-mono font-medium text-emerald-100 ml-1">
-                    /
-                  </span>
-                </button>
-              </div>
-
-              {/* Quick Batches */}
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/60">
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2.5">
-                  Popular Batches
-                </p>
-                <div className="flex flex-wrap items-center justify-center gap-1.5">
-                  {['68', '67', '66', '65', '64', '63', '62', '61'].map((batch) => (
-                    <button
-                      key={batch}
-                      type="button"
-                      onClick={() => {
-                        setIsComparePickerOpen(false);
-                        setIsSectionPickerOpen(true);
-                      }}
-                      className="rounded-lg border border-slate-200 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 dark:border-slate-800 dark:bg-slate-800/60 dark:hover:bg-slate-800 dark:hover:border-emerald-600/60 px-2.5 py-1 text-xs font-mono font-semibold text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
-                    >
-                      Batch {batch}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Ambient preview skeleton underneath */}
-            <div className="opacity-35 pointer-events-none select-none">
-              <TimetableSkeleton viewMode={viewMode} />
-            </div>
-          </div>
-        ) : isScheduleLoading && currentSchedule.length === 0 ? (
+        {/* Primary Class Timetable Centerpiece: Week Matrix ↔ Agenda, or Skeleton Loader */}
+        {!isInitialized || !hasSavedPreference || (isScheduleLoading && currentSchedule.length === 0) ? (
           <TimetableSkeleton viewMode={viewMode} />
         ) : (
           <TimetableGrid
@@ -838,7 +777,7 @@ export default function Home() {
         facultyCode={facultyInfoCode}
         initialFaculty={
           facultyInfoInitial ||
-          (activeTarget.type === 'faculty' && activeTarget.faculty.code === facultyInfoCode
+          (activeTarget?.type === 'faculty' && activeTarget.faculty.code === facultyInfoCode
             ? activeTarget.faculty
             : null)
         }
@@ -872,7 +811,7 @@ export default function Home() {
         isOpen={isSectionInfoOpen}
         sectionId={sectionInfoTargetId}
         initialClasses={
-          activeTarget.type === 'section' && activeTarget.section.id === sectionInfoTargetId
+          activeTarget?.type === 'section' && activeTarget.section.id === sectionInfoTargetId
             ? currentSchedule
             : null
         }

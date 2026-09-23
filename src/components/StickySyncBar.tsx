@@ -5,9 +5,9 @@ import { Calendar, ChevronUp, DoorOpen, Search, Plus } from 'lucide-react';
 import { SectionMeta, ActiveRoutineTarget, CompareState } from '@/types/schedule';
 
 interface StickySyncBarProps {
-  section: SectionMeta;
-  subSection: '1' | '2' | 'all';
-  activeTarget?: ActiveRoutineTarget;
+  section?: SectionMeta | null;
+  subSection?: '1' | '2' | 'all';
+  activeTarget?: ActiveRoutineTarget | null;
   compareState?: CompareState;
   hasSavedPreference?: boolean;
   onOpenSectionPicker: () => void;
@@ -47,7 +47,7 @@ export function StickySyncBar({
               ? 'Select section or teacher'
               : isFaculty && faculty
               ? `Change routine target, currently Faculty ${faculty.name} (${faculty.code})`
-              : `Change academic section, currently ${section.displayName}`
+              : `Change academic section, currently ${section?.displayName || 'section'}`
           }
           className="flex items-center gap-1.5 rounded-xl p-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors cursor-pointer text-left min-h-[38px] min-w-0 flex-1"
         >
@@ -68,7 +68,7 @@ export function StickySyncBar({
           ) : (
             <div className="flex items-center gap-1 font-mono truncate">
               <span className="rounded bg-slate-100 border border-slate-200 px-2 py-0.5 text-xs font-bold text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-white">
-                {section.id}
+                {section?.id || '—'}
               </span>
               {subSection !== 'all' && (
                 <span className="rounded bg-emerald-100 border border-emerald-300 px-1 py-0.5 text-[10px] font-bold text-emerald-900 dark:bg-emerald-500/20 dark:border-emerald-500/30 dark:text-emerald-300">

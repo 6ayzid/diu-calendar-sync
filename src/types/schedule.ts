@@ -64,7 +64,7 @@ export type ActiveRoutineTarget =
 
 export interface CompareState {
   active: boolean;
-  primaryTarget: ActiveRoutineTarget;
+  primaryTarget: ActiveRoutineTarget | null;
   secondaryTarget: ActiveRoutineTarget | null;
   priority: 'primary' | 'secondary'; // Which routine has highest priority (shows most info). Default 'secondary' (latest added)
   secondaryVisibility: 'block' | 'hidden'; // Visibility of the lower priority routine: 'block' or 'hidden'

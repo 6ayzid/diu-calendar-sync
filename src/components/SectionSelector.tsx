@@ -6,12 +6,13 @@ import { SectionMeta, FacultyMeta, ActiveRoutineTarget } from '@/types/schedule'
 import { BATCH_DEFINITIONS } from '@/data/sections';
 import { parseShorthandSectionQuery, ParsedSectionQuery } from '@/lib/section-parser';
 import { searchAndRankFaculty } from '@/data/faculty';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface SectionSelectorProps {
   sections: SectionMeta[];
-  selectedSection: SectionMeta;
-  selectedSubSection: '1' | '2' | 'all';
-  activeTarget?: ActiveRoutineTarget;
+  selectedSection?: SectionMeta | null;
+  selectedSubSection?: '1' | '2' | 'all' | null;
+  activeTarget?: ActiveRoutineTarget | null;
   onSelectSection: (section: SectionMeta) => void;
   onSelectSubSection: (sub: '1' | '2' | 'all') => void;
   onSelectFaculty?: (faculty: FacultyMeta) => void;
@@ -338,16 +339,24 @@ export function SectionSelector({
               {isComparing ? 'Compare Routine' : 'Select Routine'}
             </h2>
             <p className="text-xs text-slate-400 dark:text-slate-500 font-mono truncate">
-              Current:{' '}
-              {activeTarget?.type === 'faculty' ? (
-                <strong className="text-slate-700 dark:text-slate-300">
-                  {activeTarget.faculty.name} ({activeTarget.faculty.code})
-                </strong>
+              {activeTarget ? (
+                <>
+                  Current:{' '}
+                  {activeTarget.type === 'faculty' ? (
+                    <strong className="text-slate-700 dark:text-slate-300">
+                      {activeTarget.faculty.name} ({activeTarget.faculty.code})
+                    </strong>
+                  ) : (
+                    <strong className="text-slate-700 dark:text-slate-300">
+                      {selectedSection?.id}
+                      {selectedSubSection && selectedSubSection !== 'all' && selectedSection
+                        ? ` (${selectedSection.sectionLetter}${selectedSubSection})`
+                        : ''}
+                    </strong>
+                  )}
+                </>
               ) : (
-                <strong className="text-slate-700 dark:text-slate-300">
-                  {selectedSection.id}
-                  {selectedSubSection !== 'all' ? ` (${selectedSection.sectionLetter}${selectedSubSection})` : ''}
-                </strong>
+                <span className="text-slate-400 dark:text-slate-500 italic">No routine selected</span>
               )}
             </p>
           </div>
@@ -438,26 +447,26 @@ export function SectionSelector({
                   <div className="flex flex-wrap gap-1 flex-1">
                     {b.letters.map((letter) => {
                       const secId = `${b.batchNumber}_${letter}`;
-                      const isSelected = activeTarget?.type !== 'faculty' && selectedSection.id === secId;
+                      const isSelected = activeTarget && activeTarget.type !== 'faculty' && selectedSection?.id === secId;
 
                       return (
-                        <button
-                          key={secId}
-                          type="button"
-                          onClick={() => {
-                            const sec = sections.find((s) => s.id === secId);
-                            if (sec) handleApplySelection(sec);
-                          }}
-                          className={`h-7 min-w-[1.85rem] px-1 rounded-lg text-xs font-mono font-bold transition-all text-center cursor-pointer ${
-                            isSelected
-                              ? 'bg-emerald-500 text-emerald-950 border border-emerald-400 shadow-xs dark:bg-emerald-500 dark:text-emerald-950'
-                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900 border border-slate-200/80 dark:bg-slate-800/80 dark:text-slate-300 dark:border-slate-700/60 dark:hover:bg-slate-700 dark:hover:text-white'
-                          }`}
-                          title={`Select section ${secId}`}
-                          aria-label={`Section ${secId}`}
-                        >
-                          {letter}
-                        </button>
+                        <Tooltip key={secId} content={`Select section ${secId}`} side="top">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const sec = sections.find((s) => s.id === secId);
+                              if (sec) handleApplySelection(sec);
+                            }}
+                            className={`h-7 min-w-[1.85rem] px-1 rounded-lg text-xs font-mono font-bold transition-all text-center cursor-pointer ${
+                              isSelected
+                                ? 'bg-emerald-500 text-emerald-950 border border-emerald-400 shadow-xs dark:bg-emerald-500 dark:text-emerald-950'
+                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900 border border-slate-200/80 dark:bg-slate-800/80 dark:text-slate-300 dark:border-slate-700/60 dark:hover:bg-slate-700 dark:hover:text-white'
+                            }`}
+                            aria-label={`Section ${secId}`}
+                          >
+                            {letter}
+                          </button>
+                        </Tooltip>
                       );
                     })}
                   </div>
@@ -469,8 +478,8 @@ export function SectionSelector({
             <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-white dark:from-slate-900 to-transparent" />
           </div>
 
-          {/* Compact Inline Lab Group Selector (Only in student browsing mode) */}
-          {activeTarget?.type !== 'faculty' && (
+          {/* Compact Inline Lab Group Selector (Only in student browsing mode when section is chosen) */}
+          {activeTarget && activeTarget.type !== 'faculty' && selectedSection && (
             <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
               <span className="font-mono text-slate-400 text-xs">
                 Lab group: <strong className="text-slate-800 dark:text-slate-200 font-semibold">{selectedSection.id}</strong>
@@ -606,22 +615,24 @@ export function SectionSelector({
               </div>
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
                 {filteredSections.slice(0, 24).map((s) => {
-                  const isSelected = activeTarget?.type !== 'faculty' && selectedSection.id === s.id;
+                  const isSelected = activeTarget && activeTarget.type !== 'faculty' && selectedSection?.id === s.id;
                   return (
-                    <button
-                      key={s.id}
-                      type="button"
-                      onClick={() => handleApplySelection(s)}
-                      className={`py-2 px-1.5 rounded-xl border text-center transition-colors cursor-pointer ${
-                        isSelected
-                          ? 'bg-emerald-500 text-emerald-950 border-emerald-400 shadow-xs dark:bg-emerald-500 dark:text-emerald-950 font-bold'
-                          : 'bg-white border-slate-200 text-slate-800 hover:border-emerald-400 hover:bg-emerald-50/20 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-200 dark:hover:border-emerald-500/50'
-                      }`}
-                    >
-                      <span className="text-xs sm:text-sm font-bold font-mono block">
-                        {s.id}
-                      </span>
-                    </button>
+                    <Tooltip key={s.id} content={`Select section ${s.id}`} side="top">
+                      <button
+                        type="button"
+                        onClick={() => handleApplySelection(s)}
+                        className={`py-2 px-1.5 rounded-xl border text-center transition-colors cursor-pointer w-full ${
+                          isSelected
+                            ? 'bg-emerald-500 text-emerald-950 border-emerald-400 shadow-xs dark:bg-emerald-500 dark:text-emerald-950 font-bold'
+                            : 'bg-white border-slate-200 text-slate-800 hover:border-emerald-400 hover:bg-emerald-50/20 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-200 dark:hover:border-emerald-500/50'
+                        }`}
+                        aria-label={`Section ${s.id}`}
+                      >
+                        <span className="text-xs sm:text-sm font-bold font-mono block">
+                          {s.id}
+                        </span>
+                      </button>
+                    </Tooltip>
                   );
                 })}
               </div>
