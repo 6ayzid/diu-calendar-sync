@@ -1,6 +1,9 @@
+import { getRoutineGatewayUrl } from '../src/lib/gateway-config';
+
 async function run() {
+  const gateway = getRoutineGatewayUrl();
   for (const t of ['FZA', 'AUA', 'MRN', 'ASA']) {
-    const res = await fetch(`https://routine.zohirrayhan.me/api/teacher-schedule?teacher=${t}&department=cse`);
+    const res = await fetch(`${gateway}/api/teacher-schedule?teacher=${t}&department=cse`);
     const d = await res.json();
     console.log(`\n=== Teacher ${t} ===`);
     console.log('success:', d.success);

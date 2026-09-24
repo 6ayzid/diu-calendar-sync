@@ -1,4 +1,5 @@
 import { robustFetch } from '../src/lib/robust-fetch';
+import { getRoutineGatewayUrl } from '../src/lib/gateway-config';
 
 async function main() {
   const slots = [
@@ -10,10 +11,11 @@ async function main() {
     '04:00-05:30'
   ];
 
+  const gateway = getRoutineGatewayUrl();
   console.time('Parallel 6 slots query for KT-201 Monday');
   const results = await Promise.all(slots.map(async (slot) => {
     try {
-      const res = await robustFetch('https://routine.zohirrayhan.me/api/schedule', {
+      const res = await robustFetch(`${gateway}/api/schedule`, {
         method: 'POST',
         body: JSON.stringify({
           view_mode: 'room',

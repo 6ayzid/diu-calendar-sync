@@ -1,7 +1,8 @@
 import { robustFetch } from '../src/lib/robust-fetch';
-import { fetchLiveTeacherAutocomplete, fetchLiveTeacherScheduleFromUpstream } from '../src/lib/zohir-scraper';
+import { fetchLiveTeacherAutocomplete, fetchLiveTeacherScheduleFromUpstream } from '../src/lib/routine-gateway';
 import { getScheduleForFacultyWithMeta } from '../src/lib/schedule';
 import { getFacultyByCode, getAllFaculty } from '../src/data/faculty';
+import { getRoutineGatewayUrl } from '../src/lib/gateway-config';
 
 interface UpstreamApiResponse {
   success: boolean;
@@ -67,8 +68,9 @@ const TEST_TARGETS = [
 ];
 
 async function runHeavyTests() {
+  const gateway = getRoutineGatewayUrl();
   console.log('=================================================================');
-  console.log('   HEAVY FACULTY TEST SUITE WITH ROUTINE.ZOHIRRAYHAN.ME');
+  console.log('   HEAVY FACULTY TEST SUITE WITH ROUTINE GATEWAY');
   console.log('=================================================================\n');
 
   console.log(`Testing ${TEST_TARGETS.length} faculty targets directly against live backend...\n`);
@@ -95,7 +97,7 @@ async function runHeavyTests() {
     let autocompleteLabel: string | undefined;
     try {
       const autoRes = await robustFetch<{ suggestions?: string[] }>(
-        `https://routine.zohirrayhan.me/api/search_autocomplete?query=${encodeURIComponent(code)}&view_mode=teacher&department=cse`,
+        `${gateway}/api/search_autocomplete?query=${encodeURIComponent(code)}&view_mode=teacher&department=cse`,
         { timeout: 6000 }
       );
       if (autoRes.ok) {
@@ -116,7 +118,7 @@ async function runHeavyTests() {
     let postStatus = 0;
     let postClassesCount = 0;
     try {
-      const postRes = await robustFetch<UpstreamApiResponse>('https://routine.zohirrayhan.me/api/schedule', {
+      const postRes = await robustFetch<UpstreamApiResponse>(`${gateway}/api/schedule`, {
         method: 'POST',
         body: JSON.stringify({ view_mode: 'teacher', batch: code, department: 'cse' }),
         timeout: 8000,
@@ -137,7 +139,7 @@ async function runHeavyTests() {
     let getClassesCount = 0;
     try {
       const getRes = await robustFetch<TeacherScheduleResponse>(
-        `https://routine.zohirrayhan.me/api/teacher-schedule?teacher=${encodeURIComponent(code)}&department=cse`,
+        `${gateway}/api/teacher-schedule?teacher=${encodeURIComponent(code)}&department=cse`,
         { timeout: 8000 }
       );
       getStatus = getRes.status;

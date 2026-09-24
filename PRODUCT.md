@@ -1,4 +1,4 @@
-﻿# Product
+# Product
 
 <!-- impeccable:product-schema 1 -->
 
@@ -32,7 +32,7 @@ Unlike static PDF routines or screenshot-based schedule sharing, this platform c
   - Dynamic live `.ics` feeds via `/api/calendar/[sectionId]` with optional subsection filters (`?sub=1`, `?sub=2`).
   - Interactive grid timetable UI displaying periods, rooms, course codes, and teacher initials.
   - Multi-platform subscription handlers: `webcal://` one-click subscription, direct Google Calendar web-add link, and copyable feed URL.
-  - Live data scraping from `routine.zohirrayhan.me` with 15-minute caching and offline fallback fixtures.
+  - Live data synchronization with Departmental Routine Gateway API with 15-minute caching and offline fallback fixtures.
 - Constraints:
   - Must strictly preserve `Asia/Dhaka` (UTC+6) timezone calibration to prevent calendar drift.
   - Lab sessions span multiple periods and must be properly merged visually and in calendar events.
@@ -47,8 +47,8 @@ Unlike static PDF routines or screenshot-based schedule sharing, this platform c
 ## Evidence on Hand
 
 - Production Next.js application codebase with live endpoints (`/api/calendar/[sectionId]`, `/api/schedule`).
-- Scraper and mock datasets in `src/data/` and `src/lib/`.
-- Routine source: `routine.zohirrayhan.me`.
+- Schedule provider and mock datasets in `src/data/` and `src/lib/`.
+- Routine source: Departmental Routine Gateway (configurable via `ROUTINE_GATEWAY_URL`).
 
 ## Product Principles
 

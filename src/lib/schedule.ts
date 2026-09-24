@@ -1,7 +1,7 @@
 import { RoutineClass, SectionMeta, FacultyMeta } from '@/types/schedule';
 import { ALL_SECTIONS, getSectionById } from '@/data/sections';
 import { CURATED_ROUTINES } from '@/data/routines';
-import { fetchLiveScheduleFromUpstream, fetchLiveTeacherScheduleFromUpstream } from './zohir-scraper';
+import { fetchLiveScheduleFromUpstream, fetchLiveTeacherScheduleFromUpstream } from './routine-gateway';
 import { getFacultyByCode } from '@/data/faculty';
 
 /**
@@ -22,7 +22,7 @@ export function getSection(id: string): SectionMeta | undefined {
  * Retrieves schedule entries for a section with subsection filtering.
  * 
  * Data resolution order:
- * 1. Live scrape from routine.zohirrayhan.me API (with 15m in-memory cache)
+ * 1. Live sync from departmental routine gateway (with 15m in-memory cache)
  * 2. Optional: Google Sheets CSV export if GOOGLE_SHEETS_CSV_URL is set
  * 3. Fallback: Curated internal routine engine
  * 
@@ -40,7 +40,7 @@ export async function getScheduleWithMeta(
 ): Promise<{ classes: RoutineClass[]; version: string }> {
   const normalizedId = sectionId.replace('-', '_').toUpperCase();
 
-  // 1. Try live scrape from routine.zohirrayhan.me
+  // 1. Try live fetch from departmental routine gateway
   try {
     const liveResult = await fetchLiveScheduleFromUpstream(normalizedId);
     if (liveResult && liveResult.classes.length > 0) {

@@ -1,4 +1,4 @@
-import { fetchLiveTeacherAutocomplete, fetchLiveTeacherScheduleFromUpstream } from '../src/lib/zohir-scraper';
+import { fetchLiveTeacherAutocomplete, fetchLiveTeacherScheduleFromUpstream } from '../src/lib/routine-gateway';
 import { getScheduleForFacultyWithMeta } from '../src/lib/schedule';
 import { getFacultyByCode, searchAndRankFaculty } from '../src/data/faculty';
 

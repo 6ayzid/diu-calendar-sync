@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchTeacherDetails } from '@/lib/zohir-scraper';
+import { fetchTeacherDetails } from '@/lib/routine-gateway';
 import { getFacultyByCode } from '@/data/faculty';
 
 export const dynamic = 'force-dynamic';

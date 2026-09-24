@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchLiveTeacherAutocomplete } from '@/lib/zohir-scraper';
+import { fetchLiveTeacherAutocomplete } from '@/lib/routine-gateway';
 import { searchAndRankFaculty, getFacultyByCode, registerDynamicFaculty } from '@/data/faculty';
 
 export const dynamic = 'force-dynamic';

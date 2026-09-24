@@ -413,11 +413,8 @@ export function SubscriptionActions({
                   Check <span className="text-slate-900 dark:text-white font-medium">Other calendars</span> in your sidebar.
                 </li>
                 <li>
-                  <strong className="text-slate-900 dark:text-white">University account blocked:</strong>{' '}
-                  <span className="font-mono bg-amber-50 border border-amber-200 text-amber-800 dark:bg-amber-950/30 dark:border-amber-700/40 dark:text-amber-300 rounded px-1 py-0.5">@diu.edu.bd</span>{' '}
-                  may restrict external feeds. Use your personal{' '}
-                  <span className="font-mono bg-slate-100 border border-slate-200 text-slate-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300 rounded px-1 py-0.5">@gmail.com</span>{' '}
-                  instead.
+                  <strong className="text-slate-900 dark:text-white">University accounts:</strong>{' '}
+                  Both your official <span className="font-mono bg-emerald-50 border border-emerald-200 text-emerald-800 dark:bg-emerald-950/30 dark:border-emerald-700/40 dark:text-emerald-300 rounded px-1 py-0.5">@diu.edu.bd</span> Google Workspace account and personal accounts sync directly.
                 </li>
               </ul>
             </div>

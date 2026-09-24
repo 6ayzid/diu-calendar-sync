@@ -244,11 +244,11 @@ export default function DocsPage() {
             </div>
           </div>
 
-          {/* Quick Notice about University Email Restrictions */}
+          {/* Quick Notice about University Email Compatibility */}
           <div className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400 pt-1">
             <Settings className="h-3.5 w-3.5 text-slate-500 shrink-0 mt-0.5" />
             <p>
-              <strong>Using your @diu.edu.bd email?</strong> If Daffodil&apos;s Google Workspace administration restricts adding external calendar subscriptions, simply subscribe using your personal <strong>@gmail.com</strong> account instead. It will sync directly to your phone.
+              <strong>Using your @diu.edu.bd email?</strong> DIU Google Workspace accounts fully support external calendar subscriptions! You can subscribe using either your official <strong>@diu.edu.bd</strong> account or your personal <strong>@gmail.com</strong> account.
             </p>
           </div>
         </section>

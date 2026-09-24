@@ -1,6 +1,7 @@
 import { RoutineClass, FacultyMeta } from '@/types/schedule';
 import { robustFetch } from './robust-fetch';
 import { getFacultyByCode, registerDynamicFaculty } from '@/data/faculty';
+import { getRoutineGatewayUrl } from './gateway-config';
 
 interface UpstreamClassItem {
   course_code: string;
@@ -79,8 +80,9 @@ export async function checkAndInvalidateOnNewRoutineVersion(): Promise<string> {
   lastVersionCheckTime = now;
 
   try {
+    const gateway = getRoutineGatewayUrl();
     const res = await robustFetch<RoutineVersionResponse>(
-      `https://routine.zohirrayhan.me/api/routine_version?t=${now}`,
+      `${gateway}/api/routine_version?t=${now}`,
       { timeout: 1500 }
     );
     if (res.ok) {
@@ -88,14 +90,14 @@ export async function checkAndInvalidateOnNewRoutineVersion(): Promise<string> {
       if (data.success && data.version) {
         const upstreamVer = String(data.version).trim();
         if (upstreamVer !== lastKnownVersion) {
-          console.info(`[Routine Scraper] Upstream routine version updated from ${lastKnownVersion} to ${upstreamVer}. Clearing schedule cache.`);
+          console.info(`[Routine Gateway] Upstream routine version updated from ${lastKnownVersion} to ${upstreamVer}. Clearing schedule cache.`);
           cache.clear();
           lastKnownVersion = upstreamVer;
         }
       }
     }
   } catch (err) {
-    console.warn('[Routine Scraper] Failed to check routine version:', err);
+    console.warn('[Routine Gateway] Failed to check routine version:', err);
   }
 
   return lastKnownVersion;
@@ -113,7 +115,7 @@ function parse12HourTime(t: string): string {
 }
 
 /**
- * Scrapes/Fetches routine data directly from the live university routine service (routine.zohirrayhan.me)
+ * Fetches routine data directly from the live departmental routine gateway.
  */
 export async function fetchLiveScheduleFromUpstream(
   sectionId: string
@@ -129,7 +131,8 @@ export async function fetchLiveScheduleFromUpstream(
   }
 
   try {
-    const res = await robustFetch<UpstreamApiResponse>('https://routine.zohirrayhan.me/api/schedule', {
+    const gateway = getRoutineGatewayUrl();
+    const res = await robustFetch<UpstreamApiResponse>(`${gateway}/api/schedule`, {
       method: 'POST',
       body: JSON.stringify({
         view_mode: 'student',
@@ -140,7 +143,7 @@ export async function fetchLiveScheduleFromUpstream(
     });
 
     if (!res.ok) {
-      console.warn(`Upstream routine scraper returned status ${res.status} for section ${normalizedSection}`);
+      console.warn(`Upstream routine gateway returned status ${res.status} for section ${normalizedSection}`);
       return null;
     }
 
@@ -228,7 +231,7 @@ export async function fetchLiveScheduleFromUpstream(
 }
 
 /**
- * Live search autocomplete directly from the official university routine backend.
+ * Live search autocomplete directly from the campus routine gateway.
  * Discovers teachers that are currently in the routine system (including mid-semester additions).
  */
 export async function fetchLiveTeacherAutocomplete(
@@ -238,8 +241,9 @@ export async function fetchLiveTeacherAutocomplete(
   if (!cleanQuery) return [];
 
   try {
+    const gateway = getRoutineGatewayUrl();
     const res = await robustFetch<AutocompleteResponse>(
-      `https://routine.zohirrayhan.me/api/search_autocomplete?query=${encodeURIComponent(cleanQuery)}&view_mode=teacher&department=cse`,
+      `${gateway}/api/search_autocomplete?query=${encodeURIComponent(cleanQuery)}&view_mode=teacher&department=cse`,
       { timeout: 6000 }
     );
 
@@ -289,7 +293,7 @@ export async function fetchLiveTeacherAutocomplete(
 }
 
 /**
- * Scrapes/Fetches routine data for a specific faculty member directly from routine.zohirrayhan.me.
+ * Fetches routine data for a specific faculty member directly from the campus routine gateway.
  * Returns genuine live classes, or empty classes if teacher has no classes scheduled this semester.
  */
 export async function fetchLiveTeacherScheduleFromUpstream(
@@ -320,12 +324,13 @@ export async function fetchLiveTeacherScheduleFromUpstream(
   const lastVersion = lastKnownVersion;
   let teacherDetails: UpstreamTeacherDetails | undefined;
   let receivedDefinitiveResponse = false;
+  const gateway = getRoutineGatewayUrl();
 
   for (const targetCode of codesToTry) {
     // 1. Try Method B: GET /api/teacher-schedule (provides rich details including Room, Cell, Email, Image, Employee ID, Name_Initial)
     try {
       const res = await robustFetch<TeacherScheduleResponse>(
-        `https://routine.zohirrayhan.me/api/teacher-schedule?teacher=${encodeURIComponent(targetCode)}&department=cse`,
+        `${gateway}/api/teacher-schedule?teacher=${encodeURIComponent(targetCode)}&department=cse`,
         { timeout: 4500 }
       );
 
@@ -378,7 +383,7 @@ export async function fetchLiveTeacherScheduleFromUpstream(
 
     // 2. Try Method A: POST /api/schedule with view_mode: 'teacher' as fallback
     try {
-      const res = await robustFetch<UpstreamApiResponse>('https://routine.zohirrayhan.me/api/schedule', {
+      const res = await robustFetch<UpstreamApiResponse>(`${gateway}/api/schedule`, {
         method: 'POST',
         body: JSON.stringify({
           view_mode: 'teacher',
@@ -495,10 +500,12 @@ export async function fetchTeacherDetails(teacherCode: string): Promise<FacultyM
     ].map((c) => c.toUpperCase()))
   );
 
+  const gateway = getRoutineGatewayUrl();
+
   for (const targetCode of codesToTry) {
     try {
       const res = await robustFetch<TeacherScheduleResponse>(
-        `https://routine.zohirrayhan.me/api/teacher-schedule?teacher=${encodeURIComponent(targetCode)}&department=cse`,
+        `${gateway}/api/teacher-schedule?teacher=${encodeURIComponent(targetCode)}&department=cse`,
         { timeout: 6000 }
       );
 
@@ -532,4 +539,3 @@ export async function fetchTeacherDetails(teacherCode: string): Promise<FacultyM
 
   return existing || null;
 }
-

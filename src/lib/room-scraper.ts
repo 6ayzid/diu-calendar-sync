@@ -57,9 +57,9 @@ export function groupRoomsByZone(rooms: string[]): Record<BuildingZone, string[]
   return result;
 }
 
-// ─── Upstream API Calls ───────────────────────────────────────────────────────
+import { getRoutineGatewayUrl } from './gateway-config';
 
-const BASE_URL = 'https://routine.zohirrayhan.me';
+// ─── Upstream API Calls ───────────────────────────────────────────────────────
 
 /**
  * Fetches free/empty rooms for a given time slot from the upstream API.
@@ -72,8 +72,9 @@ export async function fetchFreeRooms(
   const cached = getCached(FREE_ROOMS_CACHE, cacheKey);
   if (cached) return cached;
 
+  const baseUrl = getRoutineGatewayUrl();
   const res = await robustFetch(
-    `${BASE_URL}/api/free-rooms?time=${encodeURIComponent(slot)}&department=cse`
+    `${baseUrl}/api/free-rooms?time=${encodeURIComponent(slot)}&department=cse`
   );
 
   if (!res.ok) {
@@ -102,7 +103,8 @@ export async function fetchRoomDaySchedule(
   const slots = await Promise.all(
     UNIVERSITY_TIME_SLOTS.map(async (slot): Promise<RoomOccupancy> => {
       try {
-        const res = await robustFetch(`${BASE_URL}/api/schedule`, {
+        const baseUrl = getRoutineGatewayUrl();
+        const res = await robustFetch(`${baseUrl}/api/schedule`, {
           method: 'POST',
           body: JSON.stringify({
             view_mode: 'room',
