@@ -770,7 +770,7 @@ export function RoomFinderModal({
                                                 key={roomName}
                                                 type="button"
                                                 onClick={() => handleInspectRoom(roomName)}
-                                                className="group inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50/80 hover:border-emerald-400 hover:bg-emerald-50/40 text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-emerald-500/50 dark:hover:bg-slate-850 dark:text-slate-200 text-xs font-mono font-medium transition-colors cursor-pointer"
+                                                className="group inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50/80 hover:border-emerald-400 hover:bg-emerald-50/40 text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-emerald-500/50 dark:hover:bg-slate-800 dark:text-slate-200 text-xs font-mono font-medium transition-colors cursor-pointer"
                                                 title={`Click to view ${roomName} schedule`}
                                               >
                                                 <span>{displayName}</span>

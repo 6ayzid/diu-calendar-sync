@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { SectionMeta, RoutineClass, FacultyMeta } from '@/types/schedule';
 import { getSectionById } from '@/data/sections';
-import { generateScheduleForSection } from '@/data/routines';
+import { CURATED_ROUTINES } from '@/data/routines';
 import { getFacultyByCode } from '@/data/faculty';
 
 interface SectionInfoModalProps {
@@ -119,9 +119,11 @@ export function SectionInfoModal({
       }
     }
 
-    // 2. Immediate local fallback while network request processes
-    const localFallback = generateScheduleForSection(resolvedSection.id);
-    setClasses(localFallback);
+    // 2. Curated fallback or empty while network request processes
+    const localCurated = CURATED_ROUTINES.filter(
+      (c) => c.sectionId.toUpperCase() === resolvedSection.id.toUpperCase()
+    );
+    setClasses(localCurated);
     setLoading(true);
 
     // 3. Fetch live section routine from API

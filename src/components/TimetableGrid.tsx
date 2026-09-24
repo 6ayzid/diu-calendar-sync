@@ -39,6 +39,7 @@ export interface AugmentedPositionedEvent extends PositionedEvent {
   isHighPriority?: boolean;
   isBlockMode?: boolean;
   targetBadge?: string;
+  isPrimaryTarget?: boolean;
 }
 
 const DAYS: { key: DayOfWeek; label: string; short: string; colIndex: number }[] = [
@@ -607,6 +608,8 @@ export function TimetableGrid({
       ? (isSecondaryPriority ? classes : (secondaryClasses || []))
       : [];
 
+    const primaryIdSet = new Set((classes || []).map((c) => c.id));
+
     for (const d of DAYS) {
       const highDay = highClasses.filter((c) => c.dayOfWeek === d.key);
       const lowDay = lowClasses.filter((c) => c.dayOfWeek === d.key);
@@ -618,11 +621,13 @@ export function TimetableGrid({
 
       map[d.key] = positioned.map((pe) => {
         const isHigh = !isComparing || highIdSet.has(pe.event.id);
+        const isPrimary = primaryIdSet.has(pe.event.id);
         return {
           ...pe,
           isHighPriority: isHigh,
           isBlockMode: isComparing && !isHigh,
           targetBadge: isHigh ? highBadge : lowBadge,
+          isPrimaryTarget: isPrimary,
         };
       });
     }
@@ -866,7 +871,7 @@ export function TimetableGrid({
 
                   {/* Floating Event Blocks (Google Calendar Style) + Shared Free Time Highlights */}
                   <div className="absolute inset-0">
-                    {/* Shared Free Time Highlights (Rendered in vibrant primary emerald color) */}
+                    {/* Shared Free Time Highlights (Option 1: Solid green with zero text, hover tooltip for details) */}
                     {compareState?.active && compareState.showFreeTimeHighlight && (sharedFreeSlotsMap?.[day.key] || []).map((fs, fIdx) => {
                       const { topPercent, heightPercent } = getTimelinePercentForInterval(fs.startMinutes, fs.endMinutes);
                       const durationHours = Math.round((fs.durationMinutes / 60) * 10) / 10;
@@ -875,7 +880,7 @@ export function TimetableGrid({
                         <div
                           key={`free-${day.key}-${fIdx}`}
                           title={`Shared Free Time: ${fs.formattedRange} (${durationHours}h)`}
-                          className="absolute rounded-xl border border-emerald-500/70 bg-emerald-500/15 dark:border-emerald-400/60 dark:bg-emerald-500/20 z-0 flex items-center justify-center p-1.5 pointer-events-none transition-all shadow-xs"
+                          className="absolute rounded-lg border border-emerald-700/30 bg-emerald-600 dark:border-emerald-400/40 dark:bg-emerald-500 z-0 flex items-center justify-center p-1 pointer-events-auto cursor-default transition-all shadow-xs"
                           style={{
                             top: `calc(${topPercent}% + 2px)`,
                             height: `calc(${heightPercent}% - 4px)`,
@@ -883,10 +888,9 @@ export function TimetableGrid({
                             right: '2px',
                           }}
                         >
-                          <div className="px-2 py-0.5 rounded-lg bg-emerald-600 text-white dark:bg-emerald-500 dark:text-emerald-950 font-mono font-bold text-[9.5px] sm:text-[10px] flex items-center gap-1.5 shadow-xs">
-                            <Sparkles className="h-3 w-3 shrink-0 text-white dark:text-emerald-950" />
-                            <span className="tracking-tight">Free {durationHours}h</span>
-                          </div>
+                          <span className="font-mono font-bold text-[9.5px] sm:text-[10px] text-white dark:text-emerald-950 tracking-tight select-none">
+                            {durationHours}h
+                          </span>
                         </div>
                       );
                     })}
@@ -927,11 +931,19 @@ export function TimetableGrid({
 
                       // 1. Render Block Mode (Low-Priority Background Routine in Compare Mode)
                       if (pe.isBlockMode) {
+                        const blockStyle = pe.isPrimaryTarget
+                          ? 'border border-slate-300 bg-slate-200/70 text-slate-700 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:border-slate-600'
+                          : 'border border-dashed border-emerald-400/60 bg-emerald-100/50 text-emerald-900 hover:border-emerald-500 dark:border-emerald-800/70 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:border-emerald-700';
+
+                        const badgeStyle = pe.isPrimaryTarget
+                          ? 'bg-slate-300 text-slate-800 dark:bg-slate-700 dark:text-slate-200'
+                          : 'border border-dashed border-emerald-400 bg-emerald-200/70 dark:bg-emerald-900/60 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200';
+
                         return (
                           <div
                             key={`block-${c.id}`}
                             title={`${pe.targetBadge}: ${c.courseCode} (${pe.formattedRange}) in ${c.room}`}
-                            className="absolute rounded-lg overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 select-none z-10 transition-all border border-dashed border-slate-300 bg-slate-100/90 text-slate-700 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:border-slate-600 shadow-2xs opacity-85 hover:opacity-100"
+                            className={`absolute rounded-lg overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 select-none z-10 transition-all shadow-2xs opacity-85 hover:opacity-100 ${blockStyle}`}
                             style={{
                               top: `calc(${pe.topPercent}% + 2px)`,
                               height: `calc(${pe.heightPercent}% - 4px)`,
@@ -940,14 +952,14 @@ export function TimetableGrid({
                             }}
                           >
                             <div className="flex items-center justify-between gap-1 min-w-0">
-                              <span className="font-mono font-bold text-[9px] px-1 py-0.2 rounded bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 shrink-0">
+                              <span className={`font-mono font-bold text-[9px] px-1 py-0.2 rounded shrink-0 ${badgeStyle}`}>
                                 {pe.targetBadge}
                               </span>
                               <span className="font-mono font-bold text-[10px] sm:text-[11px] truncate opacity-90">
                                 {cleanCode}
                               </span>
                             </div>
-                            <div className="flex items-center justify-between text-[9px] sm:text-[9.5px] font-mono text-slate-500 dark:text-slate-400 truncate pt-0.5 border-t border-slate-200/60 dark:border-slate-700/60">
+                            <div className="flex items-center justify-between text-[9px] sm:text-[9.5px] font-mono opacity-75 truncate pt-0.5 border-t border-black/10 dark:border-white/10">
                               <span className="truncate">{compactTime}</span>
                               <span className="truncate font-semibold">{c.room.split('(')[0].trim()}</span>
                             </div>
@@ -965,9 +977,23 @@ export function TimetableGrid({
                         shortTitle.toUpperCase().includes(cleanCode.toUpperCase());
                       const showSeparateCode = cleanCode && !isCodeSameAsTitle;
 
-                      // Solid Google Calendar chips adapting across light (emerald-600) and dark (emerald-500)
-                      const cardTheme =
+                      // Determine card theme:
+                      // If comparing, BOTH sections are washed out with in-theme dark/muted neutral distinctions; only Free Time is solid primary emerald!
+                      // When not comparing, uses the full solid emerald Google Calendar theme.
+                      let cardTheme =
                         'bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:text-emerald-950 border border-emerald-700/25 dark:border-emerald-400/40 shadow-xs';
+
+                      if (isComparing) {
+                        if (pe.isPrimaryTarget) {
+                          // Entity 1: Clean washed out slate card with solid border (dark in dark mode!)
+                          cardTheme =
+                            'bg-slate-200/90 hover:bg-slate-200 text-slate-800 dark:bg-slate-800/90 dark:hover:bg-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 shadow-2xs backdrop-blur-xs';
+                        } else {
+                          // Entity 2: Washed out light green card with dashed border style (dark muted green in dark mode!)
+                          cardTheme =
+                            'bg-emerald-100/75 hover:bg-emerald-100 text-emerald-950 dark:bg-emerald-950/70 dark:hover:bg-emerald-950/90 dark:text-emerald-200 border-2 border-dashed border-emerald-400/70 dark:border-emerald-700/80 shadow-2xs backdrop-blur-xs';
+                        }
+                      }
 
                       const isLiveNow =
                         isToday &&
@@ -975,7 +1001,9 @@ export function TimetableGrid({
                         currentDhakaTime.totalMinutes < pe.endMinutes;
 
                       const liveRing = isLiveNow
-                        ? 'ring-2 ring-emerald-400 dark:ring-emerald-300 ring-offset-1 ring-offset-slate-900 shadow-md'
+                        ? isComparing
+                          ? 'ring-2 ring-slate-400 dark:ring-slate-500 shadow-sm'
+                          : 'ring-2 ring-emerald-400 dark:ring-emerald-300 shadow-md'
                         : '';
 
                       return (
@@ -990,11 +1018,28 @@ export function TimetableGrid({
                           }}
                         >
                           <div className="space-y-0.5 overflow-hidden min-w-0">
-                            {/* Line 1: Course Title + Optional Code + Subsection Badge */}
+                            {/* Line 1: Target Badge (in compare) + Course Title + Optional Code + Subsection Badge */}
                             <div className="flex items-center justify-between gap-1 min-w-0">
                               <div className="flex items-center gap-1 min-w-0 truncate">
+                                {isComparing && pe.targetBadge && (
+                                  <span
+                                    className={`shrink-0 rounded px-1 py-0.2 text-[9px] font-mono font-bold ${
+                                      pe.isPrimaryTarget
+                                        ? 'bg-slate-300 text-slate-800 dark:bg-slate-700 dark:text-slate-200'
+                                        : 'bg-emerald-200/70 text-emerald-950 dark:bg-emerald-900/70 dark:text-emerald-200 border border-dashed border-emerald-400 dark:border-emerald-700'
+                                    }`}
+                                  >
+                                    {pe.targetBadge}
+                                  </span>
+                                )}
                                 {isLab && (
-                                  <FlaskConical className="h-3 w-3 text-emerald-200 dark:text-emerald-900 shrink-0" />
+                                  <FlaskConical className={`h-3 w-3 shrink-0 ${
+                                    isComparing
+                                      ? pe.isPrimaryTarget
+                                        ? 'text-slate-500 dark:text-slate-400'
+                                        : 'text-emerald-600 dark:text-emerald-400'
+                                      : 'text-emerald-200 dark:text-emerald-900'
+                                  }`} />
                                 )}
                                 <span className="font-bold tracking-tight text-xs truncate leading-tight">
                                   {shortTitle}
@@ -1010,11 +1055,19 @@ export function TimetableGrid({
                               <div className="flex items-center gap-1 shrink-0">
                                 {!isFaculty && (
                                   c.subSection ? (
-                                    <span className="shrink-0 rounded px-1.5 py-0.2 text-[9px] font-bold font-mono bg-black/25 text-white border border-white/20 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20">
+                                    <span className={`shrink-0 rounded px-1.5 py-0.2 text-[9px] font-bold font-mono border ${
+                                      isComparing
+                                        ? 'bg-black/10 dark:bg-black/35 text-current border-black/15 dark:border-white/15'
+                                        : 'bg-black/25 text-white border-white/20 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20'
+                                    }`}>
                                       {section ? section.sectionLetter : ''}{c.subSection}
                                     </span>
                                   ) : durationMins >= 150 && zoomDays <= 3.5 ? (
-                                    <span className="shrink-0 rounded px-1.5 py-0.2 text-[9px] font-mono font-bold bg-black/25 text-white border border-white/20 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20">
+                                    <span className={`shrink-0 rounded px-1.5 py-0.2 text-[9px] font-mono font-bold border ${
+                                      isComparing
+                                        ? 'bg-black/10 dark:bg-black/35 text-current border-black/15 dark:border-white/15'
+                                        : 'bg-black/25 text-white border-white/20 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20'
+                                    }`}>
                                       3h
                                     </span>
                                   ) : null
@@ -1032,7 +1085,13 @@ export function TimetableGrid({
                           </div>
 
                           {/* Line 3: Room & Teacher/Section Bottom Row */}
-                          <div className="pt-1 border-t border-black/15 dark:border-black/20 flex items-center justify-between text-[10px] sm:text-[10.5px] font-mono leading-tight gap-1 min-w-0">
+                          <div className={`pt-1 border-t flex items-center justify-between text-[10px] sm:text-[10.5px] font-mono leading-tight gap-1 min-w-0 ${
+                            isComparing
+                              ? pe.isPrimaryTarget
+                                ? 'border-slate-300/70 dark:border-slate-700/70 text-slate-600 dark:text-slate-300'
+                                : 'border-emerald-300/70 dark:border-emerald-800/70 text-emerald-800 dark:text-emerald-300'
+                              : 'border-black/15 dark:border-black/20'
+                          }`}>
                             <span className="flex items-center gap-0.5 font-bold truncate min-w-0">
                               <MapPin className="h-2.5 w-2.5 shrink-0 opacity-80" />
                               <span className="truncate">{c.room.split('(')[0].trim()}</span>
@@ -1045,7 +1104,13 @@ export function TimetableGrid({
                                   if (c.sectionId) onOpenSectionInfo?.(c.sectionId);
                                 }}
                                 title={`Click to view info for ${c.sectionId || 'section'}`}
-                                className="shrink-0 rounded px-1 py-0.2 font-bold text-[9.5px] bg-black/25 text-white border border-white/15 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20 hover:bg-black/45 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                                className={`shrink-0 rounded px-1 py-0.2 font-bold text-[9.5px] border transition-all cursor-pointer ${
+                                  isComparing
+                                    ? pe.isPrimaryTarget
+                                      ? 'bg-slate-300/80 text-slate-800 border-slate-400/40 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 hover:bg-slate-300'
+                                      : 'bg-emerald-200/70 text-emerald-950 border-emerald-300/60 dark:bg-emerald-900/70 dark:text-emerald-200 dark:border-emerald-700/80 hover:bg-emerald-200'
+                                    : 'bg-black/25 text-white border-white/15 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20 hover:bg-black/45 hover:scale-105 active:scale-95'
+                                }`}
                               >
                                 {c.sectionId ? (c.subSection ? `${c.sectionId}${c.subSection}` : c.sectionId) : (c.batch && c.section ? `${c.batch}_${c.section}` : 'Sec')}
                               </button>
@@ -1057,7 +1122,13 @@ export function TimetableGrid({
                                   onOpenFacultyInfo?.(c.teacherCode);
                                 }}
                                 title={`Click to view info for ${c.teacherCode}`}
-                                className="shrink-0 rounded px-1 py-0.2 font-bold text-[9.5px] bg-black/25 text-white border border-white/15 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20 hover:bg-black/45 hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                                className={`shrink-0 rounded px-1 py-0.2 font-bold text-[9.5px] border transition-all cursor-pointer ${
+                                  isComparing
+                                    ? pe.isPrimaryTarget
+                                      ? 'bg-slate-300/80 text-slate-800 border-slate-400/40 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 hover:bg-slate-300'
+                                      : 'bg-emerald-200/70 text-emerald-950 border-emerald-300/60 dark:bg-emerald-900/70 dark:text-emerald-200 dark:border-emerald-700/80 hover:bg-emerald-200'
+                                    : 'bg-black/25 text-white border-white/15 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20 hover:bg-black/45 hover:scale-105 active:scale-95'
+                                }`}
                               >
                                 {c.teacherCode}
                               </button>
@@ -1217,7 +1288,7 @@ export function TimetableGrid({
                         const cardThemeClass = 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-emerald-950 border border-emerald-700/25 dark:border-emerald-400/40 shadow-xs';
 
                         const liveRingClass = isLiveNow
-                          ? 'ring-2 ring-emerald-400 dark:ring-emerald-400 ring-offset-2 ring-offset-slate-950'
+                          ? 'ring-2 ring-emerald-400 dark:ring-emerald-400 shadow-md'
                           : '';
 
                         return (

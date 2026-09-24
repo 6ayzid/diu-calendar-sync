@@ -1,6 +1,6 @@
 import { RoutineClass, SectionMeta, FacultyMeta } from '@/types/schedule';
 import { ALL_SECTIONS, getSectionById } from '@/data/sections';
-import { generateScheduleForSection, CURATED_ROUTINES } from '@/data/routines';
+import { CURATED_ROUTINES } from '@/data/routines';
 import { fetchLiveScheduleFromUpstream, fetchLiveTeacherScheduleFromUpstream } from './zohir-scraper';
 import { getFacultyByCode } from '@/data/faculty';
 
@@ -71,10 +71,12 @@ export async function getScheduleWithMeta(
     }
   }
 
-  // 3. Fallback to curated dataset / local routine generator
-  const fallbackSchedule = generateScheduleForSection(normalizedId);
+  // 3. Fallback to curated dataset only (do not generate fake/synthetic mock classes)
+  const curated = CURATED_ROUTINES.filter(
+    (c) => c.sectionId.toUpperCase() === normalizedId
+  );
   return {
-    classes: filterBySubSection(fallbackSchedule, subSection),
+    classes: filterBySubSection(curated, subSection),
     version: '2.2',
   };
 }

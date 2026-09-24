@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { Navbar } from '@/components/Navbar';
 import { SectionSelector } from '@/components/SectionSelector';
@@ -13,7 +13,6 @@ import { RoomFinderModal } from '@/components/RoomFinderModal';
 import { FacultyInfoModal } from '@/components/FacultyInfoModal';
 import { SectionInfoModal } from '@/components/SectionInfoModal';
 import { ALL_SECTIONS, getSectionById } from '@/data/sections';
-import { generateScheduleForSection } from '@/data/routines';
 import { getFacultyByCode } from '@/data/faculty';
 import {
   DayOfWeek,
@@ -30,7 +29,7 @@ import {
   parseTargetParam,
   targetToParamString,
 } from '@/lib/compare-utils';
-import { Search, Sparkles, CalendarDays, ArrowRight } from 'lucide-react';
+import { Search, Sparkles, CalendarDays, ArrowRight, WifiOff, RefreshCw } from 'lucide-react';
 
 export default function Home() {
   // 1. Initialize Active Target State (Section or Faculty) - null when unselected
@@ -105,6 +104,9 @@ export default function Home() {
   const [isScheduleLoading, setIsScheduleLoading] = useState(false);
   const [liveSchedule, setLiveSchedule] = useState<RoutineClass[] | null>(null);
   const [routineVersion, setRoutineVersion] = useState<string>('v2.2');
+  const [isOfflineCached, setIsOfflineCached] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
+  const [reloadTrigger, setReloadTrigger] = useState(0);
 
   // 5. Routine Compare State
   const [compareSettings, setCompareSettings] = useState<{
@@ -230,6 +232,8 @@ export default function Home() {
             secondaryVisibility: 'block',
             showFreeTimeHighlight: true,
           }));
+          setViewMode('matrix');
+          setHasExplicitViewMode(true);
         }
       }
     } catch {
@@ -239,18 +243,30 @@ export default function Home() {
     }
   }, []);
 
-  // Responsively adapt viewMode on resize if user hasn't explicitly toggled it
+  // Responsively adapt viewMode on width resize if user hasn't explicitly toggled it and not in compare mode
   useEffect(() => {
-    if (hasExplicitViewMode) return;
+    if (hasExplicitViewMode || compareSettings.active) return;
+
+    let prevWidth = typeof window !== 'undefined' ? window.innerWidth : 1024;
 
     const handleResize = () => {
-      const isMobile = window.innerWidth < 768;
-      setViewMode(isMobile ? 'agenda' : 'matrix');
+      const currentWidth = window.innerWidth;
+      // On mobile browsers, scrolling down/up triggers 'resize' when the top address bar hides/shows.
+      // We only care about horizontal width changes (device rotation or desktop window resizing).
+      if (Math.abs(currentWidth - prevWidth) < 20) return;
+
+      const wasMobile = prevWidth < 768;
+      const isMobile = currentWidth < 768;
+      prevWidth = currentWidth;
+
+      if (wasMobile !== isMobile) {
+        setViewMode(isMobile ? 'agenda' : 'matrix');
+      }
     };
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [hasExplicitViewMode]);
+  }, [hasExplicitViewMode, compareSettings.active]);
 
   // Wrapper for user-initiated view mode changes
   const handleUserViewModeChange = (mode: 'matrix' | 'agenda') => {
@@ -381,6 +397,14 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isSectionPickerOpen]);
 
+  // Cache helpers for offline support
+  const getCacheKey = useCallback((target: ActiveRoutineTarget) => {
+    if (target.type === 'faculty') {
+      return `diu_cached_routine_t_${target.faculty.code.toUpperCase()}`;
+    }
+    return `diu_cached_routine_s_${target.section.id}_sub_${target.subSection}`;
+  }, []);
+
   // Fetch live schedule whenever activeTarget changes
   useEffect(() => {
     if (!isInitialized || !hasSavedPreference || !activeTarget) {
@@ -388,27 +412,65 @@ export default function Home() {
     }
 
     let isCancelled = false;
-    let loadingTimer: NodeJS.Timeout | null = null;
-
-    // Show skeleton if fetch takes longer than 150ms
-    loadingTimer = setTimeout(() => {
-      if (!isCancelled) {
-        setIsScheduleLoading(true);
-      }
-    }, 150);
-
     const currentTarget = activeTarget;
+    const cacheKey = getCacheKey(currentTarget);
+
+    // 1. Try reading real cached schedule from localStorage
+    let cachedData: { classes: RoutineClass[]; version?: string } | null = null;
+    try {
+      if (typeof window !== 'undefined') {
+        const raw = localStorage.getItem(cacheKey);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed.classes) && parsed.classes.length > 0) {
+            cachedData = parsed;
+          }
+        }
+      }
+    } catch {
+      // Ignore localStorage parse errors
+    }
+
+    if (cachedData) {
+      setLiveSchedule(cachedData.classes);
+      if (cachedData.version) setRoutineVersion(cachedData.version);
+      setIsOfflineCached(false);
+      setFetchError(false);
+      setIsScheduleLoading(false);
+    } else {
+      setLiveSchedule(null);
+      setIsScheduleLoading(true);
+      setFetchError(false);
+      setIsOfflineCached(false);
+    }
+
     const endpoint =
       currentTarget.type === 'faculty'
         ? `/api/schedule?teacher=${encodeURIComponent(currentTarget.faculty.code)}`
         : `/api/schedule?section=${currentTarget.section.id}&sub=${currentTarget.subSection}`;
 
     fetch(endpoint)
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
       .then((data) => {
         if (!isCancelled && data.success) {
           if (Array.isArray(data.classes)) {
             setLiveSchedule(data.classes);
+            setIsOfflineCached(false);
+            setFetchError(false);
+            // Save valid real schedule to localStorage cache
+            try {
+              if (typeof window !== 'undefined') {
+                localStorage.setItem(
+                  cacheKey,
+                  JSON.stringify({ classes: data.classes, version: data.version || 'v2.2' })
+                );
+              }
+            } catch {
+              // Ignore storage quota errors
+            }
           }
           if (data.version) {
             setRoutineVersion(data.version);
@@ -418,23 +480,33 @@ export default function Home() {
               prev && prev.type === 'faculty' ? { ...prev, faculty: { ...prev.faculty, ...data.faculty } } : prev
             );
           }
+        } else if (!isCancelled && !data.success) {
+          throw new Error(data.error || 'Failed to fetch schedule');
         }
       })
       .catch((err) => {
-        console.warn('Live routine fetch fallback:', err);
+        console.warn('Live routine fetch failed:', err);
+        if (!isCancelled) {
+          if (cachedData) {
+            // We have real cached data, mark as viewing offline cached version
+            setIsOfflineCached(true);
+            setFetchError(false);
+          } else {
+            // No cache available and network failed
+            setFetchError(true);
+          }
+        }
       })
       .finally(() => {
         if (!isCancelled) {
-          if (loadingTimer) clearTimeout(loadingTimer);
           setIsScheduleLoading(false);
         }
       });
 
     return () => {
       isCancelled = true;
-      if (loadingTimer) clearTimeout(loadingTimer);
     };
-  }, [activeTarget, isInitialized, hasSavedPreference]);
+  }, [activeTarget, isInitialized, hasSavedPreference, reloadTrigger, getCacheKey]);
 
   // Fetch secondary live schedule whenever compare target changes
   const secondaryTargetKey =
@@ -449,6 +521,23 @@ export default function Home() {
 
     let isCancelled = false;
     const target = compareState.secondaryTarget;
+    const secondaryCacheKey = getCacheKey(target);
+
+    // Check cached secondary schedule
+    try {
+      if (typeof window !== 'undefined') {
+        const raw = localStorage.getItem(secondaryCacheKey);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed.classes)) {
+            setSecondaryLiveSchedule(parsed.classes);
+          }
+        }
+      }
+    } catch {
+      // Ignore
+    }
+
     const endpoint =
       target.type === 'faculty'
         ? `/api/schedule?teacher=${encodeURIComponent(target.faculty.code)}`
@@ -459,6 +548,16 @@ export default function Home() {
       .then((data) => {
         if (!isCancelled && data.success && Array.isArray(data.classes)) {
           setSecondaryLiveSchedule(data.classes);
+          try {
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(
+                secondaryCacheKey,
+                JSON.stringify({ classes: data.classes, version: data.version || 'v2.2' })
+              );
+            }
+          } catch {
+            // Ignore
+          }
         }
       })
       .catch((err) => {
@@ -468,50 +567,20 @@ export default function Home() {
     return () => {
       isCancelled = true;
     };
-  }, [secondaryTargetKey, compareState.secondaryTarget]);
+  }, [secondaryTargetKey, compareState.secondaryTarget, getCacheKey]);
 
-  // Fallback / Optimistic local schedule
+  // Current real schedule (never synthetic mock data)
   const currentSchedule = useMemo(() => {
     if (!hasSavedPreference || !activeTarget) {
       return [];
     }
-    if (liveSchedule && liveSchedule.length > 0) {
-      return liveSchedule;
-    }
-    if (activeTarget.type === 'faculty') {
-      return liveSchedule || [];
-    }
-    if (!selectedSection) {
-      return [];
-    }
-    const raw = generateScheduleForSection(selectedSection.id);
-    if (selectedSubSection === 'all') {
-      return raw;
-    }
-    return raw.filter((c) => {
-      if (c.subSection === null || c.subSection === undefined) return true;
-      return c.subSection === selectedSubSection;
-    });
-  }, [hasSavedPreference, liveSchedule, activeTarget, selectedSection, selectedSubSection]);
+    return liveSchedule || [];
+  }, [hasSavedPreference, activeTarget, liveSchedule]);
 
-  // Fallback / Optimistic local secondary schedule
+  // Secondary real schedule (never synthetic mock data)
   const secondarySchedule = useMemo(() => {
     if (!compareState.active || !compareState.secondaryTarget) return [];
-    if (secondaryLiveSchedule && secondaryLiveSchedule.length > 0) {
-      return secondaryLiveSchedule;
-    }
-    const target = compareState.secondaryTarget;
-    if (target.type === 'faculty') {
-      return secondaryLiveSchedule || [];
-    }
-    const raw = generateScheduleForSection(target.section.id);
-    if (target.subSection === 'all') {
-      return raw;
-    }
-    return raw.filter((c) => {
-      if (c.subSection === null || c.subSection === undefined) return true;
-      return c.subSection === target.subSection;
-    });
+    return secondaryLiveSchedule || [];
   }, [compareState.active, compareState.secondaryTarget, secondaryLiveSchedule]);
 
   // Compute shared free slots between primary and secondary schedules
@@ -548,6 +617,7 @@ export default function Home() {
       secondaryVisibility: 'block',
       showFreeTimeHighlight: true,
     });
+    setHasExplicitViewMode(true);
     setViewMode('matrix'); // Compare mode is only for week view
     setSecondaryLiveSchedule(null);
     setIsComparePickerOpen(false);
@@ -681,8 +751,54 @@ export default function Home() {
           />
         )}
 
-        {/* Primary Class Timetable Centerpiece: Week Matrix ↔ Agenda, or Skeleton Loader */}
-        {!isInitialized || !hasSavedPreference || (isScheduleLoading && currentSchedule.length === 0) ? (
+        {/* Offline cached notification banner */}
+        {isOfflineCached && (
+          <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 text-xs sm:text-sm font-medium shadow-xs">
+            <div className="flex items-center gap-2">
+              <WifiOff className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <span>
+                You are currently offline. Showing saved routine for{' '}
+                <strong className="font-semibold">
+                  {activeTarget?.type === 'faculty' ? activeTarget.faculty.name : activeTarget?.section.id}
+                </strong>
+                .
+              </span>
+            </div>
+            <button
+              onClick={() => setReloadTrigger((prev) => prev + 1)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/60 dark:hover:bg-amber-900 text-amber-900 dark:text-amber-100 text-xs font-semibold transition-colors shrink-0 cursor-pointer"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Fetch failure when no cached routine is available */}
+        {fetchError && currentSchedule.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-8 sm:p-12 text-center rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xs my-6">
+            <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center text-amber-600 dark:text-amber-400 mb-4">
+              <WifiOff className="w-6 h-6" />
+            </div>
+            <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-200 mb-1">
+              Unable to Load Routine
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mb-5 leading-relaxed">
+              We couldn&apos;t reach the server and no previously cached routine was found for this selection. Check your internet connection and try again.
+            </p>
+            <button
+              onClick={() => {
+                setFetchError(false);
+                setIsScheduleLoading(true);
+                setReloadTrigger((prev) => prev + 1);
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold shadow-sm shadow-emerald-600/20 transition-all cursor-pointer"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Try Again
+            </button>
+          </div>
+        ) : !isInitialized || !hasSavedPreference || (isScheduleLoading && currentSchedule.length === 0) ? (
           <TimetableSkeleton viewMode={viewMode} />
         ) : (
           <TimetableGrid
