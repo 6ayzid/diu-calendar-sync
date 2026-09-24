@@ -90,26 +90,17 @@ GET https://diucal.vercel.app/api/calendar/:sectionId
 curl -i "https://diucal.vercel.app/api/calendar/68_D?sub=1"
 ```
 
----
-
-## 🛠️ Tech Stack & Architecture
-
-```
-[ Campus Routine Gateway ] ──> [ Resilient Fetch + 15m Cache ]
-                                           │
-                                           ▼
-[ Client / WebCal URL ] <── [ RFC 5545 ICS Generator ] <── [ Local Curated Fixtures ]
-```
+## 🛠️ Tech Stack
 
 - **Framework**: Next.js 16 (App Router with Turbopack)
 - **UI Library**: React 19 + Tailwind CSS v4
-- **Feed Engine**: RFC 5545 Compliant dynamic iCalendar builder (`text/calendar`)
-- **Protocol**: `webcal://` and HTTPS dynamic streaming
-- **Hosting**: Edge deployment on Vercel
+- **Feed Engine**: RFC 5545 dynamic iCalendar builder (`text/calendar`)
+- **Protocol**: `webcal://` & HTTPS calendar subscriptions
+- **Deployment**: Vercel
 
 ---
 
-## 💻 Getting Started Locally
+## 💻 Local Development
 
 ```bash
 # 1. Clone the repository
@@ -124,21 +115,6 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) to view the app.
-
----
-
-## 🚀 Deploy on Vercel
-
-Deploy your own instance for free in under 60 seconds:
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2F6ayzid%2Fdiu-calendar-sync)
-
-### Environment Variables (Optional)
-
-| Variable | Description |
-| :--- | :--- |
-| `ROUTINE_GATEWAY_URL` | Upstream routine gateway endpoint (defaults to campus provider) |
-| `GOOGLE_SHEETS_CSV_URL` | Optional direct Google Sheets CSV schedule data feed |
 
 ---
 
