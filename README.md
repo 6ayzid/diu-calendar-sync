@@ -1,74 +1,61 @@
 <div align="center">
 
-# 📅 DIU CSE Routine & Calendar Sync
+# DIU CSE Routine & Calendar Sync
 
-### Stop squinting at blurry Messenger screenshots and 20-page routine PDFs.
+**Dynamic iCal and WebCal routine feeds for Daffodil International University (CSE) — synced directly to your phone and laptop calendars.**
 
-**Live dynamic iCal/WebCal subscriptions for Daffodil International University (CSE) — synced straight to your phone & laptop.**
-
-[![Live Demo](https://img.shields.io/badge/Live_App-diucal.vercel.app-0070F3?style=for-the-badge&logo=vercel&logoColor=white)](https://diucal.vercel.app)
-[![Next.js 16](https://img.shields.io/badge/Next.js_16-Turbopack-black?style=for-the-badge&logo=next.js)](https://nextjs.org/)
-[![React 19](https://img.shields.io/badge/React_19-Modern_Hooks-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![RFC 5545](https://img.shields.io/badge/RFC_5545-iCalendar_Compliant-059669?style=for-the-badge)](https://tools.ietf.org/html/rfc5545)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+[![Live Demo](https://img.shields.io/badge/Live_App-diucal.vercel.app-0070F3?style=flat&logo=vercel&logoColor=white)](https://diucal.vercel.app)
+[![Next.js 16](https://img.shields.io/badge/Next.js-16-black?style=flat&logo=next.js)](https://nextjs.org/)
+[![React 19](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
 
 <br />
 
-[**Explore Live Routine**](https://diucal.vercel.app) • [**API Reference**](#-api-endpoints) • [**Setup Guide**](#-getting-started) • [**Deploy Your Own**](#-deploy-on-vercel)
+[**Open App**](https://diucal.vercel.app) • [**API Reference**](#api-endpoints) • [**How to Subscribe**](#how-to-subscribe) • [**Local Development**](#local-development)
 
 </div>
 
 ---
 
-## ⚡ The Problem vs The Solution
+## Overview
 
-| The Old Way 😫 | With DIU Calendar Sync 🚀 |
+| Traditional Static Routine | DIU Calendar Sync |
 | :--- | :--- |
-| Pinch-zooming blurry routine PDFs in Messenger group chats | **Glanceable, high-density weekly grid** on mobile & desktop |
-| Missing morning classes because you forgot room changes | **Live background calendar updates** (Google, Apple, Outlook) |
-| Duplicate events everywhere after manual calendar imports | **Deterministic UIDs** update existing events in-place |
-| Lab sessions split into chaotic disjointed blocks | **Auto-merged 3-hour lab spans** with designated lab rooms |
-| Timezone shifts showing classes at 3 AM | **Hardened `Asia/Dhaka` (UTC+6)** RFC 5545 calibration |
+| Checking PDFs or screenshots every day | Dynamic weekly timetable view on mobile and desktop |
+| Manual calendar entry or missed room changes | Live subscription feeds updating events automatically |
+| Duplicate entries from re-importing schedules | Deterministic IDs ensuring events update in-place |
+| Lab slots split into separate disconnected periods | Auto-merged 3-hour lab sessions with designated lab rooms |
 
 ---
 
-## ✨ Features That Hit Different
+## Features
 
-- **⚡ Instant 1-Click Subscription (`webcal://`)**:
-  Hit subscribe and your classes automatically appear in **Apple Calendar (iOS/macOS)**, **Google Calendar (Android/Web)**, or **Microsoft Outlook**.
-- **🧪 Smart Section & Lab Group Filtering**:
-  Section **68_D**? Theory lectures are shared, but your lab is subgroup-specific. Filter down to **D1** or **D2** with a toggle — no clutter from classes you don't attend.
-- **👨‍🏫 Faculty Discovery & Timetables**:
-  Instant autocomplete and schedule lookups for 150+ CSE faculty members with office rooms, designations, and contact info.
-- **🚪 Real-time Free Classroom Radar**:
-  Find empty classrooms instantly across KT and ANX-1 buildings for study sessions, club meetings, or project prep.
-- **🛡️ Anti-Drift Timezone Calibration**:
-  Configured with strict `VTIMEZONE` blocks for `Asia/Dhaka` so your reminders ring 15 minutes before class — regardless of daylight saving or device settings.
-- **🏎️ Ultra-Low Latency & Resilient Fallbacks**:
-  Sub-2ms cached responses backed by live campus routine gateway integration and offline curated fixtures.
+- **One-Click Calendar Subscription (`webcal://`)**: Subscribe directly in Apple Calendar (iOS/macOS), Google Calendar (Android/Web), or Microsoft Outlook.
+- **Section and Lab Group Filtering**: Theory lectures are shared by the full section, while lab periods are split into subgroups (D1, D2). Select your subsection to see only your active classes.
+- **Faculty Directory & Timetables**: Search CSE faculty members by name or initial to view office rooms, designations, contact details, and weekly teaching schedules.
+- **Empty Classroom Finder**: Quickly look up vacant classrooms across campus buildings (KT and ANX-1) during any time slot.
+- **Fast & Resilient**: In-memory caching layer ensures sub-second responses with fallback to curated routine data.
 
 ---
 
-## 📲 How to Subscribe in 10 Seconds
+## How to Subscribe
 
-### 🍏 iOS & macOS (Apple Calendar)
+### iOS & macOS (Apple Calendar)
 1. Open [diucal.vercel.app](https://diucal.vercel.app).
-2. Select your Batch & Section (e.g. `68_D`) and lab group (`D1` or `D2`).
-3. Tap **"Subscribe via Apple Calendar"**. iOS will prompt to add the calendar — tap **Subscribe**. Done!
+2. Select your Batch, Section, and lab subgroup (if applicable).
+3. Tap **"Subscribe via Apple Calendar"** and confirm **Subscribe** when prompted.
 
-### 🤖 Android & Web (Google Calendar)
+### Android & Web (Google Calendar)
 1. Select your section on [diucal.vercel.app](https://diucal.vercel.app).
 2. Click **"Add to Google Calendar"**.
-3. Google Calendar will open in your browser with the feed pre-filled. Click **"Add calendar"**.
-
-> 💡 **Tip:** Works seamlessly with both your official `@diu.edu.bd` university Google Workspace account and personal `@gmail.com` accounts!
+3. Google Calendar will open with the feed pre-filled — click **"Add calendar"**.
 
 ---
 
-## 🔌 API Endpoints
+## API Endpoints
 
-The engine provides live, dynamically compiled `.ics` (RFC 5545) and JSON schedule feeds:
+The service provides live `.ics` (RFC 5545) feeds and JSON schedule endpoints:
 
 ```http
 GET https://diucal.vercel.app/api/calendar/:sectionId
@@ -77,57 +64,54 @@ GET https://diucal.vercel.app/api/calendar/:sectionId
 | Endpoint | Description |
 | :--- | :--- |
 | `GET /api/calendar/68_D` | Complete iCal feed for Section 68_D (all labs) |
-| `GET /api/calendar/68_D?sub=1` | Filtered iCal feed for Section 68_D (Lab Subsection 1) |
-| `GET /api/calendar/68_D?sub=2` | Filtered iCal feed for Section 68_D (Lab Subsection 2) |
-| `GET /api/calendar/teacher/:code` | Live calendar feed for faculty member (e.g. `/teacher/SRH`) |
-| `GET /api/schedule?section=68_D` | Raw JSON schedule payload for bot/widget integration |
-| `GET /api/rooms/free?time=10:00-11:30` | Real-time vacant rooms query across campus |
+| `GET /api/calendar/68_D?sub=1` | Filtered iCal feed for Section 68_D (Lab Subsection 1 only) |
+| `GET /api/calendar/68_D?sub=2` | Filtered iCal feed for Section 68_D (Lab Subsection 2 only) |
+| `GET /api/calendar/teacher/:code` | Live calendar feed for a specific teacher initial |
+| `GET /api/schedule?section=68_D` | Raw JSON schedule payload for external tools and bots |
+| `GET /api/rooms/free?time=10:00-11:30` | Vacant classrooms query for a given time slot |
 
 ### Quick Test via cURL
 
 ```bash
-# Fetch live ICS calendar feed
 curl -i "https://diucal.vercel.app/api/calendar/68_D?sub=1"
 ```
 
-## 🛠️ Tech Stack
+---
+
+## Tech Stack
 
 - **Framework**: Next.js 16 (App Router with Turbopack)
-- **UI Library**: React 19 + Tailwind CSS v4
-- **Feed Engine**: RFC 5545 dynamic iCalendar builder (`text/calendar`)
+- **UI**: React 19 + Tailwind CSS
+- **Calendar Engine**: RFC 5545 iCalendar stream generator (`text/calendar`)
 - **Protocol**: `webcal://` & HTTPS calendar subscriptions
 - **Deployment**: Vercel
 
 ---
 
-## 💻 Local Development
+## Local Development
 
 ```bash
-# 1. Clone the repository
+# Clone the repository
 git clone https://github.com/6ayzid/diu-calendar-sync.git
 cd diu-calendar-sync
 
-# 2. Install dependencies
+# Install dependencies
 npm install
 
-# 3. Start development server
+# Start development server
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view the app.
+Open [http://localhost:3000](http://localhost:3000) to view the app locally.
 
 ---
 
-## 🤝 Acknowledgments
+## Acknowledgments
 
-Special thanks to the Daffodil International University student developer community and campus schedule contributors for keeping routine data open, accessible, and community-driven.
+Special thanks to the DIU student developer community and campus schedule contributors for keeping routine data open and accessible.
 
 ---
 
-## 📄 License
+## License
 
-Distributed under the **MIT License**. See `LICENSE` for more information.
-
-<div align="center">
-  <sub>Built with ❤️ for DIU CSE students & faculty.</sub>
-</div>
+Distributed under the **MIT License**. See `LICENSE` for details.
