@@ -73,6 +73,7 @@ export async function fetchFreeRooms(
   if (cached) return cached;
 
   const baseUrl = getRoutineGatewayUrl();
+  if (!baseUrl) return {};
   const res = await robustFetch(
     `${baseUrl}/api/free-rooms?time=${encodeURIComponent(slot)}&department=cse`
   );
@@ -100,10 +101,14 @@ export async function fetchRoomDaySchedule(
   const cached = getCached(ROOM_SCHEDULE_CACHE, cacheKey);
   if (cached) return cached;
 
+  const baseUrl = getRoutineGatewayUrl();
+  if (!baseUrl) {
+    return UNIVERSITY_TIME_SLOTS.map((slot) => ({ slot, occupied: false }));
+  }
+
   const slots = await Promise.all(
     UNIVERSITY_TIME_SLOTS.map(async (slot): Promise<RoomOccupancy> => {
       try {
-        const baseUrl = getRoutineGatewayUrl();
         const res = await robustFetch(`${baseUrl}/api/schedule`, {
           method: 'POST',
           body: JSON.stringify({

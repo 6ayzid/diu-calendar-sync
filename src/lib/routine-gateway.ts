@@ -81,6 +81,7 @@ export async function checkAndInvalidateOnNewRoutineVersion(): Promise<string> {
 
   try {
     const gateway = getRoutineGatewayUrl();
+    if (!gateway) return lastKnownVersion;
     const res = await robustFetch<RoutineVersionResponse>(
       `${gateway}/api/routine_version?t=${now}`,
       { timeout: 1500 }
@@ -132,6 +133,7 @@ export async function fetchLiveScheduleFromUpstream(
 
   try {
     const gateway = getRoutineGatewayUrl();
+    if (!gateway) return null;
     const res = await robustFetch<UpstreamApiResponse>(`${gateway}/api/schedule`, {
       method: 'POST',
       body: JSON.stringify({
@@ -242,6 +244,7 @@ export async function fetchLiveTeacherAutocomplete(
 
   try {
     const gateway = getRoutineGatewayUrl();
+    if (!gateway) return [];
     const res = await robustFetch<AutocompleteResponse>(
       `${gateway}/api/search_autocomplete?query=${encodeURIComponent(cleanQuery)}&view_mode=teacher&department=cse`,
       { timeout: 6000 }
@@ -325,6 +328,7 @@ export async function fetchLiveTeacherScheduleFromUpstream(
   let teacherDetails: UpstreamTeacherDetails | undefined;
   let receivedDefinitiveResponse = false;
   const gateway = getRoutineGatewayUrl();
+  if (!gateway) return null;
 
   for (const targetCode of codesToTry) {
     // 1. Try Method B: GET /api/teacher-schedule (provides rich details including Room, Cell, Email, Image, Employee ID, Name_Initial)
@@ -501,6 +505,7 @@ export async function fetchTeacherDetails(teacherCode: string): Promise<FacultyM
   );
 
   const gateway = getRoutineGatewayUrl();
+  if (!gateway) return existing || null;
 
   for (const targetCode of codesToTry) {
     try {
