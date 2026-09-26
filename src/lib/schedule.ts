@@ -3,6 +3,8 @@ import { ALL_SECTIONS, getSectionById } from '@/data/sections';
 import { CURATED_ROUTINES } from '@/data/routines';
 import { fetchLiveScheduleFromUpstream, fetchLiveTeacherScheduleFromUpstream } from './routine-gateway';
 import { getFacultyByCode } from '@/data/faculty';
+import { getCourseName } from '@/lib/courses';
+import officialRoutine from '@/data/official-routine.json';
 
 /**
  * Retrieves all registered university sections (170+ sections across Batches 63-73)
@@ -22,8 +24,8 @@ export function getSection(id: string): SectionMeta | undefined {
  * Retrieves schedule entries for a section with subsection filtering.
  * 
  * Data resolution order:
- * 1. Live sync from departmental routine gateway (with 15m in-memory cache)
- * 2. Optional: Google Sheets CSV export if GOOGLE_SHEETS_CSV_URL is set
+ * 1. Official Departmental Routine (Parsed from official Fall 2026 V1.1 PDF)
+ * 2. Optional: Live gateway or Google Sheets CSV export
  * 3. Fallback: Curated internal routine engine
  * 
  * Domain Rule:
@@ -40,7 +42,21 @@ export async function getScheduleWithMeta(
 ): Promise<{ classes: RoutineClass[]; version: string }> {
   const normalizedId = sectionId.replace('-', '_').toUpperCase();
 
-  // 1. Try live fetch from departmental routine gateway
+  // 1. Primary: Official Departmental Routine
+  const officialClasses = (officialRoutine.sections as Record<string, RoutineClass[]>)[normalizedId];
+  if (officialClasses && officialClasses.length > 0) {
+    const enriched = officialClasses.map((c) => ({
+      ...c,
+      courseTitle: getCourseName(c.courseCode),
+      teacherName: getFacultyByCode(c.teacherCode)?.name || c.teacherCode,
+    }));
+    return {
+      classes: filterBySubSection(enriched, subSection),
+      version: officialRoutine.version || 'Fall 2026 V1.1',
+    };
+  }
+
+  // 2. Try live fetch from departmental routine gateway (if configured)
   try {
     const liveResult = await fetchLiveScheduleFromUpstream(normalizedId);
     if (liveResult && liveResult.classes.length > 0) {
@@ -142,7 +158,35 @@ export async function getScheduleForFacultyWithMeta(
     department: 'CSE',
   };
 
-  // 1. Fetch live schedule directly from university upstream service
+  // 1. Primary: Official Departmental Routine
+  const allCodes = new Set<string>([
+    cleanCode,
+    ...(faculty.aliases || []).map((a) => a.toUpperCase()),
+  ]);
+
+  const teacherClasses: RoutineClass[] = [];
+  const teachersMap = officialRoutine.teachers as Record<string, RoutineClass[]>;
+
+  for (const code of allCodes) {
+    if (teachersMap[code]) {
+      teacherClasses.push(...teachersMap[code]);
+    }
+  }
+
+  if (teacherClasses.length > 0) {
+    const enriched = teacherClasses.map((c) => ({
+      ...c,
+      courseTitle: getCourseName(c.courseCode),
+      teacherName: faculty.name,
+    }));
+    return {
+      classes: deduplicateAndSortClasses(enriched),
+      version: officialRoutine.version || 'Fall 2026 V1.1',
+      faculty,
+    };
+  }
+
+  // 2. Fetch live schedule from gateway if configured
   try {
     const liveResult = await fetchLiveTeacherScheduleFromUpstream(cleanCode);
     if (liveResult !== null) {
@@ -157,11 +201,7 @@ export async function getScheduleForFacultyWithMeta(
     console.warn(`Upstream faculty routine fetch failed for ${cleanCode}:`, err);
   }
 
-  // 2. Fallback to local curated routines only if upstream was unreachable
-  const allCodes = new Set<string>([
-    cleanCode,
-    ...(faculty.aliases || []).map((a) => a.toUpperCase()),
-  ]);
+  // 3. Fallback to local curated routines only if upstream was unreachable
   const aggregatedClasses: RoutineClass[] = [];
 
   for (const c of CURATED_ROUTINES) {
