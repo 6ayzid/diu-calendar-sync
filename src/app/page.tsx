@@ -103,7 +103,7 @@ export default function Home() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isScheduleLoading, setIsScheduleLoading] = useState(false);
   const [liveSchedule, setLiveSchedule] = useState<RoutineClass[] | null>(null);
-  const [routineVersion, setRoutineVersion] = useState<string>('v2.2');
+  const [routineVersion, setRoutineVersion] = useState<string>('v3.1');
   const [isOfflineCached, setIsOfflineCached] = useState(false);
   const [fetchError, setFetchError] = useState(false);
   const [reloadTrigger, setReloadTrigger] = useState(0);

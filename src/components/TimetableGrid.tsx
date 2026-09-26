@@ -61,7 +61,7 @@ export function TimetableGrid({
   viewMode,
   onViewModeChange,
   onActiveDayChange,
-  routineVersion = 'v2.2',
+  routineVersion = 'v3.1',
   onOpenFacultyInfo,
   onOpenSectionInfo,
 }: TimetableGridProps) {
@@ -72,6 +72,11 @@ export function TimetableGrid({
   const [internalViewMode, setInternalViewMode] = useState<'matrix' | 'agenda'>('matrix');
   const effectiveViewMode = viewMode !== undefined ? viewMode : internalViewMode;
   const setEffectiveViewMode = onViewModeChange || setInternalViewMode;
+
+  const cleanVersion = (() => {
+    const match = (routineVersion || '').match(/\bv?([0-9]+(?:\.[0-9]+)?)\b/i);
+    return match ? `v${match[1]}` : (routineVersion || 'v3.1');
+  })();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -657,7 +662,7 @@ export function TimetableGrid({
             title="Official CSE Department Class Routine Version"
             className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-700/60 shadow-2xs shrink-0"
           >
-            {routineVersion || 'v2.2'}
+            {cleanVersion}
           </span>
           {isFaculty && faculty ? (
             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium text-slate-600 dark:text-slate-300 max-w-[280px] sm:max-w-none">
@@ -738,7 +743,7 @@ export function TimetableGrid({
               <strong>
                 {faculty?.name || activeTarget?.faculty.name} ({activeTarget?.faculty.code})
               </strong>{' '}
-              in routine version <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">{routineVersion}</span>.
+              in routine version <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">{cleanVersion}</span>.
             </span>
           </div>
         </div>

@@ -111,7 +111,8 @@ export function buildCalendarFeed(
     },
   });
 
-  const formattedVersion = routineVersion.startsWith('v') ? routineVersion : `v${routineVersion}`;
+  const verMatch = routineVersion.match(/\bv?([0-9]+(?:\.[0-9]+)?)\b/i);
+  const formattedVersion = verMatch ? `v${verMatch[1]}` : (routineVersion.startsWith('v') ? routineVersion : `v${routineVersion}`);
 
   for (const item of classes) {
     const baseDate = WEEKDAY_DATE_MAP[item.dayOfWeek];

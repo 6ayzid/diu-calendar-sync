@@ -52,7 +52,7 @@ export async function getScheduleWithMeta(
     }));
     return {
       classes: filterBySubSection(enriched, subSection),
-      version: officialRoutine.version || 'Fall 2026 V1.1',
+      version: officialRoutine.version || '3.1',
     };
   }
 
@@ -181,7 +181,7 @@ export async function getScheduleForFacultyWithMeta(
     }));
     return {
       classes: deduplicateAndSortClasses(enriched),
-      version: officialRoutine.version || 'Fall 2026 V1.1',
+      version: officialRoutine.version || '3.1',
       faculty,
     };
   }
