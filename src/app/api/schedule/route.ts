@@ -16,13 +16,20 @@ export async function GET(request: NextRequest) {
     const { classes, version, faculty } = await getScheduleForFacultyWithMeta(teacher);
     const formattedVersion = formatShortVersion(version);
 
-    return NextResponse.json({
-      success: true,
-      mode: 'faculty',
-      faculty,
-      classes,
-      version: formattedVersion,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        mode: 'faculty',
+        faculty,
+        classes,
+        version: formattedVersion,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        },
+      }
+    );
   }
 
   const sectionId = (url.searchParams.get('section') || '68_D').toUpperCase();
@@ -39,11 +46,18 @@ export async function GET(request: NextRequest) {
   const { classes, version } = await getScheduleWithMeta(sectionId, subSection);
   const formattedVersion = formatShortVersion(version);
 
-  return NextResponse.json({
-    success: true,
-    mode: 'student',
-    section: sectionMeta,
-    classes,
-    version: formattedVersion,
-  });
+  return NextResponse.json(
+    {
+      success: true,
+      mode: 'student',
+      section: sectionMeta,
+      classes,
+      version: formattedVersion,
+    },
+    {
+      headers: {
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      },
+    }
+  );
 }

@@ -80,11 +80,10 @@ export async function handleCalendarFeedRequest(
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
       'Content-Disposition': `inline; filename="${filename}"`,
-      // RFC 5545 Live Feed cache headers:
-      // 'no-cache, no-store, must-revalidate' ensures clients receive the updated schedule on polling.
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
+      // RFC 5545 Live Feed edge-cache headers:
+      // Cache for 4 hours on Vercel Edge CDN with background stale-while-revalidate.
+      // This collapses thousands of student calendar polls into ~6 edge function calls per section/day.
+      'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=86400',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
     },
@@ -133,9 +132,8 @@ export async function handleFacultyCalendarFeedRequest(
     headers: {
       'Content-Type': 'text/calendar; charset=utf-8',
       'Content-Disposition': `inline; filename="${filename}"`,
-      'Cache-Control': 'no-cache, no-store, must-revalidate',
-      'Pragma': 'no-cache',
-      'Expires': '0',
+      // RFC 5545 Live Feed edge-cache headers for faculty:
+      'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=86400',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
     },
