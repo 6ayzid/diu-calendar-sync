@@ -28,12 +28,10 @@ BATCH_DEFINITIONS = [
 
 ALL_SECTIONS = [f"{b['batch']}_{l}" for b in BATCH_DEFINITIONS for l in b["letters"]]
 
-URL = "https://routine.zohirrayhan.me/api/schedule"
+URL = "https://diu-routine-api.6ayzid.workers.dev/api/schedule"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
     "Content-Type": "application/json",
-    "Referer": "https://routine.zohirrayhan.me/",
-    "Origin": "https://routine.zohirrayhan.me"
 }
 
 def parse_12h_time(t_str: str) -> str:

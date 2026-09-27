@@ -78,7 +78,29 @@ export async function fetchFreeRooms(
 
   const [slotStart] = slot.split('-'); // e.g. "10:00"
 
-  // 1. Primary: Local computation from official departmental routine
+  // 1. Primary: Live departmental routine gateway (covers university-wide room occupancy)
+  const baseUrl = getRoutineGatewayUrl();
+  if (baseUrl) {
+    try {
+      const res = await robustFetch(
+        `${baseUrl}/api/free-rooms?time=${encodeURIComponent(slot)}&department=cse`,
+        { timeout: 3500 }
+      );
+
+      if (res.ok) {
+        const data = (await res.json()) as { empty_classrooms?: Record<string, string[]> };
+        const rooms = data.empty_classrooms || {};
+        if (Object.keys(rooms).length > 0) {
+          FREE_ROOMS_CACHE.set(cacheKey, { timestamp: Date.now(), data: rooms });
+          return rooms;
+        }
+      }
+    } catch (err) {
+      console.warn('Free rooms gateway fetch failed, falling back to local computation:', err);
+    }
+  }
+
+  // 2. Fallback: Local computation from official departmental routine
   if (officialRoutine && officialRoutine.rooms) {
     const allRooms = new Set<string>(officialRoutine.rooms);
     const occupiedByDay: Record<string, Set<string>> = {};
@@ -108,24 +130,6 @@ export async function fetchFreeRooms(
 
     FREE_ROOMS_CACHE.set(cacheKey, { timestamp: Date.now(), data: result });
     return result;
-  }
-
-  // 2. Gateway fallback if external gateway is configured
-  const baseUrl = getRoutineGatewayUrl();
-  if (!baseUrl) return {};
-  try {
-    const res = await robustFetch(
-      `${baseUrl}/api/free-rooms?time=${encodeURIComponent(slot)}&department=cse`
-    );
-
-    if (res.ok) {
-      const data = await res.json() as { empty_classrooms?: Record<string, string[]> };
-      const rooms = data.empty_classrooms || {};
-      FREE_ROOMS_CACHE.set(cacheKey, { timestamp: Date.now(), data: rooms });
-      return rooms;
-    }
-  } catch (err) {
-    console.warn('Free rooms gateway fetch failed:', err);
   }
 
   return {};

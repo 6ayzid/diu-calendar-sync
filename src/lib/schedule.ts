@@ -42,7 +42,20 @@ export async function getScheduleWithMeta(
 ): Promise<{ classes: RoutineClass[]; version: string }> {
   const normalizedId = sectionId.replace('-', '_').toUpperCase();
 
-  // 1. Primary: Official Departmental Routine
+  // 1. Primary: Departmental routine gateway (live Cloudflare Worker with edge caching)
+  try {
+    const liveResult = await fetchLiveScheduleFromUpstream(normalizedId);
+    if (liveResult && liveResult.classes.length > 0) {
+      return {
+        classes: filterBySubSection(liveResult.classes, subSection),
+        version: liveResult.version || officialRoutine.version || '3.1',
+      };
+    }
+  } catch (err) {
+    console.warn(`Upstream fetch fallback for ${normalizedId}:`, err);
+  }
+
+  // 2. Fallback: Official Departmental Routine snapshot
   const officialClasses = (officialRoutine.sections as Record<string, RoutineClass[]>)[normalizedId];
   if (officialClasses && officialClasses.length > 0) {
     const enriched = officialClasses.map((c) => ({
@@ -54,19 +67,6 @@ export async function getScheduleWithMeta(
       classes: filterBySubSection(enriched, subSection),
       version: officialRoutine.version || '3.1',
     };
-  }
-
-  // 2. Try live fetch from departmental routine gateway (if configured)
-  try {
-    const liveResult = await fetchLiveScheduleFromUpstream(normalizedId);
-    if (liveResult && liveResult.classes.length > 0) {
-      return {
-        classes: filterBySubSection(liveResult.classes, subSection),
-        version: liveResult.version || '2.2',
-      };
-    }
-  } catch (err) {
-    console.warn(`Upstream fetch fallback for ${normalizedId}:`, err);
   }
 
   // 2. If connected to external Google Sheets CSV, fetch and parse:
@@ -158,7 +158,22 @@ export async function getScheduleForFacultyWithMeta(
     department: 'CSE',
   };
 
-  // 1. Primary: Official Departmental Routine
+  // 1. Primary: Departmental routine gateway (live Cloudflare Worker with edge caching)
+  try {
+    const liveResult = await fetchLiveTeacherScheduleFromUpstream(cleanCode);
+    if (liveResult !== null && liveResult.classes.length > 0) {
+      const refreshedFaculty = getFacultyByCode(cleanCode) || faculty;
+      return {
+        classes: deduplicateAndSortClasses(liveResult.classes),
+        version: liveResult.version || officialRoutine.version || '3.1',
+        faculty: refreshedFaculty,
+      };
+    }
+  } catch (err) {
+    console.warn(`Upstream faculty routine fetch fallback for ${cleanCode}:`, err);
+  }
+
+  // 2. Fallback: Official Departmental Routine snapshot
   const allCodes = new Set<string>([
     cleanCode,
     ...(faculty.aliases || []).map((a) => a.toUpperCase()),
@@ -184,21 +199,6 @@ export async function getScheduleForFacultyWithMeta(
       version: officialRoutine.version || '3.1',
       faculty,
     };
-  }
-
-  // 2. Fetch live schedule from gateway if configured
-  try {
-    const liveResult = await fetchLiveTeacherScheduleFromUpstream(cleanCode);
-    if (liveResult !== null) {
-      const refreshedFaculty = getFacultyByCode(cleanCode) || faculty;
-      return {
-        classes: deduplicateAndSortClasses(liveResult.classes),
-        version: liveResult.version || 'v2.2',
-        faculty: refreshedFaculty,
-      };
-    }
-  } catch (err) {
-    console.warn(`Upstream faculty routine fetch failed for ${cleanCode}:`, err);
   }
 
   // 3. Fallback to local curated routines only if upstream was unreachable
