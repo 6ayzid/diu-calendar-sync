@@ -1,3 +1,6 @@
+> [!WARNING]
+> **License Notice**: This project is licensed under the CC BY-NC 4.0 License. Commercial use is strictly prohibited without explicit permission from the author.
+
 <div align="center">
 
 # DIU CSE Routine & Calendar Sync
@@ -8,7 +11,7 @@
 [![Next.js 16](https://img.shields.io/badge/Next.js-16-black?style=flat&logo=next.js)](https://nextjs.org/)
 [![React 19](https://img.shields.io/badge/React-19-61DAFB?style=flat&logo=react&logoColor=black)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat)](https://opensource.org/licenses/MIT)
+[![License: CC BY-NC 4.0](https://img.shields.io/badge/License-CC_BY--NC_4.0-lightgrey.svg?style=flat)](https://creativecommons.org/licenses/by-nc/4.0/)
 
 <br />
 
@@ -114,4 +117,4 @@ Special thanks to the DIU student developer community and campus schedule contri
 
 ## License
 
-Distributed under the **MIT License**. See `LICENSE` for details.
+Licensed under the [Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)](https://creativecommons.org/licenses/by-nc/4.0/) License. Commercial use is strictly prohibited without explicit permission from the author. See [`LICENSE`](LICENSE) for details.
