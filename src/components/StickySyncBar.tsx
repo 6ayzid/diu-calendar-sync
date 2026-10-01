@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Calendar, ChevronUp, DoorOpen, Search, Plus } from 'lucide-react';
+import { Calendar, DoorOpen, Search, Plus } from 'lucide-react';
 import { SectionMeta, ActiveRoutineTarget, CompareState } from '@/types/schedule';
 
 interface StickySyncBarProps {
@@ -38,46 +38,52 @@ export function StickySyncBar({
       style={{ bottom: 'max(0.75rem, env(safe-area-inset-bottom, 0.75rem))' }}
     >
       <div className="flex items-center justify-between gap-2 rounded-2xl border border-slate-200/90 bg-white/95 p-1.5 px-3 shadow-xl backdrop-blur-md dark:border-slate-800/90 dark:bg-slate-950/95">
-        {/* Left: Active Section / Faculty Trigger */}
+        {/* Left: Active Section / Faculty Trigger (Search Box Style) */}
         <button
           type="button"
           onClick={onOpenSectionPicker}
           aria-label={
             !hasSavedPreference
-              ? 'Select section or teacher'
+              ? 'Search section or teacher'
               : isFaculty && faculty
-              ? `Change routine target, currently Faculty ${faculty.name} (${faculty.code})`
-              : `Change academic section, currently ${section?.displayName || 'section'}`
+              ? `Search and change routine target, currently Faculty ${faculty.name} (${faculty.code})`
+              : `Search and change academic section, currently ${section?.displayName || 'section'}`
           }
-          className="flex items-center gap-1.5 rounded-xl p-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors cursor-pointer text-left min-h-[38px] min-w-0 flex-1"
+          className="flex items-center gap-2 rounded-xl border border-slate-200/90 bg-slate-100/90 hover:bg-slate-200/80 hover:border-emerald-500/40 dark:border-slate-800 dark:bg-slate-900/90 dark:hover:bg-slate-800 px-2.5 py-1.5 transition-all cursor-pointer text-left min-h-[38px] min-w-0 flex-1 group shadow-2xs"
         >
-          {!hasSavedPreference ? (
-            <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300">
-              <Search className="h-3.5 w-3.5" />
-              <span>Select Section</span>
-            </div>
-          ) : isFaculty && faculty ? (
-            <div className="flex items-center gap-1 font-mono truncate">
-              <span className="rounded bg-emerald-50 border border-emerald-300 px-2 py-0.5 text-xs font-bold text-emerald-950 dark:bg-emerald-950/60 dark:border-emerald-600/50 dark:text-emerald-300">
-                {faculty.code}
+          <Search className="h-3.5 w-3.5 text-slate-400 group-hover:text-emerald-600 dark:text-slate-500 dark:group-hover:text-emerald-400 shrink-0 transition-colors" />
+
+          <div className="flex items-center gap-1.5 font-mono truncate min-w-0 flex-1">
+            {!hasSavedPreference ? (
+              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 font-sans truncate">
+                Search Section / Teacher...
               </span>
-              <span className="rounded bg-slate-100 border border-slate-200 px-1 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300">
-                Faculty
-              </span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1 font-mono truncate">
-              <span className="rounded bg-slate-100 border border-slate-200 px-2 py-0.5 text-xs font-bold text-slate-900 dark:bg-slate-800 dark:border-slate-700 dark:text-white">
-                {section?.id || '—'}
-              </span>
-              {subSection !== 'all' && (
-                <span className="rounded bg-emerald-100 border border-emerald-300 px-1 py-0.5 text-[10px] font-bold text-emerald-900 dark:bg-emerald-500/20 dark:border-emerald-500/30 dark:text-emerald-300">
-                  Lab {subSection}
+            ) : isFaculty && faculty ? (
+              <div className="flex items-center gap-1 font-mono truncate">
+                <span className="rounded bg-emerald-50 border border-emerald-300 px-1.5 py-0.5 text-xs font-bold text-emerald-950 dark:bg-emerald-950/60 dark:border-emerald-600/50 dark:text-emerald-300">
+                  {faculty.code}
                 </span>
-              )}
-            </div>
-          )}
-          <ChevronUp className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                <span className="text-[10px] font-sans text-slate-400 dark:text-slate-500 hidden xs:inline">
+                  Faculty
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 font-mono truncate">
+                <span className="rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 text-xs font-bold text-slate-900 dark:text-white shadow-2xs">
+                  {section?.id || '—'}
+                </span>
+                {subSection !== 'all' && (
+                  <span className="rounded bg-emerald-100 border border-emerald-300 px-1 py-0.5 text-[10px] font-bold text-emerald-900 dark:bg-emerald-500/20 dark:border-emerald-500/30 dark:text-emerald-300">
+                    Lab {subSection}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          <span className="text-[11px] font-sans font-medium text-slate-400 dark:text-slate-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 shrink-0 transition-colors">
+            Change
+          </span>
         </button>
 
         {/* Right: Rooms, Compare & Sync Action Buttons */}

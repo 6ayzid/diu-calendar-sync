@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Calendar, ArrowRight, Layers } from 'lucide-react';
+import { Calendar, ArrowRight, Search } from 'lucide-react';
 import { SectionMeta } from '@/types/schedule';
 
 interface HeroSectionProps {
@@ -40,7 +40,7 @@ export function HeroSection({
               onClick={onOpenSectionPicker}
               className="rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200/80 text-slate-800 dark:border-slate-700/90 dark:bg-slate-800/80 dark:hover:bg-slate-700 dark:hover:border-slate-600 dark:text-slate-200 px-4 py-2.5 text-xs sm:text-sm font-medium transition-colors cursor-pointer min-h-[44px] flex items-center gap-2"
             >
-              <Layers className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+              <Search className="h-4 w-4 text-slate-500 dark:text-slate-400" />
               <span className="font-mono">
                 Section <strong className="text-slate-900 dark:text-white font-semibold">{selectedSection.id}</strong>
                 {selectedSubSection !== 'all' && (

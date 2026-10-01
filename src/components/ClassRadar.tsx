@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { DayOfWeek, RoutineClass, SectionMeta } from '@/types/schedule';
 import { Badge } from '@/components/ui';
+import { getDhakaClock } from '@/lib/time-utils';
 
 interface ClassRadarProps {
   classes: RoutineClass[];
@@ -22,57 +23,25 @@ export function ClassRadar({
   selectedSection,
   onViewAgendaDay,
 }: ClassRadarProps) {
-  // Current Bangladesh time state (updates every 30s)
-  const [now, setNow] = useState<Date>(() => new Date());
+  // Current Bangladesh time state (updates every 10s)
+  const [clock, setClock] = useState(() => getDhakaClock());
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setNow(new Date());
-    }, 30000);
+    const update = () => setClock(getDhakaClock());
+    const timer = setInterval(update, 10000);
     return () => clearInterval(timer);
   }, []);
 
   // Compute current Dhaka day & minutes
   const dhakaInfo = useMemo(() => {
-    try {
-      const parts = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Asia/Dhaka',
-        weekday: 'long',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-      }).formatToParts(now);
-
-      const weekdayPart = parts.find((p) => p.type === 'weekday')?.value?.toUpperCase() || '';
-      const hourPart = parseInt(parts.find((p) => p.type === 'hour')?.value || '0', 10);
-      const minPart = parseInt(parts.find((p) => p.type === 'minute')?.value || '0', 10);
-      const currentMinutes = hourPart * 60 + minPart;
-
-      const dayMap: Record<string, DayOfWeek | 'FRIDAY'> = {
-        SATURDAY: 'SATURDAY',
-        SUNDAY: 'SUNDAY',
-        MONDAY: 'MONDAY',
-        TUESDAY: 'TUESDAY',
-        WEDNESDAY: 'WEDNESDAY',
-        THURSDAY: 'THURSDAY',
-        FRIDAY: 'FRIDAY',
-      };
-
-      const day = dayMap[weekdayPart] || 'SATURDAY';
-
-      // Friendly 12h time string
-      const time12Str = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'Asia/Dhaka',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-      }).format(now);
-
-      return { day, currentMinutes, time12Str, weekdayPart };
-    } catch {
-      return { day: 'SATURDAY' as DayOfWeek, currentMinutes: 540, time12Str: '09:00 AM', weekdayPart: 'SATURDAY' };
-    }
-  }, [now]);
+    const day = (clock.day || (clock.isFriday ? 'FRIDAY' : 'SATURDAY')) as DayOfWeek | 'FRIDAY';
+    return {
+      day,
+      currentMinutes: clock.minuteInt,
+      time12Str: clock.formatted12,
+      weekdayPart: String(day),
+    };
+  }, [clock]);
 
   // Today's classes for active section
   const todayClasses =

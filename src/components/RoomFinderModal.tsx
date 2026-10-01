@@ -23,6 +23,7 @@ import {
   ALL_CAMPUS_ROOMS,
   fuzzyMatchRoom,
   formatRoomDisplay,
+  resolveCanonicalRoomName,
   type CampusRoom,
   type BuildingZone,
 } from '@/data/rooms';
@@ -314,9 +315,9 @@ export function RoomFinderModal({
         const slotData = daySlots?.[clockInfo.currentSlot];
 
         if (slotData) {
-          const cleanTarget = roomName.toLowerCase().replace(/\s*\([^)]*(?:Lab|LAB)[^)]*\)/gi, '').trim();
+          const canonicalTarget = resolveCanonicalRoomName(roomName);
           const isFree = slotData.rooms.some(
-            (r) => r.toLowerCase().replace(/\s*\([^)]*(?:Lab|LAB)[^)]*\)/gi, '').trim() === cleanTarget
+            (r) => resolveCanonicalRoomName(r) === canonicalTarget
           );
 
           return {
@@ -351,7 +352,7 @@ export function RoomFinderModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="room-modal-title"
-      className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -388,11 +389,6 @@ export function RoomFinderModal({
                   <Clock className="h-3 w-3 text-slate-400 dark:text-slate-500 shrink-0" />
                   <span>{clockInfo.timeLabel} BDT</span>
                 </span>
-                {clockInfo.currentSlot && clockInfo.isClassHours && !selectedRoom && (
-                  <Badge variant="emerald" dot pulse mono size="sm">
-                    LIVE: {clockInfo.currentSlot}
-                  </Badge>
-                )}
               </div>
             </div>
           </div>
@@ -732,15 +728,12 @@ export function RoomFinderModal({
                                     {formatSlotLabel(slot)}
                                   </span>
 
-                                  {isCurrentSlot ? (
-                                    <Badge variant="emerald" dot pulse mono size="sm">
-                                      LIVE NOW
-                                    </Badge>
-                                  ) : isNextUpcoming ? (
-                                    <Badge variant="sky" mono size="sm">
-                                      NEXT UP
-                                    </Badge>
-                                  ) : null}
+                                  {isCurrentSlot && (
+                                    <span
+                                      className="h-2 w-2 rounded-full bg-emerald-500 shrink-0"
+                                      title="Current time slot"
+                                    />
+                                  )}
                                 </div>
 
                                 <span className="text-xs font-mono text-slate-400 dark:text-slate-500">

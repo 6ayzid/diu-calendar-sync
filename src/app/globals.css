@@ -293,7 +293,7 @@ html.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
 /* Responsive Timeline Grid Layout (Google Calendar Style) */
 .timeline-grid-layout,
 .matrix-grid-layout {
-  --col-time: 64px;
+  --col-time: 44px;
   --col-day: 0px;
   display: grid;
   grid-template-columns: var(--col-time) repeat(6, minmax(var(--col-day), 1fr));
@@ -304,7 +304,7 @@ html.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
 @media (min-width: 640px) {
   .timeline-grid-layout,
   .matrix-grid-layout {
-    --col-time: 72px;
+    --col-time: 68px;
     --col-day: 0px;
   }
 }

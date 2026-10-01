@@ -114,7 +114,9 @@ export const ALL_CAMPUS_ROOM_NAMES = [
   'G1-022 (COM LAB)',
   'G1-026',
   'G1-027',
+  'IOT LAB- KT-502',
   'KT-201',
+  'KT-208',
   'KT-216',
   'KT-217',
   'KT-218',
@@ -145,10 +147,62 @@ export const ALL_CAMPUS_ROOM_NAMES = [
   'KT-518',
   'KT-804 (Physics Lab)',
   'KT-809 (E.C. & D.E. Lab)',
+  'KT-810 (E.C. & B.E. Lab)',
   'KT-815 (Physics Lab)',
   'KT-816 (Physics Lab)',
+  'SH-103 (E.C. & B.E. Lab)',
   'SH-105 (E.C. & B.E. Lab)',
 ] as const;
+
+/**
+ * Resolves any raw room name, query string, or variant to its authoritative canonical room name in ALL_CAMPUS_ROOM_NAMES.
+ */
+export function resolveCanonicalRoomName(rawName: string): string {
+  const s = rawName.trim();
+  if (!s) return '';
+
+  // 1. Direct case-insensitive match
+  for (const r of ALL_CAMPUS_ROOM_NAMES) {
+    if (r.toLowerCase() === s.toLowerCase()) {
+      return r;
+    }
+  }
+
+  // 2. Strip lab descriptors and prefixes for normalized comparison
+  const cleanS = s
+    .replace(/\s*\([^)]*\)/g, '')
+    .replace(/^(?:IOT\s*LAB\s*[-–]\s*|EMBED\s*LAB\s*[-–]\s*)/i, '')
+    .trim()
+    .toUpperCase();
+
+  for (const r of ALL_CAMPUS_ROOM_NAMES) {
+    const cleanR = r
+      .replace(/\s*\([^)]*\)/g, '')
+      .replace(/^(?:IOT\s*LAB\s*[-–]\s*|EMBED\s*LAB\s*[-–]\s*)/i, '')
+      .trim()
+      .toUpperCase();
+    if (cleanS === cleanR) {
+      return r;
+    }
+  }
+
+  // 3. 3-digit number (e.g. "201" -> "KT-201", "502" -> "IOT LAB- KT-502")
+  if (/^\d{3}$/.test(cleanS)) {
+    const candidate = `KT-${cleanS}`;
+    for (const r of ALL_CAMPUS_ROOM_NAMES) {
+      const cleanR = r
+        .replace(/\s*\([^)]*\)/g, '')
+        .replace(/^(?:IOT\s*LAB\s*[-–]\s*|EMBED\s*LAB\s*[-–]\s*)/i, '')
+        .trim()
+        .toUpperCase();
+      if (candidate === cleanR) {
+        return r;
+      }
+    }
+  }
+
+  return s;
+}
 
 /**
  * Parsed and structured list of all campus rooms.

@@ -5,7 +5,6 @@ import Link from 'next/link';
 import {
   CalendarDays,
   Calendar,
-  ChevronDown,
   BookOpen,
   Plus,
   X,
@@ -50,7 +49,7 @@ export function Navbar({
   const secondaryLabel = isComparing && compareState ? getTargetLabel(compareState.secondaryTarget) : null;
 
   return (
-    <header className="sticky top-0 z-30 w-full border-b border-slate-200 bg-white/95 dark:border-slate-800 dark:bg-slate-950/95 backdrop-blur-md transition-colors print:hidden">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 dark:border-slate-800 dark:bg-slate-950/95 backdrop-blur-md transition-colors print:hidden">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-2 sm:px-6 gap-2">
         {/* Left: Brand Identity */}
         <Link href="/" className="flex items-center gap-2 sm:gap-2.5 min-w-0 hover:opacity-90 transition-opacity">
@@ -106,11 +105,14 @@ export function Navbar({
                   onClick={onOpenSectionPicker}
                   aria-label={
                     isFaculty && faculty
-                      ? `Select routine target, currently Faculty ${faculty.name} (${faculty.code})`
-                      : `Select section, currently ${selectedSection?.displayName || 'none'}`
+                      ? `Search and change routine target, currently Faculty ${faculty.name} (${faculty.code})`
+                      : `Search and change academic section, currently ${selectedSection?.displayName || 'none'}`
                   }
-                  className="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200/80 dark:border-slate-800 dark:bg-slate-900/70 dark:hover:bg-slate-800/80 px-2.5 py-1.5 transition-colors cursor-pointer min-h-[40px]"
+                  title="Search & change routine (Click to open)"
+                  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200/80 hover:border-emerald-400/60 dark:border-slate-800 dark:bg-slate-900/70 dark:hover:bg-slate-800/80 dark:hover:border-emerald-500/50 px-2.5 sm:px-3 py-1.5 transition-all cursor-pointer min-h-[40px] group shadow-2xs"
                 >
+                  <Search className="h-3.5 w-3.5 text-slate-400 group-hover:text-emerald-600 dark:text-slate-500 dark:group-hover:text-emerald-400 shrink-0 transition-colors" />
+
                   {isFaculty && faculty ? (
                     <div className="flex items-center gap-1.5 font-mono text-xs">
                       <span className="text-slate-400 font-sans hidden md:inline">Faculty:</span>
@@ -131,18 +133,20 @@ export function Navbar({
                       )}
                     </div>
                   )}
-                  <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+
+                  <span className="text-[10px] font-sans font-medium text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors hidden sm:inline-flex items-center px-1.5 py-0.5 rounded bg-slate-200/70 dark:bg-slate-800/80">
+                    Change
+                  </span>
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={onOpenSectionPicker}
-                  aria-label="Select section or teacher"
-                  className="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100/80 dark:border-emerald-700/60 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 px-3 py-1.5 transition-colors cursor-pointer min-h-[40px] text-emerald-800 dark:text-emerald-300 font-semibold text-xs"
+                  aria-label="Search section or teacher"
+                  className="flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100/80 dark:border-emerald-700/60 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 px-3 py-1.5 transition-colors cursor-pointer min-h-[40px] text-emerald-800 dark:text-emerald-300 font-semibold text-xs group shadow-2xs"
                 >
                   <Search className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span>Select Section</span>
-                  <ChevronDown className="h-3.5 w-3.5 text-emerald-500/70" />
+                  <span>Search Section</span>
                 </button>
               )}
 

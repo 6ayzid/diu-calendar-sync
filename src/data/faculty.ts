@@ -1835,6 +1835,42 @@ export function getAllFaculty(): FacultyMeta[] {
   return DIU_FACULTY_DIRECTORY;
 }
 
+function levenshteinDistance(a: string, b: string): number {
+  if (a === b) return 0;
+  if (!a) return b.length;
+  if (!b) return a.length;
+  const dp: number[] = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = dp[0];
+    dp[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const temp = dp[j];
+      if (a[i - 1] === b[j - 1]) {
+        dp[j] = prev;
+      } else {
+        dp[j] = Math.min(prev, dp[j - 1], dp[j]) + 1;
+      }
+      prev = temp;
+    }
+  }
+  return dp[b.length];
+}
+
+const HONORIFICS = new Set([
+  'md',
+  'dr',
+  'prof',
+  'mr',
+  'ms',
+  'mrs',
+  'engr',
+  'mohammed',
+  'muhammad',
+  'sir',
+  'professor',
+  'lecturer',
+]);
+
 export function searchAndRankFaculty(
   query: string,
   limit = 15
@@ -1849,6 +1885,7 @@ export function searchAndRankFaculty(
 
   const cleanQ = normalizeQuery(q);
   const upperQ = q.toUpperCase();
+  const lowerQ = cleanQ;
 
   // Combine dynamic and static
   const allKnown = new Map<string, FacultyMeta>();
@@ -1864,33 +1901,88 @@ export function searchAndRankFaculty(
   for (const f of allKnown.values()) {
     let score = 0;
     const fCode = f.code.toUpperCase();
+    const lowerCode = f.code.toLowerCase();
     const fName = f.name;
     const cleanName = normalizeQuery(fName);
+    const nameWords = fName.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+    const coreWords = nameWords.filter((w) => !HONORIFICS.has(w));
 
-    // Exact code match
-    if (fCode === upperQ) {
-      score += 100;
-    } else if (fCode.startsWith(upperQ)) {
-      score += 60;
-    } else if (fCode.includes(upperQ)) {
-      score += 40;
+    // 1. Exact Teacher Code match (Highest Priority)
+    if (fCode === upperQ || lowerCode === lowerQ) {
+      score = Math.max(score, 1000);
     }
 
-    // Alias matches
-    if (f.aliases) {
-      for (const a of f.aliases) {
-        if (a.toUpperCase() === upperQ) score += 95;
-        else if (a.toUpperCase().startsWith(upperQ)) score += 55;
+    // 2. Teacher Code prefix / substring for normal typing
+    if (lowerQ.length >= 2 && lowerCode.startsWith(lowerQ)) {
+      score = Math.max(score, 450);
+    }
+
+    // 3. User typed initial with garbage/prefix typos or extra letters (e.g. "slrkr", "rkrr", "mrkr")
+    if (lowerCode.length >= 3) {
+      if (lowerQ.includes(lowerCode)) {
+        // e.g. "slrkr" contains "rkr", "rkrr" contains "rkr"
+        score = Math.max(score, 380);
+      } else {
+        const d = levenshteinDistance(lowerCode, lowerQ);
+        if (d === 1) {
+          score = Math.max(score, 320);
+        } else if (d === 2 && lowerQ.length <= 6) {
+          score = Math.max(score, 250);
+        }
+      }
+    } else if (lowerCode.length === 2) {
+      // 2-letter teacher code (e.g. "AM", "AS")
+      // Only match embedded/fuzzy if the query is short (<= 3 chars) so it doesn't match long words
+      if (lowerQ.length <= 3 && (lowerQ.startsWith(lowerCode) || lowerQ.endsWith(lowerCode))) {
+        score = Math.max(score, 300);
       }
     }
 
-    // Name matches
-    if (cleanName === cleanQ) {
-      score += 90;
-    } else if (cleanName.startsWith(cleanQ)) {
-      score += 50;
-    } else if (cleanName.includes(cleanQ)) {
-      score += 30;
+    // 4. Aliases matching
+    if (f.aliases && Array.isArray(f.aliases)) {
+      for (const a of f.aliases) {
+        const cleanA = normalizeQuery(a);
+        if (cleanA === lowerQ || a.toUpperCase() === upperQ) {
+          score = Math.max(score, 500);
+        } else if (cleanA.startsWith(lowerQ)) {
+          score = Math.max(score, 350);
+        } else if (lowerQ.includes(cleanA) && cleanA.length >= 3) {
+          score = Math.max(score, 300);
+        }
+      }
+    }
+
+    // 5. Direct Name Word Matches
+    for (const w of coreWords) {
+      if (w === lowerQ) {
+        score = Math.max(score, 400);
+      } else if (w.startsWith(lowerQ) && lowerQ.length >= 3) {
+        score = Math.max(score, 280);
+      } else if (w.includes(lowerQ) && lowerQ.length >= 4) {
+        score = Math.max(score, 220);
+      }
+    }
+
+    // 6. Full Clean Name match / prefix
+    if (cleanName === lowerQ) {
+      score = Math.max(score, 450);
+    } else if (cleanName.startsWith(lowerQ) && lowerQ.length >= 3) {
+      score = Math.max(score, 300);
+    } else if (cleanName.includes(lowerQ) && lowerQ.length >= 4) {
+      score = Math.max(score, 260);
+    }
+
+    // 7. Fuzzy Name Word Typos (e.g. "rashedul" -> "rasedul", "rofiq" -> "rafiq", "nadeem" -> "nadim")
+    if (lowerQ.length >= 4) {
+      for (const w of coreWords) {
+        if (w.length < 3) continue;
+        const d = levenshteinDistance(w, lowerQ);
+        if (d === 1) {
+          score = Math.max(score, 240);
+        } else if (d === 2 && lowerQ.length >= 5) {
+          score = Math.max(score, 180);
+        }
+      }
     }
 
     if (score > 0) {
@@ -1898,7 +1990,11 @@ export function searchAndRankFaculty(
     }
   }
 
-  results.sort((a, b) => b.score - a.score);
+  results.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    return a.faculty.name.localeCompare(b.faculty.name);
+  });
+
   return results.slice(0, limit);
 }
 

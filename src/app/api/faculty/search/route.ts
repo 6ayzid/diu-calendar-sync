@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     const directCode = cleanQuery.toUpperCase();
     const directMatch = getFacultyByCode(directCode);
     if (directMatch && !ranked.some((r) => r.faculty.code === directMatch.code)) {
-      ranked.unshift({ faculty: directMatch, score: 0 });
+      ranked.unshift({ faculty: directMatch, score: 1000 });
     }
 
     // Return the top 15 matches formatted with live discovery indicator

@@ -72,7 +72,7 @@ export function ThemeToggle({ className = '' }: { className?: string }) {
       <div
         role="menu"
         aria-label="Theme options"
-        className={`absolute right-0 top-full mt-1.5 z-50 w-36 overflow-hidden rounded-2xl border border-slate-200/90 bg-white/95 p-1 shadow-xl backdrop-blur-md transition-all duration-200 ease-out origin-top-right dark:border-slate-800/90 dark:bg-slate-950/95 ${
+        className={`absolute right-0 top-full mt-1.5 z-[70] w-36 overflow-hidden rounded-2xl border border-slate-200/90 bg-white/95 p-1 shadow-xl backdrop-blur-md transition-all duration-200 ease-out origin-top-right dark:border-slate-800/90 dark:bg-slate-950/95 ${
           isOpen
             ? 'opacity-100 scale-100 translate-y-0 pointer-events-auto'
             : 'opacity-0 scale-95 -translate-y-1.5 pointer-events-none'

@@ -58,6 +58,10 @@ function searchAndRankSections(
   for (const s of sections) {
     const normId = s.id.toLowerCase().replace(/[^a-z0-9]/g, '');
     const compactCode = `${s.batchNumber}${s.sectionLetter}`.toLowerCase();
+    const reverseCompactCode = `${s.sectionLetter}${s.batchNumber}`.toLowerCase();
+    const isLetterO = s.sectionLetter.toUpperCase() === 'O';
+    const zeroCompactCode = isLetterO ? `${s.batchNumber}0` : null;
+    const reverseZeroCompactCode = isLetterO ? `0${s.batchNumber}` : null;
     const batchStr = `batch${s.batchNumber}`.toLowerCase();
     const bStr = `b${s.batchNumber}`.toLowerCase();
     const secLetter = s.sectionLetter.toLowerCase();
@@ -66,9 +70,26 @@ function searchAndRankSections(
 
     if (parsed && s.id.toLowerCase() === parsed.targetId.toLowerCase()) {
       score = 0;
-    } else if (compactCode === normQuery || normId === normQuery) {
+    } else if (
+      compactCode === normQuery ||
+      reverseCompactCode === normQuery ||
+      (zeroCompactCode && zeroCompactCode === normQuery) ||
+      (reverseZeroCompactCode && reverseZeroCompactCode === normQuery) ||
+      normId === normQuery
+    ) {
       score = 1;
-    } else if (compactCode.startsWith(normQuery) || normId.startsWith(normQuery)) {
+    } else if (
+      normQuery.includes(compactCode) ||
+      normQuery.includes(reverseCompactCode) ||
+      (zeroCompactCode && normQuery.includes(zeroCompactCode)) ||
+      (reverseZeroCompactCode && normQuery.includes(reverseZeroCompactCode))
+    ) {
+      score = 5;
+    } else if (
+      compactCode.startsWith(normQuery) ||
+      reverseCompactCode.startsWith(normQuery) ||
+      normId.startsWith(normQuery)
+    ) {
       score = 10;
     } else if (compactCode.includes(normQuery) || normId.includes(normQuery)) {
       score = 20;
@@ -676,7 +697,7 @@ export function SectionSelector({
   if (onClose) {
     return (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto print:hidden"
+        className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto print:hidden"
         onClick={onClose}
         role="dialog"
         aria-modal="true"

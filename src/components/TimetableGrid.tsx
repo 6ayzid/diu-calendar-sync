@@ -767,7 +767,7 @@ export function TimetableGrid({
           }`}
           style={{
             containerType: 'inline-size',
-            scrollPaddingLeft: 'var(--col-time, 64px)',
+            scrollPaddingLeft: 'var(--col-time, 44px)',
           }}
         >
           <div
@@ -777,12 +777,12 @@ export function TimetableGrid({
               width: `calc(var(--col-time) + 6 * ((100cqw - var(--col-time)) / ${zoomDays}))`,
             }}
           >
-            {/* ROW 1: HEADER - Col 1 is GMT+06 Timezone Label */}
+            {/* ROW 1: HEADER - Col 1 is GMT+06 Timezone Label (Topest Corner) */}
             <div
-              className="sticky top-0 left-0 z-30 flex items-center justify-end pr-2 py-2 bg-slate-50 dark:bg-[#080d1a] border-b border-slate-200 dark:border-slate-800"
+              className="sticky top-0 left-0 z-35 flex items-center justify-end pr-1 sm:pr-2 py-2 bg-slate-50 dark:bg-[#080d1a] border-b border-r border-slate-200 dark:border-slate-800 shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)] dark:shadow-[2px_0_4px_-1px_rgba(0,0,0,0.3)]"
               style={{ gridColumn: 1, gridRow: 1 }}
             >
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+              <span className="text-[9px] sm:text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                 GMT+06
               </span>
             </div>
@@ -797,7 +797,7 @@ export function TimetableGrid({
                 <div
                   key={`hdr-${d.key}`}
                   id={`matrix-col-${d.key}`}
-                  className="sticky top-0 z-20 flex flex-col items-center justify-center py-2 px-1 text-center bg-slate-50 dark:bg-[#080d1a] border-b border-l border-slate-200 dark:border-slate-800 transition-colors"
+                  className="sticky top-0 z-26 flex flex-col items-center justify-center py-2 px-1 text-center bg-slate-50 dark:bg-[#080d1a] border-b border-l border-slate-200 dark:border-slate-800 transition-colors"
                   style={{
                     gridColumn: vIdx + 2,
                     gridRow: 1,
@@ -825,9 +825,9 @@ export function TimetableGrid({
               );
             })}
 
-            {/* ROW 2: TIME Y-AXIS LABELS (Col 1) */}
+            {/* ROW 2: TIME Y-AXIS LABELS (Col 1 - Topest Element Above Scrolling Cards) */}
             <div
-              className="sticky left-0 z-20 relative h-[600px] bg-slate-50 dark:bg-[#080d1a] border-r border-transparent"
+              className="sticky left-0 z-30 relative h-[600px] bg-slate-50 dark:bg-[#080d1a] border-r border-slate-200/80 dark:border-slate-800/80 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)] dark:shadow-[2px_0_6px_-2px_rgba(0,0,0,0.4)]"
               style={{ gridColumn: 1, gridRow: 2 }}
             >
               {HOURLY_MARKS.map((mark, mIdx) => {
@@ -837,12 +837,12 @@ export function TimetableGrid({
                 return (
                   <div
                     key={`time-lbl-${mark.hour}`}
-                    className={`absolute right-0 pr-2 select-none pointer-events-none ${
+                    className={`absolute right-0 pr-1 sm:pr-2 select-none pointer-events-none ${
                       isFirst ? 'top-1 translate-y-0' : isLast ? '-bottom-1 translate-y-0' : '-translate-y-1/2'
                     }`}
                     style={isFirst || isLast ? undefined : { top: `${mark.topPercent}%` }}
                   >
-                    <span className="text-[10px] sm:text-[11px] font-mono font-medium text-slate-400 dark:text-slate-500">
+                    <span className="text-[9px] sm:text-[11px] font-mono font-medium text-slate-400 dark:text-slate-500 whitespace-nowrap">
                       {mark.label}
                     </span>
                   </div>
@@ -944,11 +944,30 @@ export function TimetableGrid({
                           ? 'bg-slate-300 text-slate-800 dark:bg-slate-700 dark:text-slate-200'
                           : 'border border-dashed border-emerald-400 bg-emerald-200/70 dark:bg-emerald-900/60 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200';
 
+                        const isBlockLiveNow =
+                          isToday &&
+                          currentDhakaTime.totalMinutes >= pe.startMinutes &&
+                          currentDhakaTime.totalMinutes < pe.endMinutes;
+
+                        const blockLineTopPercent = isBlockLiveNow
+                          ? Math.max(
+                              0,
+                              Math.min(
+                                100,
+                                ((currentDhakaTime.totalMinutes - pe.startMinutes) /
+                                  (pe.endMinutes - pe.startMinutes)) *
+                                  100
+                              )
+                            )
+                          : 0;
+
+                        const blockLineTopOffsetPx = (2 - 4 * (blockLineTopPercent / 100)).toFixed(1);
+
                         return (
                           <div
                             key={`block-${c.id}`}
                             title={`${pe.targetBadge}: ${c.courseCode} (${pe.formattedRange}) in ${c.room}`}
-                            className={`absolute rounded-lg overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 select-none z-10 transition-all shadow-2xs opacity-85 hover:opacity-100 ${blockStyle}`}
+                            className={`absolute rounded-lg overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 select-none z-20 transition-all shadow-2xs opacity-85 hover:opacity-100 ${blockStyle}`}
                             style={{
                               top: `calc(${pe.topPercent}% + 2px)`,
                               height: `calc(${pe.heightPercent}% - 4px)`,
@@ -956,7 +975,16 @@ export function TimetableGrid({
                               width: `calc(${pe.widthPercent}% - 4px)`,
                             }}
                           >
-                            <div className="flex items-center justify-between gap-1 min-w-0">
+                            {/* Current Time Indicator line inside block mode card (above card bg, below text) */}
+                            {isBlockLiveNow && (
+                              <div
+                                className="absolute left-0 right-0 h-[2px] bg-red-500 dark:bg-red-500 pointer-events-none z-0 -translate-y-1/2 shadow-xs"
+                                style={{
+                                  top: `calc(${blockLineTopPercent}% - ${blockLineTopOffsetPx}px)`,
+                                }}
+                              />
+                            )}
+                            <div className="flex items-center justify-between gap-1 min-w-0 relative z-10">
                               <span className={`font-mono font-bold text-[9px] px-1 py-0.2 rounded shrink-0 ${badgeStyle}`}>
                                 {pe.targetBadge}
                               </span>
@@ -964,7 +992,7 @@ export function TimetableGrid({
                                 {cleanCode}
                               </span>
                             </div>
-                            <div className="flex items-center justify-between text-[9px] sm:text-[9.5px] font-mono opacity-75 truncate pt-0.5 border-t border-black/10 dark:border-white/10">
+                            <div className="flex items-center justify-between text-[9px] sm:text-[9.5px] font-mono opacity-75 truncate pt-0.5 border-t border-black/10 dark:border-white/10 relative z-10">
                               <span className="truncate">{compactTime}</span>
                               <span className="truncate font-semibold">{c.room.split('(')[0].trim()}</span>
                             </div>
@@ -987,16 +1015,28 @@ export function TimetableGrid({
                       // When not comparing, uses the full solid emerald Google Calendar theme.
                       let cardTheme =
                         'bg-emerald-600 hover:bg-emerald-700 text-white dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:text-emerald-950 border border-emerald-700/25 dark:border-emerald-400/40 shadow-xs';
+                      let buttonBadgeClass =
+                        'bg-black/25 hover:bg-black/40 text-white border-white/20 dark:bg-black/20 dark:hover:bg-black/35 dark:text-emerald-950 dark:border-black/20';
+                      let subsectionBadgeClass =
+                        'bg-black/25 text-white border-white/20 dark:bg-black/20 dark:text-emerald-950 dark:border-black/20';
 
                       if (isComparing) {
                         if (pe.isPrimaryTarget) {
                           // Entity 1: Clean washed out slate card with solid border (dark in dark mode!)
                           cardTheme =
-                            'bg-slate-200/90 hover:bg-slate-200 text-slate-800 dark:bg-slate-800/90 dark:hover:bg-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700 shadow-2xs backdrop-blur-xs';
+                            'bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 shadow-2xs';
+                          buttonBadgeClass =
+                            'bg-slate-300/80 hover:bg-slate-400/80 text-slate-800 border-slate-400/40 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200 dark:border-slate-600 shadow-2xs';
+                          subsectionBadgeClass =
+                            'bg-black/10 dark:bg-black/35 text-current border-black/15 dark:border-white/15';
                         } else {
                           // Entity 2: Washed out light green card with dashed border style (dark muted green in dark mode!)
                           cardTheme =
-                            'bg-emerald-100/75 hover:bg-emerald-100 text-emerald-950 dark:bg-emerald-950/70 dark:hover:bg-emerald-950/90 dark:text-emerald-200 border-2 border-dashed border-emerald-400/70 dark:border-emerald-700/80 shadow-2xs backdrop-blur-xs';
+                            'bg-emerald-100 hover:bg-emerald-200 text-emerald-950 dark:bg-emerald-950 dark:hover:bg-emerald-900 dark:text-emerald-200 border-2 border-dashed border-emerald-400/70 dark:border-emerald-700/80 shadow-2xs';
+                          buttonBadgeClass =
+                            'bg-emerald-200/70 hover:bg-emerald-300/70 text-emerald-950 border-emerald-300/60 dark:bg-emerald-900/70 dark:hover:bg-emerald-800/70 dark:text-emerald-200 dark:border-emerald-700/80 shadow-2xs';
+                          subsectionBadgeClass =
+                            'bg-black/10 dark:bg-black/35 text-current border-black/15 dark:border-white/15';
                         }
                       }
 
@@ -1005,16 +1045,24 @@ export function TimetableGrid({
                         currentDhakaTime.totalMinutes >= pe.startMinutes &&
                         currentDhakaTime.totalMinutes < pe.endMinutes;
 
-                      const liveRing = isLiveNow
-                        ? isComparing
-                          ? 'ring-2 ring-slate-400 dark:ring-slate-500 shadow-sm'
-                          : 'ring-2 ring-emerald-400 dark:ring-emerald-300 shadow-md'
-                        : '';
+                      const cardLineTopPercent = isLiveNow
+                        ? Math.max(
+                            0,
+                            Math.min(
+                              100,
+                              ((currentDhakaTime.totalMinutes - pe.startMinutes) /
+                                (pe.endMinutes - pe.startMinutes)) *
+                                100
+                            )
+                          )
+                        : 0;
+
+                      const cardLineTopOffsetPx = (2 - 4 * (cardLineTopPercent / 100)).toFixed(1);
 
                       return (
                         <div
                           key={c.id}
-                          className={`absolute rounded-lg transition-all overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 cursor-pointer select-none group z-10 ${cardTheme} ${liveRing}`}
+                          className={`absolute rounded-lg transition-all overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 cursor-pointer select-none group z-20 hover:z-22 ${cardTheme}`}
                           style={{
                             top: `calc(${pe.topPercent}% + 2px)`,
                             height: `calc(${pe.heightPercent}% - 4px)`,
@@ -1022,7 +1070,17 @@ export function TimetableGrid({
                             width: `calc(${pe.widthPercent}% - 4px)`,
                           }}
                         >
-                          <div className="space-y-0.5 overflow-hidden min-w-0">
+                          {/* Current Time Indicator line inside live card (above card bg, below text) */}
+                          {isLiveNow && (
+                            <div
+                              className="absolute left-0 right-0 h-[2px] bg-red-500 dark:bg-red-500 pointer-events-none z-0 -translate-y-1/2 shadow-xs"
+                              style={{
+                                top: `calc(${cardLineTopPercent}% - ${cardLineTopOffsetPx}px)`,
+                              }}
+                            />
+                          )}
+
+                          <div className="space-y-0.5 overflow-hidden min-w-0 relative z-10">
                             {/* Line 1: Target Badge (in compare) + Course Title + Optional Code + Subsection Badge */}
                             <div className="flex items-center justify-between gap-1 min-w-0">
                               <div className="flex items-center gap-1 min-w-0 truncate">
@@ -1057,28 +1115,17 @@ export function TimetableGrid({
                               </div>
 
                               {/* Subsection badge (only in student mode) */}
-                              <div className="flex items-center gap-1 shrink-0">
+                              <div className="flex items-center gap-1 shrink-0 relative z-10">
                                 {!isFaculty && (
                                   c.subSection ? (
-                                    <span className={`shrink-0 rounded px-1.5 py-0.2 text-[9px] font-bold font-mono border ${
-                                      isComparing
-                                        ? 'bg-black/10 dark:bg-black/35 text-current border-black/15 dark:border-white/15'
-                                        : 'bg-black/25 text-white border-white/20 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20'
-                                    }`}>
+                                    <span className={`shrink-0 rounded px-1.5 py-0.2 text-[9px] font-bold font-mono border relative z-10 ${subsectionBadgeClass}`}>
                                       {section ? section.sectionLetter : ''}{c.subSection}
                                     </span>
                                   ) : durationMins >= 150 && zoomDays <= 3.5 ? (
-                                    <span className={`shrink-0 rounded px-1.5 py-0.2 text-[9px] font-mono font-bold border ${
-                                      isComparing
-                                        ? 'bg-black/10 dark:bg-black/35 text-current border-black/15 dark:border-white/15'
-                                        : 'bg-black/25 text-white border-white/20 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20'
-                                    }`}>
+                                    <span className={`shrink-0 rounded px-1.5 py-0.2 text-[9px] font-mono font-bold border relative z-10 ${subsectionBadgeClass}`}>
                                       3h
                                     </span>
                                   ) : null
-                                )}
-                                {isLiveNow && (
-                                  <span className="h-1.5 w-1.5 rounded-full bg-white dark:bg-emerald-950 animate-pulse shrink-0" title="Class in session" />
                                 )}
                               </div>
                             </div>
@@ -1090,7 +1137,7 @@ export function TimetableGrid({
                           </div>
 
                           {/* Line 3: Room & Teacher/Section Bottom Row */}
-                          <div className={`pt-1 border-t flex items-center justify-between text-[10px] sm:text-[10.5px] font-mono leading-tight gap-1 min-w-0 ${
+                          <div className={`pt-1 border-t flex items-center justify-between text-[10px] sm:text-[10.5px] font-mono leading-tight gap-1 min-w-0 relative z-10 ${
                             isComparing
                               ? pe.isPrimaryTarget
                                 ? 'border-slate-300/70 dark:border-slate-700/70 text-slate-600 dark:text-slate-300'
@@ -1109,13 +1156,7 @@ export function TimetableGrid({
                                   if (c.sectionId) onOpenSectionInfo?.(c.sectionId);
                                 }}
                                 title={`Click to view info for ${c.sectionId || 'section'}`}
-                                className={`shrink-0 rounded px-1 py-0.2 font-bold text-[9.5px] border transition-all cursor-pointer ${
-                                  isComparing
-                                    ? pe.isPrimaryTarget
-                                      ? 'bg-slate-300/80 text-slate-800 border-slate-400/40 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 hover:bg-slate-300'
-                                      : 'bg-emerald-200/70 text-emerald-950 border-emerald-300/60 dark:bg-emerald-900/70 dark:text-emerald-200 dark:border-emerald-700/80 hover:bg-emerald-200'
-                                    : 'bg-black/25 text-white border-white/15 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20 hover:bg-black/45 hover:scale-105 active:scale-95'
-                                }`}
+                                className={`shrink-0 rounded px-1 py-0.2 font-bold text-[9.5px] border transition-all cursor-pointer relative z-10 ${buttonBadgeClass}`}
                               >
                                 {c.sectionId ? (c.subSection ? `${c.sectionId}${c.subSection}` : c.sectionId) : (c.batch && c.section ? `${c.batch}_${c.section}` : 'Sec')}
                               </button>
@@ -1127,13 +1168,7 @@ export function TimetableGrid({
                                   onOpenFacultyInfo?.(c.teacherCode);
                                 }}
                                 title={`Click to view info for ${c.teacherCode}`}
-                                className={`shrink-0 rounded px-1 py-0.2 font-bold text-[9.5px] border transition-all cursor-pointer ${
-                                  isComparing
-                                    ? pe.isPrimaryTarget
-                                      ? 'bg-slate-300/80 text-slate-800 border-slate-400/40 dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 hover:bg-slate-300'
-                                      : 'bg-emerald-200/70 text-emerald-950 border-emerald-300/60 dark:bg-emerald-900/70 dark:text-emerald-200 dark:border-emerald-700/80 hover:bg-emerald-200'
-                                    : 'bg-black/25 text-white border-white/15 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20 hover:bg-black/45 hover:scale-105 active:scale-95'
-                                }`}
+                                className={`shrink-0 rounded px-1 py-0.2 font-bold text-[9.5px] border transition-all cursor-pointer relative z-10 ${buttonBadgeClass}`}
                               >
                                 {c.teacherCode}
                               </button>
@@ -1146,13 +1181,23 @@ export function TimetableGrid({
 
                   {/* Current Time Indicator across Today's column */}
                   {isToday && currentTimeTopPercent !== null && (
-                    <div
-                      className="absolute left-0 right-0 z-20 pointer-events-none flex items-center -translate-y-1/2"
-                      style={{ top: `${currentTimeTopPercent}%` }}
-                    >
-                      <span className="h-2 w-2 rounded-full bg-emerald-500 dark:bg-emerald-400 ring-2 ring-white dark:ring-[#080d1a] -ml-1 shrink-0 shadow-xs" />
-                      <div className="h-[1.5px] w-full bg-emerald-500/70 dark:bg-emerald-400/70 shadow-xs" />
-                    </div>
+                    <>
+                      {/* Column Red Line (z-10, behind cards; card's own line at z-0 handles the line inside cards below card text) */}
+                      <div
+                        className="absolute left-0 right-0 pointer-events-none flex items-center -translate-y-1/2 z-10"
+                        style={{ top: `${currentTimeTopPercent}%` }}
+                      >
+                        <div className="h-[2px] w-full bg-red-500 dark:bg-red-500 shadow-xs" />
+                      </div>
+
+                      {/* Current Time Red Dot (z-25, firmly on top of cards, borders, and rounded corners) */}
+                      <div
+                        className="absolute left-0 pointer-events-none flex items-center -translate-y-1/2 z-25"
+                        style={{ top: `${currentTimeTopPercent}%` }}
+                      >
+                        <span className="h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white dark:ring-[#080d1a] -ml-1.5 shrink-0 shadow-xs" />
+                      </div>
+                    </>
                   )}
                 </div>
               );
@@ -1224,12 +1269,11 @@ export function TimetableGrid({
                 <div className="flex-1 min-w-0 space-y-2 pb-3">
                   {/* Standalone Current Time Indicator if before first class today */}
                   {showStandaloneBeforeFirst && (
-                    <div className="flex items-center gap-2 py-1.5 -ml-1 pointer-events-none select-none">
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 dark:bg-emerald-400/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs font-mono font-bold tracking-tight shrink-0 shadow-2xs">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
+                    <div className="flex items-center gap-2.5 py-1.5 pointer-events-none select-none my-0.5">
+                      <div className="flex items-center px-2.5 py-0.5 rounded-full bg-red-500 text-white text-xs font-mono font-bold tracking-tight shrink-0 shadow-xs">
                         <span>Now {currentDhakaTime.formatted12}</span>
                       </div>
-                      <div className="h-px flex-1 bg-gradient-to-r from-emerald-500/30 dark:from-emerald-400/30 via-emerald-500/15 to-transparent" />
+                      <div className="h-[2px] flex-1 bg-red-500 dark:bg-red-500/90 rounded-full shadow-xs" />
                     </div>
                   )}
 
@@ -1292,21 +1336,19 @@ export function TimetableGrid({
                         // Solid Google Calendar styling adapting across light (emerald-600) and dark (emerald-500)
                         const cardThemeClass = 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-emerald-950 border border-emerald-700/25 dark:border-emerald-400/40 shadow-xs';
 
-                        const liveRingClass = isLiveNow
-                          ? 'ring-2 ring-emerald-400 dark:ring-emerald-400 shadow-md'
-                          : '';
-
                         return (
                           <React.Fragment key={`agenda-class-${classItem.id}`}>
                             <div
                               aria-label={`${shortTitle} in Room ${classItem.room}, ${formatTime12(classItem.startTime)} to ${formatTime12(classItem.endTime)}`}
-                              className={`relative overflow-hidden rounded-xl p-2.5 sm:p-3 transition-all flex flex-col justify-center gap-1.5 ${cardThemeClass} ${liveRingClass}`}
+                              className={`relative overflow-hidden rounded-xl p-2.5 sm:p-3 transition-all flex flex-col justify-center gap-1.5 ${cardThemeClass} ${
+                                isLiveNow ? 'pb-4 sm:pb-4.5' : ''
+                              }`}
                             >
-                              {/* Class progress bar along bottom edge */}
+                              {/* Class progress bar along bottom edge - inset to prevent clipping on rounded corners */}
                               {isLiveNow && classProgress !== null && (
-                                <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20 dark:bg-black/30 overflow-hidden">
+                                <div className="absolute bottom-2 left-4 right-4 h-1 bg-black/25 dark:bg-black/35 rounded-full overflow-hidden">
                                   <div
-                                    className="h-full bg-emerald-200 dark:bg-emerald-950 transition-all duration-500 rounded-r-full"
+                                    className="h-full bg-white dark:bg-emerald-950 transition-all duration-500 rounded-full"
                                     style={{ width: `${classProgress}%` }}
                                   />
                                 </div>
@@ -1327,12 +1369,6 @@ export function TimetableGrid({
                                 </div>
 
                                 <div className="flex items-center gap-1.5 shrink-0">
-                                  {isLiveNow && (
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-white/20 text-white dark:bg-black/15 dark:text-emerald-950 px-2 py-0.5 text-[10px] font-mono font-bold shadow-2xs">
-                                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 dark:bg-emerald-800 animate-pulse" />
-                                      NOW
-                                    </span>
-                                  )}
                                   {isDoubleSlot && (
                                     <span className="text-[10px] font-mono font-semibold bg-black/25 text-white border border-white/20 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20 px-1.5 py-0.5 rounded">
                                       3h Lab
@@ -1395,12 +1431,11 @@ export function TimetableGrid({
 
                             {/* Standalone Current Time Indicator between classes */}
                             {showStandaloneAfterThis && (
-                              <div className="flex items-center gap-2 py-1.5 -ml-1 pointer-events-none select-none">
-                                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 dark:bg-emerald-400/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 text-xs font-mono font-bold tracking-tight shrink-0 shadow-2xs">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
+                              <div className="flex items-center gap-2.5 py-1.5 pointer-events-none select-none my-0.5">
+                                <div className="flex items-center px-2.5 py-0.5 rounded-full bg-red-500 text-white text-xs font-mono font-bold tracking-tight shrink-0 shadow-xs">
                                   <span>Now {currentDhakaTime.formatted12}</span>
                                 </div>
-                                <div className="h-px flex-1 bg-gradient-to-r from-emerald-500/30 dark:from-emerald-400/30 via-emerald-500/15 to-transparent" />
+                                <div className="h-[2px] flex-1 bg-red-500 dark:bg-red-500/90 rounded-full shadow-xs" />
                               </div>
                             )}
                           </React.Fragment>

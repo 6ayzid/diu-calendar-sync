@@ -19,6 +19,7 @@ import {
   Settings,
 } from 'lucide-react';
 import { Metadata } from 'next';
+import { SyncVideoGuide } from '@/components/SyncVideoGuide';
 
 export const metadata: Metadata = {
   title: 'Calendar Sync Guide & Architecture | DIU CSE Routine',
@@ -217,25 +218,25 @@ export default function DocsPage() {
                   Click <strong>Copy Feed URL</strong> on this website for your section.
                 </li>
                 <li>
-                  Open <strong>Google Chrome</strong> (or your browser) on your phone and go to{' '}
+                  Open the direct settings page in Google Chrome:{' '}
                   <a
-                    href="https://calendar.google.com"
+                    href="https://calendar.google.com/calendar/r/settings/addbyurl"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="underline text-blue-600 dark:text-blue-400 font-mono"
+                    className="underline text-blue-600 dark:text-blue-400 font-mono break-all"
                   >
-                    calendar.google.com
+                    calendar.google.com/calendar/r/settings/addbyurl
                   </a>
                   .
+                  <div className="mt-1.5 p-2 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-900 dark:text-emerald-200">
+                    <strong>⚡ Fastest Chrome Trick:</strong> Long-press (press &amp; hold) the link above &rarr; tap <strong>&quot;Preview page&quot;</strong>. Paste your URL and tap <strong>&quot;Add calendar&quot;</strong> without ever toggling Desktop site!
+                  </div>
                 </li>
                 <li>
-                  Tap Chrome&apos;s menu (three dots <strong className="font-mono">⋮</strong> in top-right corner) and enable <strong className="text-amber-900 dark:text-amber-200">&quot;Desktop site&quot;</strong>.
+                  If opening in a new tab: tap Chrome&apos;s menu (three dots <strong className="font-mono">⋮</strong> in top-right corner) and enable <strong className="text-amber-900 dark:text-amber-200">&quot;Desktop site&quot;</strong>.
                 </li>
                 <li>
-                  Zoom into the left sidebar, tap the <strong>&quot;+&quot;</strong> icon beside <strong>&quot;Other calendars&quot;</strong> &rarr; select <strong>&quot;From URL&quot;</strong>.
-                </li>
-                <li>
-                  Paste your feed URL and tap <strong>&quot;Add calendar&quot;</strong>.
+                  Paste your feed URL in <strong>&quot;URL of calendar&quot;</strong> and tap <strong>&quot;Add calendar&quot;</strong>.
                 </li>
                 <li className="font-semibold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/30 p-2 rounded-lg border border-emerald-200 dark:border-emerald-800/40">
                   <strong>Turn on Mobile Sync:</strong> Open the Google Calendar app on your phone &rarr; <strong>Settings</strong> &rarr; tap your Account &rarr; tap the new calendar &rarr; toggle <strong>&quot;Sync&quot; to ON</strong>.
@@ -243,6 +244,9 @@ export default function DocsPage() {
               </ol>
             </div>
           </div>
+
+          {/* Video Walkthrough Guide */}
+          <SyncVideoGuide defaultExpanded={true} />
 
           {/* Quick Notice about University Email Compatibility */}
           <div className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400 pt-1">
