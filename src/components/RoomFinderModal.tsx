@@ -57,6 +57,9 @@ interface OccupancyResponse {
   freeSlots: number;
 }
 
+let cachedFreeRoomsData: { days: WeekFreeRooms; timestamp: number } | null = null;
+const cachedOccupancyMap = new Map<string, { data: OccupancyResponse; timestamp: number }>();
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const DAY_SHORTS: Record<DayOfWeek, string> = {
@@ -167,10 +170,19 @@ export function RoomFinderModal({
 
     let active = true;
 
+    if (cachedFreeRoomsData && Date.now() - cachedFreeRoomsData.timestamp < 15 * 60 * 1000) {
+      const cached = cachedFreeRoomsData.days;
+      Promise.resolve().then(() => {
+        if (active) setWeekData(cached);
+      });
+      return;
+    }
+
     fetch('/api/rooms/free')
       .then((res) => res.json())
       .then((data) => {
         if (active && data.success && data.days) {
+          cachedFreeRoomsData = { days: data.days, timestamp: Date.now() };
           setWeekData(data.days);
         }
       })
@@ -191,11 +203,22 @@ export function RoomFinderModal({
 
     let active = true;
     const apiDay = dayOfWeekToApiDay(activeDay);
+    const cacheKey = `${selectedRoom}|${apiDay}`;
+    const cachedOcc = cachedOccupancyMap.get(cacheKey);
+
+    if (cachedOcc && Date.now() - cachedOcc.timestamp < 15 * 60 * 1000) {
+      const cached = cachedOcc.data;
+      Promise.resolve().then(() => {
+        if (active) setOccupancy(cached);
+      });
+      return;
+    }
 
     fetch(`/api/rooms/occupancy?room=${encodeURIComponent(selectedRoom)}&day=${encodeURIComponent(apiDay)}`)
       .then((res) => res.json())
       .then((data) => {
         if (active && data.success) {
+          cachedOccupancyMap.set(cacheKey, { data, timestamp: Date.now() });
           setOccupancy(data);
         }
       })

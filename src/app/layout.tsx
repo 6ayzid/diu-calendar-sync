@@ -15,10 +15,13 @@ const monoFont = JetBrains_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://diucal.vercel.app'),
-  title: "DIU Routine & Routine Scraper – Class Schedule Finder | DIU CSE",
+  title: "DIU Routine Calendar Sync | Daffodil International University",
   description:
-    "Fast DIU routine scraper and timetable finder for Daffodil International University. Look up your DIU class routine by batch, section shortcut, or faculty initial.",
+    "Live DIU class routine and routine diu sync platform for Daffodil International University. Use our real-time DIU routine scrapper to search class schedules, compare timetables, find empty classrooms, and sync to Google or Apple Calendar.",
   keywords: [
+    "DIU routine scrapper",
+    "routine diu",
+    "DIU class routine",
     "diu routine",
     "routine scrapper diu",
     "diu routine scraper",
@@ -30,12 +33,11 @@ export const metadata: Metadata = {
     "Daffodil International University",
     "Empty Room Finder",
     "DIU Calendar Sync",
-    "Routinly",
   ],
   authors: [{ name: "@6ayzid", url: "https://github.com/6ayzid" }],
   creator: "@6ayzid",
-  publisher: "Routinly",
-  applicationName: "Routinly",
+  publisher: "DIU Calendar Sync",
+  applicationName: "DIU Calendar Sync",
   alternates: {
     canonical: "/",
   },
@@ -43,24 +45,24 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "https://diucal.vercel.app",
-    siteName: "Routinly",
-    title: "DIU Routine & Routine Scraper – Class Schedule Finder | DIU CSE",
+    siteName: "DIU Calendar Sync",
+    title: "DIU Routine Calendar Sync | Daffodil International University",
     description:
-      "Fast DIU routine scraper and timetable finder for Daffodil International University. Look up your DIU class routine by batch, section shortcut, or faculty initial.",
+      "Live DIU class routine and routine diu sync platform for Daffodil International University. Use our real-time DIU routine scrapper to search class schedules, compare timetables, find empty classrooms, and sync to Google or Apple Calendar.",
     images: [
       {
         url: "/icon.svg",
         width: 512,
         height: 512,
-        alt: "DIU Routine & Routine Scraper - Routinly",
+        alt: "DIU Routine Calendar Sync | Daffodil International University",
       },
     ],
   },
   twitter: {
     card: "summary",
-    title: "DIU Routine & Routine Scraper – Class Schedule Finder | DIU CSE",
+    title: "DIU Routine Calendar Sync | Daffodil International University",
     description:
-      "Fast DIU routine scraper and timetable finder for Daffodil International University. Look up your DIU class routine by batch, section shortcut, or faculty initial.",
+      "Live DIU class routine and routine diu sync platform for Daffodil International University. Use our real-time DIU routine scrapper to search class schedules, compare timetables, find empty classrooms, and sync to Google or Apple Calendar.",
     images: ["/icon.svg"],
     creator: "@6ayzid",
   },

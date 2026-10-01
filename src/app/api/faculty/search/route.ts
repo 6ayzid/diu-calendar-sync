@@ -57,28 +57,42 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({
-      success: true,
-      query: cleanQuery,
-      results: formatted,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        query: cleanQuery,
+        results: formatted,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        },
+      }
+    );
   } catch (error) {
     console.error('Faculty live search API error:', error);
     // Fallback gracefully to local directory search if network fails
     const ranked = searchAndRankFaculty(cleanQuery).slice(0, 12);
-    return NextResponse.json({
-      success: true,
-      query: cleanQuery,
-      results: ranked.map(({ faculty, score }) => ({
-        code: faculty.code,
-        name: faculty.name,
-        department: faculty.department || 'CSE',
-        designation: faculty.designation || 'Faculty Member',
-        aliases: faculty.aliases || [],
-        isLiveDiscovered: false,
-        score,
-      })),
-      fallback: true,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        query: cleanQuery,
+        results: ranked.map(({ faculty, score }) => ({
+          code: faculty.code,
+          name: faculty.name,
+          department: faculty.department || 'CSE',
+          designation: faculty.designation || 'Faculty Member',
+          aliases: faculty.aliases || [],
+          isLiveDiscovered: false,
+          score,
+        })),
+        fallback: true,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=3600',
+        },
+      }
+    );
   }
 }

@@ -119,14 +119,35 @@ export function SectionInfoModal({
       }
     }
 
-    // 2. Curated fallback or empty while network request processes
+    // 2. Check localStorage cache from primary app
+    try {
+      if (typeof window !== 'undefined') {
+        const raw = localStorage.getItem(`diu_cached_routine_s_${resolvedSection.id}_sub_all`);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed.classes) && parsed.classes.length > 0) {
+            setClasses(parsed.classes);
+            setLoading(false);
+            if (typeof parsed.cachedAt === 'number' && Date.now() - parsed.cachedAt < 30 * 60 * 1000) {
+              return;
+            }
+          }
+        }
+      }
+    } catch {
+      // Ignore cache parse errors
+    }
+
+    // 3. Curated fallback while network request processes
     const localCurated = CURATED_ROUTINES.filter(
       (c) => c.sectionId.toUpperCase() === resolvedSection.id.toUpperCase()
     );
-    setClasses(localCurated);
+    if (!classes || classes.length === 0) {
+      setClasses(localCurated);
+    }
     setLoading(true);
 
-    // 3. Fetch live section routine from API
+    // 4. Fetch live section routine from API
     let isCancelled = false;
     fetch(`/api/schedule?section=${encodeURIComponent(resolvedSection.id)}&sub=all`)
       .then((res) => res.json())

@@ -50,11 +50,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      faculty: enrichedFaculty,
-      version: 'v2.2',
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        faculty: enrichedFaculty,
+        version: 'v2.2',
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800',
+        },
+      }
+    );
   } catch (error) {
     console.error('Faculty info API error:', error);
     const fallback = getFacultyByCode(cleanCode) || {
@@ -62,11 +69,18 @@ export async function GET(request: NextRequest) {
       name: cleanCode,
       department: 'CSE',
     };
-    return NextResponse.json({
-      success: true,
-      faculty: fallback,
-      version: 'v2.2',
-      fallback: true,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        faculty: fallback,
+        version: 'v2.2',
+        fallback: true,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        },
+      }
+    );
   }
 }

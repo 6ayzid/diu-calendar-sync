@@ -27,6 +27,7 @@ interface FacultyInfoModalProps {
   onOpenComparePicker?: () => void;
   onNavigateToFaculty?: (faculty: FacultyMeta) => void;
 }
+const facultyInfoMemoryCache = new Map<string, { faculty: FacultyMeta; timestamp: number }>();
 
 export function FacultyInfoModal({
   isOpen,
@@ -44,7 +45,7 @@ export function FacultyInfoModal({
   const [imageError, setImageError] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  // Load initial data and query full details
+  // Load initial data and query full details with client-side caching
   useEffect(() => {
     if (!isOpen || !facultyCode) {
       setFaculty(null);
@@ -60,17 +61,24 @@ export function FacultyInfoModal({
     };
     setFaculty(local);
     setImageError(false);
-    setLoading(true);
 
+    // Check memory cache first (24 hours TTL)
+    const cached = facultyInfoMemoryCache.get(cleanCode);
+    if (cached && Date.now() - cached.timestamp < 24 * 60 * 60 * 1000) {
+      setFaculty(cached.faculty);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
     let isCancelled = false;
 
     fetch(`/api/faculty/info?code=${encodeURIComponent(cleanCode)}`)
       .then((res) => res.json())
       .then((data) => {
-        if (!isCancelled && data.success) {
-          if (data.faculty) {
-            setFaculty(data.faculty);
-          }
+        if (!isCancelled && data.success && data.faculty) {
+          facultyInfoMemoryCache.set(cleanCode, { faculty: data.faculty, timestamp: Date.now() });
+          setFaculty(data.faculty);
         }
       })
       .catch((err) => {
@@ -85,7 +93,7 @@ export function FacultyInfoModal({
     return () => {
       isCancelled = true;
     };
-  }, [isOpen, facultyCode, initialFaculty]);
+  }, [isOpen, facultyCode, initialFaculty?.code]);
 
   // Handle escape key
   useEffect(() => {
@@ -133,7 +141,7 @@ export function FacultyInfoModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="faculty-modal-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150"
+      className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}

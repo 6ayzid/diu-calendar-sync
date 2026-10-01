@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fetchFreeRooms, groupRoomsByZone } from '@/lib/room-scraper';
 import { UNIVERSITY_TIME_SLOTS, type UniversityTimeSlot } from '@/lib/time-utils';
 
+const ROOM_CACHE_HEADERS = {
+  'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=3600',
+};
+
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const time = searchParams.get('time') as UniversityTimeSlot | 'all' | null;
@@ -51,10 +55,13 @@ export async function GET(request: NextRequest) {
         })
       );
 
-      return NextResponse.json({
-        success: true,
-        days: allDaysData,
-      });
+      return NextResponse.json(
+        {
+          success: true,
+          days: allDaysData,
+        },
+        { headers: ROOM_CACHE_HEADERS }
+      );
     } catch (err) {
       console.error('Room free-rooms all-days API error:', err);
       return NextResponse.json(
@@ -96,11 +103,14 @@ export async function GET(request: NextRequest) {
         })
       );
 
-      return NextResponse.json({
-        success: true,
-        day,
-        slots: allSlotsData,
-      });
+      return NextResponse.json(
+        {
+          success: true,
+          day,
+          slots: allSlotsData,
+        },
+        { headers: ROOM_CACHE_HEADERS }
+      );
     } catch (err) {
       console.error('Room free-rooms all-slots API error:', err);
       return NextResponse.json(
@@ -125,14 +135,17 @@ export async function GET(request: NextRequest) {
       const dayRooms = freeRoomsByDay[day] || [];
       const grouped = groupRoomsByZone(dayRooms);
 
-      return NextResponse.json({
-        success: true,
-        time,
-        day,
-        totalFree: dayRooms.length,
-        rooms: dayRooms,
-        grouped,
-      });
+      return NextResponse.json(
+        {
+          success: true,
+          time,
+          day,
+          totalFree: dayRooms.length,
+          rooms: dayRooms,
+          grouped,
+        },
+        { headers: ROOM_CACHE_HEADERS }
+      );
     }
 
     // Return all days
@@ -141,12 +154,15 @@ export async function GET(request: NextRequest) {
       allGrouped[d] = groupRoomsByZone(rooms);
     }
 
-    return NextResponse.json({
-      success: true,
-      time,
-      freeRoomsByDay,
-      grouped: allGrouped,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        time,
+        freeRoomsByDay,
+        grouped: allGrouped,
+      },
+      { headers: ROOM_CACHE_HEADERS }
+    );
   } catch (err) {
     console.error('Room free-rooms API error:', err);
     return NextResponse.json(

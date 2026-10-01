@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { Navbar } from '@/components/Navbar';
 import { SectionSelector } from '@/components/SectionSelector';
@@ -29,7 +29,10 @@ import {
   parseTargetParam,
   targetToParamString,
 } from '@/lib/compare-utils';
-import { Search, Sparkles, CalendarDays, ArrowRight, WifiOff, RefreshCw } from 'lucide-react';
+import { Search, Sparkles, CalendarDays, WifiOff, RefreshCw } from 'lucide-react';
+
+// 30 minutes client-side routine cache TTL to prevent background API hammering
+const ROUTINE_CACHE_TTL_MS = 30 * 60 * 1000;
 
 export default function Home() {
   // 1. Initialize Active Target State (Section or Faculty) - null when unselected
@@ -92,6 +95,7 @@ export default function Home() {
     setFacultyInfoReturnSection(returnSection || null);
     setFacultyInfoInitial(initial || getFacultyByCode(code) || null);
     setIsFacultyInfoOpen(true);
+    setIsSectionInfoOpen(false);
   };
 
   const handleOpenSectionInfo = (sectionId: string) => {
@@ -405,25 +409,47 @@ export default function Home() {
     return `diu_cached_routine_s_${target.section.id}_sub_${target.subSection}`;
   }, []);
 
-  // Fetch live schedule whenever activeTarget changes
+  // Stable string primitive representing what routine needs to be fetched
+  const activeScheduleKey = useMemo(() => {
+    if (!activeTarget) return null;
+    return activeTarget.type === 'faculty'
+      ? `faculty:${activeTarget.faculty.code.toUpperCase()}`
+      : `section:${activeTarget.section.id.toUpperCase()}:${activeTarget.subSection}`;
+  }, [activeTarget]);
+
+  // Keep target and reload triggers tracked across renders
+  const activeTargetRef = useRef(activeTarget);
   useEffect(() => {
-    if (!isInitialized || !hasSavedPreference || !activeTarget) {
+    activeTargetRef.current = activeTarget;
+  }, [activeTarget]);
+
+  const lastReloadTriggerRef = useRef(reloadTrigger);
+
+  // Fetch live schedule whenever activeScheduleKey or manual reloadTrigger changes
+  useEffect(() => {
+    if (!isInitialized || !hasSavedPreference || !activeScheduleKey || !activeTargetRef.current) {
       return;
     }
 
     let isCancelled = false;
-    const currentTarget = activeTarget;
+    const currentTarget = activeTargetRef.current;
     const cacheKey = getCacheKey(currentTarget);
+    const isManualReload = lastReloadTriggerRef.current !== reloadTrigger;
+    lastReloadTriggerRef.current = reloadTrigger;
 
-    // 1. Try reading real cached schedule from localStorage
-    let cachedData: { classes: RoutineClass[]; version?: string } | null = null;
+    // 1. Try reading cached schedule from localStorage
+    let cachedData: { classes: RoutineClass[]; version?: string; cachedAt?: number } | null = null;
     try {
       if (typeof window !== 'undefined') {
         const raw = localStorage.getItem(cacheKey);
         if (raw) {
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed.classes) && parsed.classes.length > 0) {
-            cachedData = parsed;
+            cachedData = {
+              classes: parsed.classes,
+              version: parsed.version,
+              cachedAt: typeof parsed.cachedAt === 'number' ? parsed.cachedAt : 0,
+            };
           }
         }
       }
@@ -431,12 +457,23 @@ export default function Home() {
       // Ignore localStorage parse errors
     }
 
+    const isCacheFresh =
+      cachedData &&
+      typeof cachedData.cachedAt === 'number' &&
+      cachedData.cachedAt > 0 &&
+      Date.now() - cachedData.cachedAt < ROUTINE_CACHE_TTL_MS;
+
     if (cachedData) {
       setLiveSchedule(cachedData.classes);
       if (cachedData.version) setRoutineVersion(cachedData.version);
       setIsOfflineCached(false);
       setFetchError(false);
       setIsScheduleLoading(false);
+
+      // If cache is fresh and not an explicit user-initiated reload, skip network call!
+      if (isCacheFresh && !isManualReload) {
+        return;
+      }
     } else {
       setLiveSchedule(null);
       setIsScheduleLoading(true);
@@ -460,12 +497,16 @@ export default function Home() {
             setLiveSchedule(data.classes);
             setIsOfflineCached(false);
             setFetchError(false);
-            // Save valid real schedule to localStorage cache
+            // Save valid real schedule to localStorage cache with fresh timestamp
             try {
               if (typeof window !== 'undefined') {
                 localStorage.setItem(
                   cacheKey,
-                  JSON.stringify({ classes: data.classes, version: data.version || 'v2.2' })
+                  JSON.stringify({
+                    classes: data.classes,
+                    version: data.version || 'v3.1',
+                    cachedAt: Date.now(),
+                  })
                 );
               }
             } catch {
@@ -475,10 +516,24 @@ export default function Home() {
           if (data.version) {
             setRoutineVersion(data.version);
           }
+          // Only update faculty metadata if properties actually changed to avoid infinite render loops
           if (data.faculty && currentTarget.type === 'faculty') {
-            setActiveTarget((prev) =>
-              prev && prev.type === 'faculty' ? { ...prev, faculty: { ...prev.faculty, ...data.faculty } } : prev
-            );
+            setActiveTarget((prev) => {
+              if (!prev || prev.type !== 'faculty') return prev;
+              const f = prev.faculty;
+              const nf = data.faculty;
+              if (
+                f.phone === nf.phone &&
+                f.room === nf.room &&
+                f.name === nf.name &&
+                f.designation === nf.designation &&
+                f.department === nf.department &&
+                f.email === nf.email
+              ) {
+                return prev;
+              }
+              return { ...prev, faculty: { ...f, ...nf } };
+            });
           }
         } else if (!isCancelled && !data.success) {
           throw new Error(data.error || 'Failed to fetch schedule');
@@ -506,7 +561,7 @@ export default function Home() {
     return () => {
       isCancelled = true;
     };
-  }, [activeTarget, isInitialized, hasSavedPreference, reloadTrigger, getCacheKey]);
+  }, [activeScheduleKey, isInitialized, hasSavedPreference, reloadTrigger, getCacheKey]);
 
   // Fetch secondary live schedule whenever compare target changes
   const secondaryTargetKey =
@@ -514,28 +569,51 @@ export default function Home() {
       ? targetToParamString(compareState.secondaryTarget)
       : null;
 
+  const secondaryTargetRef = useRef(compareState.secondaryTarget);
   useEffect(() => {
-    if (!secondaryTargetKey || !compareState.secondaryTarget) {
+    secondaryTargetRef.current = compareState.secondaryTarget;
+  }, [compareState.secondaryTarget]);
+
+  useEffect(() => {
+    if (!secondaryTargetKey || !secondaryTargetRef.current) {
       return;
     }
 
     let isCancelled = false;
-    const target = compareState.secondaryTarget;
+    const target = secondaryTargetRef.current;
     const secondaryCacheKey = getCacheKey(target);
 
     // Check cached secondary schedule
+    let cachedSecondary: { classes: RoutineClass[]; version?: string; cachedAt?: number } | null = null;
     try {
       if (typeof window !== 'undefined') {
         const raw = localStorage.getItem(secondaryCacheKey);
         if (raw) {
           const parsed = JSON.parse(raw);
-          if (Array.isArray(parsed.classes)) {
-            setSecondaryLiveSchedule(parsed.classes);
+          if (Array.isArray(parsed.classes) && parsed.classes.length > 0) {
+            cachedSecondary = {
+              classes: parsed.classes,
+              version: parsed.version,
+              cachedAt: typeof parsed.cachedAt === 'number' ? parsed.cachedAt : 0,
+            };
           }
         }
       }
     } catch {
       // Ignore
+    }
+
+    const isSecondaryCacheFresh =
+      cachedSecondary &&
+      typeof cachedSecondary.cachedAt === 'number' &&
+      cachedSecondary.cachedAt > 0 &&
+      Date.now() - cachedSecondary.cachedAt < ROUTINE_CACHE_TTL_MS;
+
+    if (cachedSecondary) {
+      setSecondaryLiveSchedule(cachedSecondary.classes);
+      if (isSecondaryCacheFresh) {
+        return;
+      }
     }
 
     const endpoint =
@@ -552,7 +630,11 @@ export default function Home() {
             if (typeof window !== 'undefined') {
               localStorage.setItem(
                 secondaryCacheKey,
-                JSON.stringify({ classes: data.classes, version: data.version || 'v2.2' })
+                JSON.stringify({
+                  classes: data.classes,
+                  version: data.version || 'v3.1',
+                  cachedAt: Date.now(),
+                })
               );
             }
           } catch {
@@ -567,7 +649,7 @@ export default function Home() {
     return () => {
       isCancelled = true;
     };
-  }, [secondaryTargetKey, compareState.secondaryTarget, getCacheKey]);
+  }, [secondaryTargetKey, getCacheKey]);
 
   // Current real schedule (never synthetic mock data)
   const currentSchedule = useMemo(() => {
@@ -735,8 +817,8 @@ export default function Home() {
       </div>
 
       <main id="main-content" className="mx-auto max-w-7xl px-2 sm:px-6 pt-2 sm:pt-4 space-y-3 sm:space-y-4 print:py-0 print:px-2">
-        {/* Semantic H1 for crawler SEO matching exact high-volume queries */}
-        <h1 className="sr-only">DIU Routine &amp; Routine Scraper – CSE Department</h1>
+        {/* Semantic H1 matching exact title and brand query */}
+        <h1 className="sr-only">DIU Routine Calendar Sync | Daffodil International University</h1>
 
         {/* Routine Compare Bar HUD - Only shown in Week View */}
         {compareState.active && viewMode === 'matrix' && (
@@ -978,6 +1060,11 @@ export default function Home() {
               Change Routine (/)
             </button>
           </div>
+
+          {/* Subtle keyword context for search crawlers without front-page visual clutter */}
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 max-w-lg mx-auto leading-relaxed">
+            Live DIU routine scrapper and calendar sync for Daffodil International University. View your routine diu schedule or export your DIU class routine directly to Google Calendar and Apple Calendar.
+          </p>
 
           {/* Developer Attribution Tag */}
           <div className="pt-3 border-t border-slate-200/80 dark:border-slate-800/80 flex flex-wrap items-center justify-center gap-3 text-xs">

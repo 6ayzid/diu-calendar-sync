@@ -26,14 +26,21 @@ export async function GET(request: NextRequest) {
     const occupiedCount = schedule.filter((s) => s.occupied).length;
     const freeCount = schedule.length - occupiedCount;
 
-    return NextResponse.json({
-      success: true,
-      room,
-      day,
-      occupiedSlots: occupiedCount,
-      freeSlots: freeCount,
-      schedule,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        room,
+        day,
+        occupiedSlots: occupiedCount,
+        freeSlots: freeCount,
+        schedule,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=3600',
+        },
+      }
+    );
   } catch (err) {
     console.error('Room occupancy API error:', err);
     return NextResponse.json(
