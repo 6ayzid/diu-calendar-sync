@@ -189,10 +189,10 @@ export function Navbar({
             <Link
               href="/docs"
               prefetch={true}
-              className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white rounded-xl px-2 lg:px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors min-h-[36px]"
+              className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 rounded-xl px-2 lg:px-2.5 py-1.5 hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors min-h-[36px]"
               aria-label="Technical documentation and guide"
             >
-              <BookOpen className="h-4 w-4 text-slate-400 shrink-0" />
+              <BookOpen className="h-4 w-4 shrink-0" />
               <span className="hidden lg:inline">Docs</span>
             </Link>
           </Tooltip>
