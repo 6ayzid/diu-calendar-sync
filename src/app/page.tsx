@@ -511,6 +511,32 @@ export default function Home() {
     activeTargetRef.current = activeTarget;
   }, [activeTarget]);
 
+  // Dedicated effect to fetch active event overrides for the selected section
+  useEffect(() => {
+    if (!activeTarget || activeTarget.type !== 'section') {
+      setEventOverrides([]);
+      return;
+    }
+
+    let isCancelled = false;
+    const secId = activeTarget.section.id;
+
+    fetch(`/api/events?section=${secId}&t=${Date.now()}`)
+      .then((res) => res.json())
+      .then((evData) => {
+        if (!isCancelled && evData.success && Array.isArray(evData.events)) {
+          setEventOverrides(evData.events);
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to load event overrides:', err);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [activeTarget, reloadTrigger]);
+
   const lastReloadTriggerRef = useRef(reloadTrigger);
 
   // Fetch live schedule whenever activeScheduleKey, routineVersion, or manual reloadTrigger changes
@@ -571,20 +597,6 @@ export default function Home() {
       currentTarget.type === 'faculty'
         ? `/api/schedule?teacher=${encodeURIComponent(currentTarget.faculty.code)}${versionParam}${cacheBuster}`
         : `/api/schedule?section=${currentTarget.section.id}&sub=${currentTarget.subSection}${versionParam}${cacheBuster}`;
-
-    // Fetch event overrides for section (e.g. Quizzes, announcements)
-    if (currentTarget.type === 'section') {
-      fetch(`/api/events?section=${currentTarget.section.id}${cacheBuster}`)
-        .then((res) => res.json())
-        .then((evData) => {
-          if (!isCancelled && evData.success && Array.isArray(evData.events)) {
-            setEventOverrides(evData.events);
-          }
-        })
-        .catch(() => {});
-    } else {
-      setEventOverrides([]);
-    }
 
     fetch(endpoint, isManualReload ? { cache: 'no-store' } : undefined)
       .then((res) => {
