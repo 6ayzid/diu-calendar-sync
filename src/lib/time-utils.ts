@@ -128,7 +128,7 @@ export interface WeekScheduleDay {
 /**
  * Returns the 6 academic days (Saturday to Thursday) of the current week in Asia/Dhaka.
  */
-export function getCurrentWeekScheduleDays(): WeekScheduleDay[] {
+export function getCurrentWeekScheduleDays(weekOffset: number = 0): WeekScheduleDay[] {
   try {
     const now = new Date();
     const dhakaDateStr = new Intl.DateTimeFormat('en-CA', {
@@ -156,7 +156,7 @@ export function getCurrentWeekScheduleDays(): WeekScheduleDay[] {
       Fri: 6,
     };
     const offsetFromSat = dayOffsets[weekdayStr] ?? 0;
-    const saturdayMs = todayDhaka.getTime() - offsetFromSat * 24 * 60 * 60 * 1000;
+    const saturdayMs = todayDhaka.getTime() - offsetFromSat * 24 * 60 * 60 * 1000 + (weekOffset * 7 * 24 * 60 * 60 * 1000);
 
     const daysOfWeek: DayOfWeek[] = ['SATURDAY', 'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY'];
 
@@ -187,7 +187,7 @@ export function getCurrentWeekScheduleDays(): WeekScheduleDay[] {
         weekday: 'long',
       }).format(stepDate);
 
-      const isToday = offsetFromSat === i && weekdayStr !== 'Fri';
+      const isToday = weekOffset === 0 && offsetFromSat === i && weekdayStr !== 'Fri';
 
       return {
         dayKey,

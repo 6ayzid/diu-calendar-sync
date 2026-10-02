@@ -11,6 +11,8 @@ import {
   LayoutGrid,
   CalendarDays,
   Info,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { getCourseShortTitle } from '@/lib/course-utils';
 import { formatTime12, getDhakaClock, DhakaClockState, getUpcomingDays, getCurrentWeekScheduleDays, WeekScheduleDay, timeToMinutes } from '@/lib/time-utils';
@@ -525,11 +527,41 @@ export function TimetableGrid({
     return getUpcomingDays(7);
   }, [currentDhakaTime.minuteInt]);
 
-  // Academic week days (Saturday to Thursday) with calendar dates
+  // Week offset state for vertical scroll navigation across weeks
+  const [weekOffset, setWeekOffset] = useState<number>(0);
+  const [slideDirection, setSlideDirection] = useState<'down' | 'up' | 'none'>('none');
+  const wheelThrottleRef = useRef(false);
+
+  const handleNextWeek = useCallback(() => {
+    setSlideDirection('down');
+    setWeekOffset((prev) => prev + 1);
+    setTimeout(() => setSlideDirection('none'), 280);
+  }, []);
+
+  const handlePrevWeek = useCallback(() => {
+    setSlideDirection('up');
+    setWeekOffset((prev) => prev - 1);
+    setTimeout(() => setSlideDirection('none'), 280);
+  }, []);
+
+  const handleResetWeek = useCallback(() => {
+    setSlideDirection('none');
+    setWeekOffset(0);
+  }, []);
+
+  const relativeWeekLabel = useMemo(() => {
+    if (weekOffset === 0) return null;
+    if (weekOffset === 1) return 'Next week';
+    if (weekOffset === -1) return 'Last week';
+    if (weekOffset > 1) return `+${weekOffset} wks`;
+    return `${weekOffset} wks`;
+  }, [weekOffset]);
+
+  // Academic week days (Saturday to Thursday) with calendar dates for active weekOffset
   const weekDays = useMemo(() => {
     void currentDhakaTime.day;
-    return getCurrentWeekScheduleDays();
-  }, [currentDhakaTime.day]);
+    return getCurrentWeekScheduleDays(weekOffset);
+  }, [currentDhakaTime.day, weekOffset]);
   const weekDaysMap = useMemo(() => {
     const map: Record<string, WeekScheduleDay> = {};
     for (const d of weekDays) {
@@ -537,6 +569,79 @@ export function TimetableGrid({
     }
     return map;
   }, [weekDays]);
+
+  // Vertically scrollable week navigation: rolling mouse wheel over timetable changes weeks
+  useEffect(() => {
+    const el = matrixScrollRef.current;
+    if (!el) return;
+
+    const onWheelNative = (e: WheelEvent) => {
+      // Allow horizontal shift scrolling and ctrl-pinch zoom
+      if (e.ctrlKey || e.shiftKey) return;
+      if (Math.abs(e.deltaY) <= 25) return;
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+
+      e.preventDefault();
+
+      if (wheelThrottleRef.current) return;
+      wheelThrottleRef.current = true;
+      setTimeout(() => {
+        wheelThrottleRef.current = false;
+      }, 350);
+
+      if (e.deltaY > 0) {
+        handleNextWeek();
+      } else {
+        handlePrevWeek();
+      }
+    };
+
+    el.addEventListener('wheel', onWheelNative, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', onWheelNative);
+    };
+  }, [handleNextWeek, handlePrevWeek]);
+
+  // Touch swipe gesture navigation on mobile devices (swipe up -> next week, swipe down -> prev week)
+  useEffect(() => {
+    const el = matrixScrollRef.current;
+    if (!el) return;
+
+    let touchStartY = 0;
+    let touchStartX = 0;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        touchStartY = e.touches[0].clientY;
+        touchStartX = e.touches[0].clientX;
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (!touchStartY) return;
+      const touchEndY = e.changedTouches[0].clientY;
+      const touchEndX = e.changedTouches[0].clientX;
+      const diffY = touchEndY - touchStartY;
+      const diffX = touchEndX - touchStartX;
+      touchStartY = 0;
+      touchStartX = 0;
+
+      if (Math.abs(diffY) > 50 && Math.abs(diffY) > Math.abs(diffX) * 1.5) {
+        if (diffY < 0) {
+          handleNextWeek();
+        } else {
+          handlePrevWeek();
+        }
+      }
+    };
+
+    el.addEventListener('touchstart', onTouchStart, { passive: true });
+    el.addEventListener('touchend', onTouchEnd, { passive: true });
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [handleNextWeek, handlePrevWeek]);
 
   // Dynamic Notion Calendar Date Title
   const notionDateTitle = useMemo(() => {
@@ -556,7 +661,7 @@ export function TimetableGrid({
     return 'September 2026';
   }, [weekDays, effectiveViewMode, upcomingDays]);
 
-  // Calendar View Keyboard Shortcuts: W for Week, A for Agenda
+  // Calendar View Keyboard Shortcuts: W for Week, A for Agenda, Arrows/J/K for Week Navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -573,12 +678,21 @@ export function TimetableGrid({
       } else if (e.key === 'a' || e.key === 'A') {
         e.preventDefault();
         setEffectiveViewMode('agenda');
+      } else if (e.key === 'ArrowDown' || e.key === 'j' || e.key === 'J' || e.key === 'PageDown') {
+        e.preventDefault();
+        handleNextWeek();
+      } else if (e.key === 'ArrowUp' || e.key === 'k' || e.key === 'K' || e.key === 'PageUp') {
+        e.preventDefault();
+        handlePrevWeek();
+      } else if (e.key === 't' || e.key === 'T') {
+        e.preventDefault();
+        handleResetWeek();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setEffectiveViewMode]);
+  }, [setEffectiveViewMode, handleNextWeek, handlePrevWeek, handleResetWeek]);
 
 
 
@@ -657,10 +771,51 @@ export function TimetableGrid({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-2.5 print:hidden select-none">
         {/* Mobile Row 1 / Desktop Left: Month Title & (on mobile) View Switcher */}
         <div className="flex items-center justify-between sm:justify-start gap-2 min-w-0 w-full sm:w-auto">
-          <div className="flex items-center gap-2 min-w-0">
-            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1 shrink-0">
               <span>{notionDateTitle}</span>
             </h2>
+
+            {/* Minimal Week Navigation Controls (‹ Today ›) */}
+            <div className="inline-flex items-center gap-0.5 rounded-lg border border-slate-200/90 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-950 p-0.5 shadow-2xs shrink-0">
+              <button
+                type="button"
+                onClick={handlePrevWeek}
+                title="Previous week (or scroll up / ↑)"
+                aria-label="Previous week"
+                className="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+
+              {weekOffset !== 0 ? (
+                <button
+                  type="button"
+                  onClick={handleResetWeek}
+                  title="Jump to current week (or press T)"
+                  className="px-1.5 py-0.5 text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400 hover:bg-white dark:hover:bg-slate-800 rounded transition-colors cursor-pointer"
+                >
+                  Today
+                </button>
+              ) : null}
+
+              <button
+                type="button"
+                onClick={handleNextWeek}
+                title="Next week (or scroll down / ↓)"
+                aria-label="Next week"
+                className="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Relative week badge when not on current week */}
+            {relativeWeekLabel && (
+              <span className="hidden md:inline-flex items-center text-[10px] font-mono font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 px-1.5 py-0.5 rounded-full select-none shrink-0">
+                {relativeWeekLabel}
+              </span>
+            )}
 
             {/* Desktop-only VersionBadge placement inline with title */}
             <div className="hidden sm:inline-flex items-center shrink-0">
@@ -822,7 +977,13 @@ export function TimetableGrid({
           }}
         >
           <div
-            className="timeline-grid-layout relative print:min-w-0"
+            className={`timeline-grid-layout relative print:min-w-0 transition-transform duration-200 ease-out ${
+              slideDirection === 'down'
+                ? 'animate-in fade-in slide-in-from-bottom-2 duration-200'
+                : slideDirection === 'up'
+                ? 'animate-in fade-in slide-in-from-top-2 duration-200'
+                : ''
+            }`}
             style={{
               gridTemplateColumns: `var(--col-time) repeat(6, calc((100cqw - var(--col-time)) / ${zoomDays}))`,
               width: `calc(var(--col-time) + 6 * ((100cqw - var(--col-time)) / ${zoomDays}))`,
@@ -840,7 +1001,7 @@ export function TimetableGrid({
 
             {/* ROW 1: HEADER - Cols 2 to 7 are Day Headers (Google Calendar Style) */}
             {visibleGridDays.map((d, vIdx) => {
-              const isToday = d.key === todayDay;
+              const isToday = weekOffset === 0 && d.key === todayDay;
               const dateInfo = weekDaysMap[d.key];
               const dayNum = dateInfo?.dayNumber || '';
 
@@ -903,7 +1064,7 @@ export function TimetableGrid({
 
             {/* ROW 2: DAY TIMELINE COLUMNS (Cols 2 to 7) */}
             {visibleGridDays.map((day, vIdx) => {
-              const isToday = day.key === todayDay;
+              const isToday = weekOffset === 0 && day.key === todayDay;
               const positionedEvents = dayEventsMap[day.key] || [];
 
               return (
