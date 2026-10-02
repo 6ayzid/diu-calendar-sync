@@ -1137,8 +1137,8 @@ export function TimetableGrid({
                   style={{
                     gridColumn: vIdx + 2,
                     gridRow: 2,
-                    scrollSnapAlign: isWeekStart ? 'start' : 'none',
-                    scrollSnapStop: isWeekStart ? 'always' : 'normal',
+                    scrollSnapAlign: 'start',
+                    scrollSnapStop: 'normal',
                   }}
                 >
                   {/* Background Hourly Dashed Grid Lines (Google Calendar with dashed guides) */}
