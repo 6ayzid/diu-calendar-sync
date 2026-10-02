@@ -877,57 +877,73 @@ export function TimetableGrid({
       {/* Calendar Header & View Switcher (ONLY Week and Agenda) */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-2.5 print:hidden select-none">
         {/* Mobile Row 1 / Desktop Left: Month Title & (on mobile) View Switcher */}
-        <div className="flex items-center justify-between sm:justify-start gap-2 min-w-0 w-full sm:w-auto">
+        <div className="flex items-center justify-between sm:justify-start gap-2 min-w-0 w-full sm:w-auto sm:flex-1">
           <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
             <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1 shrink-0">
               <span>{notionDateTitle}</span>
             </h2>
 
-            {/* Navigation Controls: Chevron pair [ ‹ | › ] + sleek [ • Today ] button when offscreen */}
-            {effectiveViewMode === 'matrix' && (
-              <div className="flex items-center gap-1.5 shrink-0">
-                <div className="inline-flex items-center rounded-lg border border-slate-200/90 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-950 p-0.5 shadow-2xs shrink-0">
-                  <button
-                    type="button"
-                    onClick={handlePrev}
-                    title="Previous (or scroll left / ←)"
-                    aria-label="Previous days"
-                    className="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleNext}
-                    title="Next (or scroll right / →)"
-                    aria-label="Next days"
-                    className="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                  >
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                {/* Subtle, understated "Today" button - shown ONLY when Today is NOT present onscreen */}
-                {!isTodayVisible && (
-                  <button
-                    type="button"
-                    onClick={() => scrollToToday(true)}
-                    title="Jump to Today (or press T)"
-                    aria-label="Jump to Today"
-                    className="inline-flex items-center px-2 py-1 sm:px-2.5 sm:py-1 text-[11px] sm:text-xs font-medium rounded-lg border border-slate-200/90 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-800 shadow-2xs transition-colors cursor-pointer active:scale-95"
-                  >
-                    Today
-                  </button>
-                )}
-
-                {/* Relative week badge when not on current week - subtle, non attention-grabby */}
-                {relativeWeekLabel && !isTodayVisible && (
-                  <span className="hidden md:inline-flex items-center text-[10px] font-mono font-medium text-slate-500 dark:text-slate-400 bg-slate-100/70 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800/60 px-1.5 py-0.5 rounded-md select-none shrink-0">
-                    {relativeWeekLabel}
-                  </span>
-                )}
+            {/* Navigation Controls: Smoothly collapses on Agenda view with gentle 500ms ease */}
+            <div
+              className={`overflow-hidden transition-all duration-500 ease-out flex items-center gap-1.5 shrink-0 ${
+                effectiveViewMode === 'matrix'
+                  ? 'max-w-[260px] opacity-100'
+                  : 'max-w-0 opacity-0 pointer-events-none'
+              }`}
+            >
+              <div className="inline-flex items-center rounded-lg border border-slate-200/90 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-950 p-0.5 shadow-2xs shrink-0">
+                <button
+                  type="button"
+                  onClick={handlePrev}
+                  title="Previous (or scroll left / ←)"
+                  aria-label="Previous days"
+                  className="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNext}
+                  title="Next (or scroll right / →)"
+                  aria-label="Next days"
+                  className="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
-            )}
+
+              {/* Subtle, understated "Today" button - gently reveals only when Today is offscreen */}
+              <div
+                className={`overflow-hidden transition-all duration-500 ease-out flex items-center ${
+                  !isTodayVisible
+                    ? 'max-w-[70px] opacity-100'
+                    : 'max-w-0 opacity-0 pointer-events-none'
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => scrollToToday(true)}
+                  title="Jump to Today (or press T)"
+                  aria-label="Jump to Today"
+                  className="inline-flex items-center px-2 py-1 sm:px-2.5 sm:py-1 text-[11px] sm:text-xs font-medium rounded-lg border border-slate-200/90 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-800 shadow-2xs transition-colors cursor-pointer active:scale-95 whitespace-nowrap"
+                >
+                  Today
+                </button>
+              </div>
+
+              {/* Relative week badge when not on current week */}
+              <div
+                className={`overflow-hidden transition-all duration-500 ease-out hidden md:flex items-center ${
+                  relativeWeekLabel && !isTodayVisible
+                    ? 'max-w-[90px] opacity-100'
+                    : 'max-w-0 opacity-0 pointer-events-none'
+                }`}
+              >
+                <span className="inline-flex items-center text-[10px] font-mono font-medium text-slate-500 dark:text-slate-400 bg-slate-100/70 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800/60 px-1.5 py-0.5 rounded-md select-none shrink-0 whitespace-nowrap">
+                  {relativeWeekLabel}
+                </span>
+              </div>
+            </div>
 
             {/* Desktop-only VersionBadge placement inline with title */}
             <div className="hidden sm:inline-flex items-center shrink-0">
@@ -972,8 +988,12 @@ export function TimetableGrid({
           </div>
         </div>
 
-        {/* Mobile Row 2 / Desktop continuation: VersionBadge (mobile) + Section or Faculty Info */}
-        <div className="flex items-center gap-2 flex-wrap min-w-0">
+        {/* Mobile Row 2 / Desktop Center: Section or Faculty Indicator (Smooth, slow, subtle glide) */}
+        <div
+          className={`flex items-center gap-2 flex-wrap min-w-0 transition-all duration-500 ease-out sm:justify-center ${
+            effectiveViewMode === 'matrix' ? 'sm:translate-x-1.5' : 'sm:-translate-x-1.5'
+          }`}
+        >
           {/* Mobile-only VersionBadge placement on Row 2 */}
           <div className="sm:hidden inline-flex items-center shrink-0">
             <VersionBadge
@@ -983,7 +1003,7 @@ export function TimetableGrid({
           </div>
 
           {isFaculty && faculty ? (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium text-slate-600 dark:text-slate-300 max-w-[280px] sm:max-w-none">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium text-slate-600 dark:text-slate-300 max-w-[280px] sm:max-w-none transition-all duration-500 ease-out">
               <span className="truncate">{faculty.name}</span>
               {onOpenFacultyInfo && (
                 <button
@@ -998,7 +1018,7 @@ export function TimetableGrid({
               )}
             </span>
           ) : section ? (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-mono font-medium text-slate-500 dark:text-slate-400 max-w-[280px] sm:max-w-none">
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-mono font-medium text-slate-500 dark:text-slate-400 max-w-[280px] sm:max-w-none transition-all duration-500 ease-out">
               <span className="truncate">{section.displayName}</span>
               {onOpenSectionInfo && (
                 <button
@@ -1016,7 +1036,7 @@ export function TimetableGrid({
         </div>
 
         {/* Desktop-only: View switcher on the right */}
-        <div className="hidden sm:flex items-center shrink-0">
+        <div className="hidden sm:flex items-center justify-end shrink-0 sm:flex-1">
           <div className="inline-flex items-center gap-0.5 rounded-xl border border-slate-200 bg-slate-100/90 dark:border-slate-800 dark:bg-slate-950 p-0.5 shadow-2xs">
             {/* Week View */}
             <button
