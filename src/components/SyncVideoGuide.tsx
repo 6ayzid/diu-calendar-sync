@@ -149,18 +149,9 @@ export function SyncVideoGuide({
 
                 <div className="absolute top-2 left-2 flex items-center gap-1 rounded-full bg-black/75 px-2 py-0.5 text-[9px] font-mono font-medium text-emerald-400 backdrop-blur-md border border-white/10">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>Looping</span>
                 </div>
               </div>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setIsExpanded(false)}
-              className="mt-2 text-[11px] font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer"
-            >
-              Done watching &bull; Collapse
-            </button>
           </div>
         </div>
       )}

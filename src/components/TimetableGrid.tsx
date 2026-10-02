@@ -536,14 +536,30 @@ export function TimetableGrid({
       const dayAreaWidth = Math.max(1, container.clientWidth - timeWidth);
       const dayWidth = dayAreaWidth / zoomDaysRef.current;
 
-      // Only snap when dragged into more than half of the grid
-      const nearestGrid = Math.round(container.scrollLeft / dayWidth);
-      const targetLeft = Math.max(0, nearestGrid * dayWidth);
+      // Only lightly snap to weekend grids (Friday) if within half a grid threshold
+      const currentPos = container.scrollLeft;
+      const fridayIndices = continuousDays
+        .map((d, i) => (d.isFriday ? i : -1))
+        .filter((i) => i >= 0);
 
-      container.scrollTo({
-        left: targetLeft,
-        behavior: 'smooth',
-      });
+      let closestFridayIdx = -1;
+      let minDistance = Infinity;
+
+      for (const idx of fridayIndices) {
+        const fridayLeft = idx * dayWidth;
+        const dist = Math.abs(currentPos - fridayLeft);
+        if (dist < minDistance) {
+          minDistance = dist;
+          closestFridayIdx = idx;
+        }
+      }
+
+      if (closestFridayIdx >= 0 && minDistance < dayWidth * 0.5) {
+        container.scrollTo({
+          left: closestFridayIdx * dayWidth,
+          behavior: 'smooth',
+        });
+      }
 
       setTimeout(() => setIsDragging(false), 50);
     }
@@ -585,14 +601,8 @@ export function TimetableGrid({
     if (!matrixScrollRef.current) return;
     const container = matrixScrollRef.current;
     const todayIdx = continuousDays.findIndex((d) => d.isToday);
-    const weekStartIdx = continuousDays.findIndex(
-      (d) => d.weekOffset === 0 && d.dayIndexInWeek === 0
-    );
-    // On narrower views (mobile 3-day view or zoomed in), start directly at today if found.
-    // On full 7-day week views, start at Saturday to show the entire current academic week.
-    const targetIdx = (zoomDaysRef.current < 6 && todayIdx >= 0)
-      ? todayIdx
-      : (weekStartIdx >= 0 ? weekStartIdx : 0);
+    // Calculated directly from the grid of today, not the start of that week
+    const targetIdx = todayIdx >= 0 ? todayIdx : (continuousDays.findIndex((d) => d.weekOffset === 0) ?? 0);
 
     if (targetIdx >= 0) {
       const timeWidth = window.innerWidth < 640 ? 64 : 72;
@@ -602,7 +612,7 @@ export function TimetableGrid({
         left: Math.max(0, targetIdx * dayWidth),
         behavior: smooth ? 'smooth' : 'auto',
       });
-      setVisibleWeekOffset(0);
+      setVisibleWeekOffset(continuousDays[targetIdx]?.weekOffset ?? 0);
     }
   }, [continuousDays]);
 
@@ -627,13 +637,9 @@ export function TimetableGrid({
     const performInitialScroll = () => {
       if (!container || container.clientWidth < 100) return false;
 
+      // Calculated directly from the grid of today, not that week
       const todayIdx = continuousDays.findIndex((d) => d.isToday);
-      const weekStartIdx = continuousDays.findIndex(
-        (d) => d.weekOffset === 0 && d.dayIndexInWeek === 0
-      );
-      const targetIdx = (zoomDaysRef.current < 6 && todayIdx >= 0)
-        ? todayIdx
-        : (weekStartIdx >= 0 ? weekStartIdx : 0);
+      const targetIdx = todayIdx >= 0 ? todayIdx : (continuousDays.findIndex((d) => d.weekOffset === 0) ?? 0);
 
       const timeWidth = window.innerWidth < 640 ? 64 : 72;
       const dayAreaWidth = Math.max(1, container.clientWidth - timeWidth);
@@ -641,7 +647,7 @@ export function TimetableGrid({
       const targetLeft = Math.max(0, targetIdx * dayWidth);
 
       container.scrollLeft = targetLeft;
-      setVisibleWeekOffset(0);
+      setVisibleWeekOffset(continuousDays[targetIdx]?.weekOffset ?? 0);
       initialScrollDoneRef.current = true;
       setIsInitialPositioned(true);
       return true;
@@ -1057,7 +1063,7 @@ export function TimetableGrid({
                   style={{
                     gridColumn: vIdx + 2,
                     gridRow: 1,
-                    scrollSnapAlign: 'start',
+                    scrollSnapAlign: isFriday ? 'start' : 'none',
                     scrollSnapStop: 'normal',
                   }}
                 >
@@ -1137,7 +1143,7 @@ export function TimetableGrid({
                   style={{
                     gridColumn: vIdx + 2,
                     gridRow: 2,
-                    scrollSnapAlign: 'start',
+                    scrollSnapAlign: isFriday ? 'start' : 'none',
                     scrollSnapStop: 'normal',
                   }}
                 >
