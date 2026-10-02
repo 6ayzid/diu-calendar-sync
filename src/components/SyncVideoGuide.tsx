@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Smartphone, ChevronDown, ChevronUp, Play } from 'lucide-react';
 
 interface SyncVideoGuideProps {
@@ -10,11 +10,19 @@ interface SyncVideoGuideProps {
 }
 
 export function SyncVideoGuide({
-  defaultExpanded = false,
+  defaultExpanded = true,
   compact = false,
   className = '',
 }: SyncVideoGuideProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (isExpanded && videoRef.current) {
+      videoRef.current.muted = true;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [isExpanded]);
 
   return (
     <div
@@ -34,7 +42,7 @@ export function SyncVideoGuide({
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-slate-900 dark:text-white">
-                How to turn on Phone Notifications
+                Turn on Phone Notifications
               </span>
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-1.5 py-0.2 text-[10px] font-bold text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300">
                 <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
@@ -43,14 +51,14 @@ export function SyncVideoGuide({
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
               {isExpanded
-                ? 'Follow the screen steps below'
+                ? 'Settings ➔ DIU Routine ➔ Turn Sync ON'
                 : 'Tap to see how to enable sync in Android settings'}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400 shrink-0 ml-2">
-          <span className="hidden sm:inline">{isExpanded ? 'Hide' : 'Watch'}</span>
+          <span>{isExpanded ? 'Hide' : 'Watch'}</span>
           {isExpanded ? (
             <ChevronUp className="h-4 w-4" />
           ) : (
@@ -63,26 +71,25 @@ export function SyncVideoGuide({
       {isExpanded && (
         <div className="px-3 pb-3 sm:px-4 sm:pb-4 pt-1 space-y-3 border-t border-slate-200/80 dark:border-slate-800/80">
           {/* Micro-Copy Instruction */}
-          <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-            Open the <strong className="text-slate-900 dark:text-white">Google Calendar app</strong> on your Android phone, tap{' '}
-            <strong className="text-slate-900 dark:text-white">Settings (☰)</strong>, select your newly added DIU routine under your Google account, and switch{' '}
-            <strong className="text-emerald-700 dark:text-emerald-400 font-bold">Sync to ON</strong>. Classes and room updates will instantly appear on your home screen and notification shade.
+          <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed text-center">
+            In Android <strong className="text-slate-900 dark:text-white">Google Calendar app</strong>: tap <strong className="text-slate-900 dark:text-white">Settings (☰)</strong> ➔ select <strong className="text-slate-900 dark:text-white">DIU Routine</strong> ➔ switch <strong className="text-emerald-700 dark:text-emerald-400 font-bold">Sync to ON</strong>.
           </p>
 
-          {/* Video Container (Strict 9:20 aspect ratio matching 720x1600 recording) */}
+          {/* Video Container (Bigger 9:20 aspect ratio phone mockup) */}
           <div className="flex flex-col items-center">
             <div
               className={`relative overflow-hidden rounded-2xl border-2 border-slate-300 dark:border-slate-700 bg-black shadow-lg ${
-                compact ? 'w-[190px]' : 'w-[210px] sm:w-[230px]'
+                compact ? 'w-[230px] sm:w-[250px]' : 'w-[245px] sm:w-[270px]'
               }`}
             >
               <div className="relative aspect-[9/20] w-full overflow-hidden bg-black">
                 <video
+                  ref={videoRef}
                   autoPlay
                   loop
                   muted
                   playsInline
-                  preload="metadata"
+                  preload="auto"
                   disablePictureInPicture
                   disableRemotePlayback
                   aria-label="Screen recording demonstrating how to enable routine sync: open the Google Calendar app on Android, go to Settings, tap your Google account, select your newly added DIU routine calendar, and toggle the Sync switch to ON."

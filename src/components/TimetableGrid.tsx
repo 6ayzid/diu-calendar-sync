@@ -1309,12 +1309,18 @@ export function TimetableGrid({
                                 {(() => {
                                   const cardOverride = eventOverrides.find((ev) => {
                                     if (ev.status === 'CANCELLED') return false;
-                                    if (ev.date && d.isoDate && ev.date !== d.isoDate) return false;
-                                    if (ev.dayOfWeek && ev.dayOfWeek !== d.dayKey) return false;
-                                    const cClean = cleanCode.toUpperCase();
-                                    const evClean = ev.courseCode.split('(')[0].trim().toUpperCase();
+                                    if (ev.date) {
+                                      const matchesIso = d.isoDate && ev.date.trim() === d.isoDate.trim();
+                                      const dayNum = String(parseInt(ev.date.split('-')[2] || '0', 10));
+                                      const matchesDayNum = d.dayNumber === dayNum && (!ev.dayOfWeek || d.dayKey === ev.dayOfWeek);
+                                      if (!matchesIso && !matchesDayNum) return false;
+                                    } else if (ev.dayOfWeek && ev.dayOfWeek !== d.dayKey) {
+                                      return false;
+                                    }
+                                    const cClean = (cleanCode || c.courseCode || '').split('(')[0].trim().toUpperCase();
+                                    const evClean = (ev.courseCode || '').split('(')[0].trim().toUpperCase();
                                     if (cClean !== evClean) return false;
-                                    if (ev.startTime && ev.startTime !== c.startTime) return false;
+                                    if (ev.startTime && c.startTime && ev.startTime !== c.startTime) return false;
                                     return true;
                                   });
 
@@ -1323,7 +1329,7 @@ export function TimetableGrid({
                                   return (
                                     <span
                                       title={`${cardOverride.title}${cardOverride.description ? `: ${cardOverride.description}` : ''}`}
-                                      className="shrink-0 rounded px-1.5 py-0.2 text-[9px] font-bold font-mono bg-amber-400 text-amber-950 border border-amber-500/50 shadow-2xs relative z-10"
+                                      className="shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold font-mono uppercase bg-amber-400 text-amber-950 border border-amber-500/60 shadow-2xs relative z-10"
                                     >
                                       {cardOverride.type === 'ct' ? 'CT' : (cardOverride.type?.toUpperCase() || 'QUIZ')}
                                     </span>

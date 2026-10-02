@@ -234,7 +234,7 @@ export function SubscriptionActions({
             </div>
           </div>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Classes and room updates sync automatically.
+            Live routine subscription with room updates.
           </p>
         </div>
 
@@ -299,91 +299,32 @@ export function SubscriptionActions({
             ) : (
               <>
                 <Copy className="h-4.5 w-4.5" />
-                <span>Copy Link &amp; Open Google Settings</span>
+                <span>Copy Link &amp; Open Google Calendar</span>
                 <ExternalLink className="h-3.5 w-3.5 opacity-70" />
               </>
             )}
           </button>
 
-          {/* Chrome quick trick */}
-          <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-500/5 p-3 space-y-2">
-            <div className="flex items-center gap-2">
-              <Zap className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
-              <span className="font-bold text-slate-900 dark:text-white text-xs">
-                Fastest: Chrome &ldquo;Preview page&rdquo; trick
-              </span>
-            </div>
-            <ol className="list-decimal ml-4 space-y-0.5 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-              <li>Tap the green button above to copy the feed link.</li>
+          {/* Simple 2-step guide */}
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 p-3 text-xs text-slate-700 dark:text-slate-300 space-y-1.5">
+            <span className="font-bold text-slate-900 dark:text-white block">
+              2 quick steps:
+            </span>
+            <ol className="list-decimal ml-4 space-y-1 text-slate-600 dark:text-slate-400">
               <li>
-                <strong className="text-emerald-700 dark:text-emerald-400">
-                  Long-press
-                </strong>{' '}
-                the link below &rarr; tap{' '}
-                <strong className="text-slate-900 dark:text-white">
-                  &quot;Preview page&quot;
-                </strong>
-                .
+                Paste into <strong className="text-slate-900 dark:text-white">&quot;URL of calendar&quot;</strong> &rarr; tap <strong className="text-slate-900 dark:text-white">&quot;Add calendar&quot;</strong>.
               </li>
               <li>
-                Paste into{' '}
-                <strong className="text-slate-900 dark:text-white">
-                  &quot;URL of calendar&quot;
-                </strong>{' '}
-                &rarr;{' '}
-                <strong className="text-slate-900 dark:text-white">
-                  &quot;Add calendar&quot;
-                </strong>
-                . Done.
-              </li>
-            </ol>
-            <a
-              href={googleSettingsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={handleCopy}
-              className="inline-flex items-center gap-1 text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400 underline underline-offset-2 break-all select-all py-0.5"
-            >
-              Long-press this link
-              <ExternalLink className="h-3 w-3 shrink-0" />
-            </a>
-          </div>
-
-          {/* Fallback: any browser */}
-          <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 p-2.5 space-y-1 text-xs text-slate-700 dark:text-slate-300">
-            <div className="font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-              <Info className="h-3.5 w-3.5 text-sky-600 dark:text-sky-400 shrink-0" />
-              <span>Other mobile browsers:</span>
-            </div>
-            <ol className="list-decimal ml-4 space-y-0.5 text-slate-600 dark:text-slate-400">
-              <li>
-                In the opened tab, tap{' '}
-                <strong className="font-mono text-slate-900 dark:text-white">⋮</strong>{' '}
-                &rarr; enable{' '}
-                <strong className="text-slate-900 dark:text-white">
-                  &quot;Desktop site&quot;
-                </strong>
-                .
-              </li>
-              <li>
-                Paste into{' '}
-                <strong className="text-slate-900 dark:text-white">
-                  &quot;URL of calendar&quot;
-                </strong>{' '}
-                &rarr;{' '}
-                <strong className="text-slate-900 dark:text-white">
-                  &quot;Add calendar&quot;
-                </strong>
-                .
+                Turn <strong className="text-emerald-700 dark:text-emerald-400 font-bold">Sync ON</strong> in phone app (watch 12s video below).
               </li>
             </ol>
           </div>
 
-          {/* Sync video walkthrough */}
-          <SyncVideoGuide compact />
+          {/* Sync video walkthrough - expanded by default */}
+          <SyncVideoGuide defaultExpanded={true} />
 
           {/* Offline / Samsung fallback */}
-          <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+          <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200 dark:border-slate-800">
             <span>Samsung Calendar or offline?</span>
             <a
               href={apiPath}
@@ -406,7 +347,7 @@ export function SubscriptionActions({
               Apple Calendar — 1 Tap
             </h3>
             <p className="text-xs text-slate-600 dark:text-slate-400">
-              Opens your native calendar on iPhone, iPad, or Mac. Updates sync automatically.
+              1-tap subscription for iPhone, iPad, and Mac.
             </p>
           </div>
 
@@ -419,11 +360,7 @@ export function SubscriptionActions({
           </a>
 
           <p className="rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 p-2.5 text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-            When prompted, tap{' '}
-            <strong className="text-slate-900 dark:text-white">&quot;Subscribe&quot;</strong>,
-            set Auto-refresh to{' '}
-            <strong className="text-slate-900 dark:text-white">&quot;Every hour&quot;</strong>,
-            then tap Add.
+            When prompted: tap <strong className="text-slate-900 dark:text-white">&quot;Subscribe&quot;</strong> &rarr; set Auto-refresh to <strong className="text-slate-900 dark:text-white">&quot;Every hour&quot;</strong> &rarr; Add.
           </p>
 
           <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200 dark:border-slate-800">
@@ -450,7 +387,7 @@ export function SubscriptionActions({
               Google Calendar on PC
             </h3>
             <p className="text-xs text-slate-600 dark:text-slate-400">
-              1 click from your browser. Once added, it syncs to your phone automatically.
+              Add to your Google account in 1 click.
             </p>
           </div>
 
@@ -465,8 +402,8 @@ export function SubscriptionActions({
             <ExternalLink className="h-3.5 w-3.5 opacity-70" />
           </a>
 
-          {/* Sync walkthrough for phone notifications */}
-          <SyncVideoGuide compact />
+          {/* Sync walkthrough for phone notifications - expanded by default */}
+          <SyncVideoGuide defaultExpanded={true} />
 
           <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200 dark:border-slate-800">
             <a
