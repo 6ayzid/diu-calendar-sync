@@ -244,12 +244,12 @@ export function buildCalendarFeed(
       const typeTag = override.type.toUpperCase();
       const typeBadge =
         override.type === 'quiz' || override.type === 'ct'
-          ? '📝 [QUIZ]'
+          ? '[QUIZ]'
           : override.type === 'assignment'
-          ? '📑 [ASSIGNMENT]'
+          ? '[ASSIGNMENT]'
           : override.type === 'presentation'
-          ? '🎤 [PRESENTATION]'
-          : `📢 [${typeTag}]`;
+          ? '[PRESENTATION]'
+          : `[${typeTag}]`;
 
       const targetRoom = override.room || matchingClass?.room || 'Campus';
       const cleanRoom = targetRoom.split('(')[0].trim();
@@ -288,7 +288,7 @@ export function buildCalendarFeed(
           : matchingClass.sectionId || sectionBadge;
 
         const description = [
-          `⚠️ ANNOUNCEMENT: ${override.title}`,
+          `ANNOUNCEMENT: ${override.title}`,
           override.description ? `${override.description}` : '',
           ``,
           `Instructor: ${instructorName}`,
@@ -334,7 +334,7 @@ export function buildCalendarFeed(
           timezone,
           summary: `${typeBadge} ${override.courseCode} - ${override.title}`,
           description: [
-            `⚠️ ANNOUNCEMENT: ${override.title}`,
+            `ANNOUNCEMENT: ${override.title}`,
             override.description ? `${override.description}` : '',
             `Room: ${targetRoom}`,
             ``,

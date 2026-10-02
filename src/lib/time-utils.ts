@@ -156,7 +156,7 @@ export function getCurrentWeekScheduleDays(weekOffset: number = 0): WeekSchedule
       Tue: 3,
       Wed: 4,
       Thu: 5,
-      Fri: 6,
+      Fri: -1, // On Friday, semester classes resume tomorrow (Sat = today + 1 day)
     };
     const offsetFromSat = dayOffsets[weekdayStr] ?? 0;
     const saturdayMs = todayDhaka.getTime() - offsetFromSat * 24 * 60 * 60 * 1000 + (weekOffset * 7 * 24 * 60 * 60 * 1000);
@@ -190,7 +190,7 @@ export function getCurrentWeekScheduleDays(weekOffset: number = 0): WeekSchedule
         weekday: 'long',
       }).format(stepDate);
 
-      const isToday = weekOffset === 0 && offsetFromSat === i && weekdayStr !== 'Fri';
+      const isToday = weekOffset === 0 && weekdayStr !== 'Fri' && offsetFromSat === i;
 
       const isoDate = new Intl.DateTimeFormat('en-CA', {
         timeZone: 'Asia/Dhaka',
@@ -233,9 +233,9 @@ export function getCurrentWeekScheduleDays(weekOffset: number = 0): WeekSchedule
 
 export interface ContinuousScheduleDay {
   weekOffset: number;
-  dayIndexInWeek: number; // 0 (Sat) to 6 (Fri)
+  dayIndexInWeek: number; // 0 (Sat) to 5 (Thu)
   globalDayIndex: number;
-  dayKey: DayOfWeek | 'FRIDAY';
+  dayKey: DayOfWeek;
   dayLabel: string;
   dayShort: string;
   dayNumber: string;
@@ -245,18 +245,18 @@ export interface ContinuousScheduleDay {
   formattedDate: string;
   fullFormatted: string;
   isToday: boolean;
-  isFriday: boolean;
+  isFriday?: boolean;
   isWeekStart: boolean;
   isoDate: string;
 }
 
 /**
- * Returns continuous multi-week schedule days (7 days per week: Sat to Fri).
+ * Returns continuous multi-week schedule days (strictly the 6 academic days: Sat to Thu).
  * Enables seamless horizontal scrolling from past weeks to present to future weeks.
  */
 export function getContinuousScheduleDays(
-  startWeekOffset: number = -2,
-  endWeekOffset: number = 6
+  startWeekOffset: number = -3,
+  endWeekOffset: number = 8
 ): ContinuousScheduleDay[] {
   try {
     const now = new Date();
@@ -282,19 +282,18 @@ export function getContinuousScheduleDays(
       Tue: 3,
       Wed: 4,
       Thu: 5,
-      Fri: 6,
+      Fri: -1, // On Friday, semester classes resume tomorrow (Sat = today + 1 day)
     };
     const offsetFromSat = dayOffsets[weekdayStr] ?? 0;
     const baseSaturdayMs = todayDhaka.getTime() - offsetFromSat * 24 * 60 * 60 * 1000;
 
-    const daysInWeek: { key: DayOfWeek | 'FRIDAY'; label: string; short: string }[] = [
+    const daysInWeek: { key: DayOfWeek; label: string; short: string }[] = [
       { key: 'SATURDAY', label: 'Saturday', short: 'Sat' },
       { key: 'SUNDAY', label: 'Sunday', short: 'Sun' },
       { key: 'MONDAY', label: 'Monday', short: 'Mon' },
       { key: 'TUESDAY', label: 'Tuesday', short: 'Tue' },
       { key: 'WEDNESDAY', label: 'Wednesday', short: 'Wed' },
       { key: 'THURSDAY', label: 'Thursday', short: 'Thu' },
-      { key: 'FRIDAY', label: 'Friday', short: 'Fri' },
     ];
 
     const result: ContinuousScheduleDay[] = [];
@@ -303,7 +302,7 @@ export function getContinuousScheduleDays(
     for (let w = startWeekOffset; w <= endWeekOffset; w++) {
       const weekSaturdayMs = baseSaturdayMs + w * 7 * 24 * 60 * 60 * 1000;
 
-      for (let d = 0; d < 7; d++) {
+      for (let d = 0; d < 6; d++) {
         const stepDate = new Date(weekSaturdayMs + d * 24 * 60 * 60 * 1000);
 
         const dayNum = new Intl.DateTimeFormat('en-US', {
@@ -338,8 +337,7 @@ export function getContinuousScheduleDays(
           day: '2-digit',
         }).format(stepDate);
 
-        const isToday = w === 0 && d === offsetFromSat;
-        const isFriday = d === 6;
+        const isToday = w === 0 && weekdayStr !== 'Fri' && d === offsetFromSat;
 
         result.push({
           weekOffset: w,
@@ -355,7 +353,6 @@ export function getContinuousScheduleDays(
           formattedDate: `${monthShort} ${dayNum}`,
           fullFormatted: `${weekdayLong}, ${monthShort} ${dayNum}`,
           isToday,
-          isFriday,
           isWeekStart: d === 0,
           isoDate,
         });
