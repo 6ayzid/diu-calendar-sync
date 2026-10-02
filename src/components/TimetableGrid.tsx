@@ -124,6 +124,18 @@ export function TimetableGrid({
   // Current visible week offset based on horizontal scroll position
   const [visibleWeekOffset, setVisibleWeekOffset] = useState<number>(0);
 
+  // Whether Today is currently present onscreen inside the matrix scroll viewport
+  const [isTodayVisible, setIsTodayVisible] = useState<boolean>(true);
+  const isTodayVisibleRef = useRef<boolean>(true);
+
+  // Range of day indices currently visible onscreen
+  const [visibleDateRange, setVisibleDateRange] = useState<{ startIdx: number; endIdx: number }>(() => {
+    const todayIdx = continuousDays.findIndex((d) => d.isToday);
+    const start = todayIdx >= 0 ? todayIdx : 0;
+    return { startIdx: start, endIdx: Math.min(continuousDays.length - 1, start + 2) };
+  });
+  const visibleDateRangeRef = useRef(visibleDateRange);
+
   // Matrix view scroll reference and selected day
   const matrixScrollRef = useRef<HTMLDivElement>(null);
   const scrollRafRef = useRef<number | null>(null);
@@ -284,12 +296,13 @@ export function TimetableGrid({
       if (zoomDaysRef.current > limit) {
         triggerSpringBounce(limit);
       }
+      handleMatrixScroll();
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [getCompressionLimit, triggerSpringBounce]);
 
-  // Update active week and day based on user horizontal scrolling / dragging
+  // Update active week, visible day range, and today visibility based on horizontal scrolling / dragging
   const handleMatrixScroll = () => {
     if (scrollRafRef.current !== null) return;
 
@@ -309,6 +322,37 @@ export function TimetableGrid({
         Math.min(continuousDays.length - 1, Math.floor(centerScrollLeft / dayWidth))
       );
       const centerDay = continuousDays[centerDayIdx];
+
+      // Visible day indices range in viewport
+      // A day is visible if a meaningful portion (>= 20px) is inside [scrollLeft, scrollLeft + dayAreaWidth]
+      const startDayIdx = Math.max(
+        0,
+        Math.min(continuousDays.length - 1, Math.floor((scrollLeft + 20) / dayWidth))
+      );
+      const endDayIdx = Math.max(
+        0,
+        Math.min(
+          continuousDays.length - 1,
+          Math.floor((scrollLeft + dayAreaWidth - 20) / dayWidth)
+        )
+      );
+
+      // Check whether Today's column is currently present on screen
+      const todayIdx = continuousDays.findIndex((d) => d.isToday);
+      const todayOnScreen = todayIdx >= 0 && todayIdx >= startDayIdx && todayIdx <= endDayIdx;
+
+      if (todayOnScreen !== isTodayVisibleRef.current) {
+        isTodayVisibleRef.current = todayOnScreen;
+        setIsTodayVisible(todayOnScreen);
+      }
+
+      if (
+        startDayIdx !== visibleDateRangeRef.current.startIdx ||
+        endDayIdx !== visibleDateRangeRef.current.endIdx
+      ) {
+        visibleDateRangeRef.current = { startIdx: startDayIdx, endIdx: endDayIdx };
+        setVisibleDateRange({ startIdx: startDayIdx, endIdx: endDayIdx });
+      }
 
       // Left-most visible day for active day selection
       const leftDayIdx = Math.max(
@@ -598,16 +642,39 @@ export function TimetableGrid({
         behavior: smooth ? 'smooth' : 'auto',
       });
       setVisibleWeekOffset(continuousDays[targetIdx]?.weekOffset ?? 0);
+      isTodayVisibleRef.current = true;
+      setIsTodayVisible(true);
     }
   }, [continuousDays, getTimeColWidth]);
 
-  const handlePrevWeek = useCallback(() => {
-    scrollToWeek(visibleWeekOffset - 1, true);
-  }, [visibleWeekOffset, scrollToWeek]);
+  const handlePrev = useCallback(() => {
+    if (!matrixScrollRef.current) return;
+    const container = matrixScrollRef.current;
+    const timeWidth = getTimeColWidth();
+    const dayAreaWidth = Math.max(1, container.clientWidth - timeWidth);
+    const dayWidth = dayAreaWidth / zoomDaysRef.current;
+    const shift = Math.max(1, Math.round(zoomDaysRef.current));
+    container.scrollBy({
+      left: -shift * dayWidth,
+      behavior: 'smooth',
+    });
+  }, [getTimeColWidth]);
 
-  const handleNextWeek = useCallback(() => {
-    scrollToWeek(visibleWeekOffset + 1, true);
-  }, [visibleWeekOffset, scrollToWeek]);
+  const handleNext = useCallback(() => {
+    if (!matrixScrollRef.current) return;
+    const container = matrixScrollRef.current;
+    const timeWidth = getTimeColWidth();
+    const dayAreaWidth = Math.max(1, container.clientWidth - timeWidth);
+    const dayWidth = dayAreaWidth / zoomDaysRef.current;
+    const shift = Math.max(1, Math.round(zoomDaysRef.current));
+    container.scrollBy({
+      left: shift * dayWidth,
+      behavior: 'smooth',
+    });
+  }, [getTimeColWidth]);
+
+  const handlePrevWeek = handlePrev;
+  const handleNextWeek = handleNext;
 
   const handleResetWeek = useCallback(() => {
     scrollToToday(true);
@@ -635,6 +702,16 @@ export function TimetableGrid({
       setVisibleWeekOffset(continuousDays[targetIdx]?.weekOffset ?? 0);
       initialScrollDoneRef.current = true;
       setIsInitialPositioned(true);
+
+      const startDayIdx = targetIdx;
+      const endDayIdx = Math.min(
+        continuousDays.length - 1,
+        targetIdx + Math.max(1, Math.round(zoomDaysRef.current)) - 1
+      );
+      visibleDateRangeRef.current = { startIdx: startDayIdx, endIdx: endDayIdx };
+      setVisibleDateRange({ startIdx: startDayIdx, endIdx: endDayIdx });
+      isTodayVisibleRef.current = true;
+      setIsTodayVisible(true);
       return true;
     };
 
@@ -659,7 +736,7 @@ export function TimetableGrid({
       cancelAnimationFrame(rafId);
       ro.disconnect();
     };
-  }, [continuousDays]);
+  }, [continuousDays, getTimeColWidth]);
 
   // Maintain position at Today / Week 0 if toggled from agenda to matrix
   useEffect(() => {
@@ -671,16 +748,17 @@ export function TimetableGrid({
     }
   }, [effectiveViewMode, scrollToToday]);
 
-  // Dynamic Notion Calendar Date Title based on visible week
+  // Dynamic Notion Calendar Date Title based on visible days onscreen
   const notionDateTitle = useMemo(() => {
     if (effectiveViewMode === 'agenda') {
       const firstUpcoming = upcomingDays[0];
       return firstUpcoming ? `${firstUpcoming.monthLong} ${firstUpcoming.year || 2026}` : 'Schedule';
     }
 
-    const currentWeekDays = continuousDays.filter((d) => d.weekOffset === visibleWeekOffset);
-    const first = currentWeekDays[0];
-    const last = currentWeekDays[currentWeekDays.length - 1];
+    if (continuousDays.length === 0) return 'October 2026';
+
+    const first = continuousDays[visibleDateRange.startIdx] || continuousDays[0];
+    const last = continuousDays[visibleDateRange.endIdx] || first;
     if (first && last) {
       if (first.monthShort === last.monthShort) {
         return `${first.monthLong} ${first.year}`;
@@ -688,7 +766,7 @@ export function TimetableGrid({
       return `${first.monthShort} – ${last.monthShort} ${last.year}`;
     }
     return 'October 2026';
-  }, [continuousDays, visibleWeekOffset, effectiveViewMode, upcomingDays]);
+  }, [continuousDays, visibleDateRange, effectiveViewMode, upcomingDays]);
 
   // Calendar View Keyboard Shortcuts: W for Week, A for Agenda, Arrows/J/K for Week Navigation
   useEffect(() => {
@@ -707,21 +785,21 @@ export function TimetableGrid({
       } else if (e.key === 'a' || e.key === 'A') {
         e.preventDefault();
         setEffectiveViewMode('agenda');
-      } else if (effectiveViewMode === 'matrix' && (e.key === 'ArrowDown' || e.key === 'j' || e.key === 'J' || e.key === 'PageDown')) {
+      } else if (effectiveViewMode === 'matrix' && (e.key === 'ArrowDown' || e.key === 'j' || e.key === 'J' || e.key === 'PageDown' || e.key === 'ArrowRight')) {
         e.preventDefault();
-        handleNextWeek();
-      } else if (effectiveViewMode === 'matrix' && (e.key === 'ArrowUp' || e.key === 'k' || e.key === 'K' || e.key === 'PageUp')) {
+        handleNext();
+      } else if (effectiveViewMode === 'matrix' && (e.key === 'ArrowUp' || e.key === 'k' || e.key === 'K' || e.key === 'PageUp' || e.key === 'ArrowLeft')) {
         e.preventDefault();
-        handlePrevWeek();
+        handlePrev();
       } else if (effectiveViewMode === 'matrix' && (e.key === 't' || e.key === 'T')) {
         e.preventDefault();
-        handleResetWeek();
+        scrollToToday(true);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [effectiveViewMode, setEffectiveViewMode, handleNextWeek, handlePrevWeek, handleResetWeek]);
+  }, [effectiveViewMode, setEffectiveViewMode, handleNext, handlePrev, scrollToToday]);
 
 
 
@@ -805,49 +883,51 @@ export function TimetableGrid({
               <span>{notionDateTitle}</span>
             </h2>
 
-            {/* Minimal Week Navigation Controls (‹ Today ›) - ONLY in Week view */}
+            {/* Navigation Controls: Chevron pair [ ‹ | › ] + sleek [ • Today ] button when offscreen */}
             {effectiveViewMode === 'matrix' && (
-              <>
-                <div className="inline-flex items-center gap-0.5 rounded-lg border border-slate-200/90 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-950 p-0.5 shadow-2xs shrink-0">
+              <div className="flex items-center gap-1.5 shrink-0">
+                <div className="inline-flex items-center rounded-lg border border-slate-200/90 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-950 p-0.5 shadow-2xs shrink-0">
                   <button
                     type="button"
-                    onClick={handlePrevWeek}
-                    title="Previous week (or scroll up / ↑)"
-                    aria-label="Previous week"
+                    onClick={handlePrev}
+                    title="Previous (or scroll left / ←)"
+                    aria-label="Previous days"
                     className="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
                   >
                     <ChevronLeft className="w-3.5 h-3.5" />
                   </button>
-
-                  {visibleWeekOffset !== 0 ? (
-                    <button
-                      type="button"
-                      onClick={handleResetWeek}
-                      title="Jump to current week (or press T)"
-                      className="px-1.5 py-0.5 text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400 hover:bg-white dark:hover:bg-slate-800 rounded transition-colors cursor-pointer"
-                    >
-                      Today
-                    </button>
-                  ) : null}
-
                   <button
                     type="button"
-                    onClick={handleNextWeek}
-                    title="Next week (or scroll down / ↓)"
-                    aria-label="Next week"
+                    onClick={handleNext}
+                    title="Next (or scroll right / →)"
+                    aria-label="Next days"
                     className="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
                   >
                     <ChevronRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
+                {/* Professional Notion Calendar-style "Today" pill button - shown ONLY when Today is NOT present onscreen */}
+                {!isTodayVisible && (
+                  <button
+                    type="button"
+                    onClick={() => scrollToToday(true)}
+                    title="Jump to Today (or press T)"
+                    aria-label="Jump to Today"
+                    className="inline-flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 text-[11px] sm:text-xs font-semibold rounded-lg border border-emerald-500/35 dark:border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 shadow-2xs transition-all duration-150 cursor-pointer active:scale-95 animate-in fade-in zoom-in-95"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
+                    <span>Today</span>
+                  </button>
+                )}
+
                 {/* Relative week badge when not on current week - subtle, non attention-grabby */}
-                {relativeWeekLabel && (
+                {relativeWeekLabel && !isTodayVisible && (
                   <span className="hidden md:inline-flex items-center text-[10px] font-mono font-medium text-slate-500 dark:text-slate-400 bg-slate-100/70 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800/60 px-1.5 py-0.5 rounded-md select-none shrink-0">
                     {relativeWeekLabel}
                   </span>
                 )}
-              </>
+              </div>
             )}
 
             {/* Desktop-only VersionBadge placement inline with title */}
@@ -1040,7 +1120,11 @@ export function TimetableGrid({
                 <div
                   key={`hdr-${d.globalDayIndex}-${d.dayKey}-${d.formattedDate}`}
                   id={`matrix-col-${d.weekOffset}-${d.dayKey}`}
-                  className={`sticky top-0 z-26 flex flex-col items-center justify-center py-2 px-1 text-center bg-slate-50 dark:bg-[#080d1a] border-b border-b-slate-200 dark:border-b-slate-800 transition-colors ${
+                  className={`sticky top-0 z-26 flex flex-col items-center justify-center py-2 px-1 text-center border-b transition-colors ${
+                    isToday
+                      ? 'bg-emerald-500/[0.04] dark:bg-emerald-500/[0.07] border-b-emerald-500/40 dark:border-b-emerald-500/40'
+                      : 'bg-slate-50 dark:bg-[#080d1a] border-b-slate-200 dark:border-b-slate-800'
+                  } ${
                     isWeekStart
                       ? 'border-l-2 border-l-slate-300 dark:border-l-slate-700'
                       : 'border-l border-l-slate-200 dark:border-l-slate-800'
@@ -1054,9 +1138,9 @@ export function TimetableGrid({
                 >
                   <div className="flex items-center gap-1">
                     <span
-                      className={`text-[11px] font-mono font-bold uppercase tracking-wider ${
+                      className={`text-[11px] font-semibold uppercase tracking-wider ${
                         isToday
-                          ? 'text-emerald-600 dark:text-emerald-400'
+                          ? 'text-emerald-600 dark:text-emerald-400 font-bold'
                           : isFriday
                           ? 'text-slate-400 dark:text-slate-500'
                           : 'text-slate-500 dark:text-slate-400'
@@ -1071,9 +1155,9 @@ export function TimetableGrid({
                     )}
                   </div>
                   <span
-                    className={`mt-0.5 inline-flex items-center justify-center font-bold text-xs sm:text-sm h-7 w-7 rounded-full ${
+                    className={`mt-0.5 inline-flex items-center justify-center font-bold text-xs sm:text-sm h-7 w-7 rounded-full transition-all ${
                       isToday
-                        ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-emerald-950 shadow-xs'
+                        ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-white shadow-xs ring-2 ring-emerald-500/25 dark:ring-emerald-400/30'
                         : isFriday
                         ? 'text-slate-400 dark:text-slate-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/40'
                         : 'text-slate-800 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
@@ -1124,7 +1208,9 @@ export function TimetableGrid({
                     isWeekStart
                       ? 'border-l-2 border-l-slate-300 dark:border-l-slate-700'
                       : 'border-l border-slate-200 dark:border-slate-800/80'
-                  } ${isFriday ? 'bg-slate-100/30 dark:bg-slate-900/20' : ''}`}
+                  } ${isToday ? 'bg-emerald-500/[0.015] dark:bg-emerald-500/[0.025]' : ''} ${
+                    isFriday ? 'bg-slate-100/30 dark:bg-slate-900/20' : ''
+                  }`}
                   style={{
                     gridColumn: vIdx + 2,
                     gridRow: 2,
