@@ -907,17 +907,16 @@ export function TimetableGrid({
                   </button>
                 </div>
 
-                {/* Professional Notion Calendar-style "Today" pill button - shown ONLY when Today is NOT present onscreen */}
+                {/* Subtle, understated "Today" button - shown ONLY when Today is NOT present onscreen */}
                 {!isTodayVisible && (
                   <button
                     type="button"
                     onClick={() => scrollToToday(true)}
                     title="Jump to Today (or press T)"
                     aria-label="Jump to Today"
-                    className="inline-flex items-center gap-1.5 px-2 py-0.5 sm:px-2.5 sm:py-1 text-[11px] sm:text-xs font-semibold rounded-lg border border-emerald-500/35 dark:border-emerald-500/40 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 shadow-2xs transition-all duration-150 cursor-pointer active:scale-95 animate-in fade-in zoom-in-95"
+                    className="inline-flex items-center px-2 py-1 sm:px-2.5 sm:py-1 text-[11px] sm:text-xs font-medium rounded-lg border border-slate-200/90 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-800 shadow-2xs transition-colors cursor-pointer active:scale-95"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-pulse" />
-                    <span>Today</span>
+                    Today
                   </button>
                 )}
 
