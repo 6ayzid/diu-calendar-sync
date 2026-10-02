@@ -536,27 +536,27 @@ export function TimetableGrid({
       const dayAreaWidth = Math.max(1, container.clientWidth - timeWidth);
       const dayWidth = dayAreaWidth / zoomDaysRef.current;
 
-      // Only lightly snap to weekend grids (Friday) if within half a grid threshold
+      // Only lightly snap to Saturday (start of week / end of Friday) if within half a grid threshold
       const currentPos = container.scrollLeft;
-      const fridayIndices = continuousDays
-        .map((d, i) => (d.isFriday ? i : -1))
+      const saturdayIndices = continuousDays
+        .map((d, i) => (d.isWeekStart ? i : -1))
         .filter((i) => i >= 0);
 
-      let closestFridayIdx = -1;
+      let closestSaturdayIdx = -1;
       let minDistance = Infinity;
 
-      for (const idx of fridayIndices) {
-        const fridayLeft = idx * dayWidth;
-        const dist = Math.abs(currentPos - fridayLeft);
+      for (const idx of saturdayIndices) {
+        const satLeft = idx * dayWidth;
+        const dist = Math.abs(currentPos - satLeft);
         if (dist < minDistance) {
           minDistance = dist;
-          closestFridayIdx = idx;
+          closestSaturdayIdx = idx;
         }
       }
 
-      if (closestFridayIdx >= 0 && minDistance < dayWidth * 0.5) {
+      if (closestSaturdayIdx >= 0 && minDistance < dayWidth * 0.5) {
         container.scrollTo({
-          left: closestFridayIdx * dayWidth,
+          left: closestSaturdayIdx * dayWidth,
           behavior: 'smooth',
         });
       }
@@ -579,6 +579,27 @@ export function TimetableGrid({
     return `${visibleWeekOffset} wks`;
   }, [visibleWeekOffset]);
 
+  // Resolves the Saturday target index (at the end of Friday): on Friday (weekend), targets tomorrow Saturday; on other days, targets this week's Saturday
+  const getTargetSaturdayIdx = useCallback(() => {
+    const todayIdx = continuousDays.findIndex((d) => d.isToday);
+    if (todayIdx >= 0) {
+      const todayItem = continuousDays[todayIdx];
+      // On Friday (weekend), the academic week resumes tomorrow on Saturday (end of Friday)
+      if (todayItem.isFriday && todayIdx + 1 < continuousDays.length) {
+        return todayIdx + 1;
+      }
+      // If today is a class day, align to the start of this academic week (Saturday)
+      const weekSatIdx = continuousDays.findIndex(
+        (d) => d.weekOffset === todayItem.weekOffset && d.isWeekStart
+      );
+      if (weekSatIdx >= 0) return weekSatIdx;
+    }
+    const currentWeekSaturday = continuousDays.findIndex(
+      (d) => d.weekOffset === 0 && d.isWeekStart
+    );
+    return currentWeekSaturday >= 0 ? currentWeekSaturday : (todayIdx >= 0 ? todayIdx : 0);
+  }, [continuousDays]);
+
   const scrollToWeek = useCallback((targetOffset: number, smooth = true) => {
     if (!matrixScrollRef.current) return;
     const container = matrixScrollRef.current;
@@ -600,9 +621,7 @@ export function TimetableGrid({
   const scrollToToday = useCallback((smooth = true) => {
     if (!matrixScrollRef.current) return;
     const container = matrixScrollRef.current;
-    const todayIdx = continuousDays.findIndex((d) => d.isToday);
-    // Calculated directly from the grid of today, not the start of that week
-    const targetIdx = todayIdx >= 0 ? todayIdx : (continuousDays.findIndex((d) => d.weekOffset === 0) ?? 0);
+    const targetIdx = getTargetSaturdayIdx();
 
     if (targetIdx >= 0) {
       const timeWidth = window.innerWidth < 640 ? 64 : 72;
@@ -614,7 +633,7 @@ export function TimetableGrid({
       });
       setVisibleWeekOffset(continuousDays[targetIdx]?.weekOffset ?? 0);
     }
-  }, [continuousDays]);
+  }, [continuousDays, getTargetSaturdayIdx]);
 
   const handlePrevWeek = useCallback(() => {
     scrollToWeek(visibleWeekOffset - 1, true);
@@ -637,9 +656,8 @@ export function TimetableGrid({
     const performInitialScroll = () => {
       if (!container || container.clientWidth < 100) return false;
 
-      // Calculated directly from the grid of today, not that week
-      const todayIdx = continuousDays.findIndex((d) => d.isToday);
-      const targetIdx = todayIdx >= 0 ? todayIdx : (continuousDays.findIndex((d) => d.weekOffset === 0) ?? 0);
+      // Start at Saturday (end of Friday)
+      const targetIdx = getTargetSaturdayIdx();
 
       const timeWidth = window.innerWidth < 640 ? 64 : 72;
       const dayAreaWidth = Math.max(1, container.clientWidth - timeWidth);
@@ -1063,7 +1081,7 @@ export function TimetableGrid({
                   style={{
                     gridColumn: vIdx + 2,
                     gridRow: 1,
-                    scrollSnapAlign: isFriday ? 'start' : 'none',
+                    scrollSnapAlign: isWeekStart ? 'start' : 'none',
                     scrollSnapStop: 'normal',
                   }}
                 >
@@ -1143,7 +1161,7 @@ export function TimetableGrid({
                   style={{
                     gridColumn: vIdx + 2,
                     gridRow: 2,
-                    scrollSnapAlign: isFriday ? 'start' : 'none',
+                    scrollSnapAlign: isWeekStart ? 'start' : 'none',
                     scrollSnapStop: 'normal',
                   }}
                 >
