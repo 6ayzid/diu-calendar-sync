@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getScheduleWithMeta, getSection, getScheduleForFacultyWithMeta } from '@/lib/schedule';
 
 function formatShortVersion(v?: string): string {
-  if (!v) return 'v3.1';
+  if (!v) return 'v4.1';
   const match = v.match(/\bv?([0-9]+(?:\.[0-9]+)?)\b/i);
   return match ? `v${match[1]}` : (v.toLowerCase().startsWith('v') ? v : `v${v}`);
 }
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
       },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
         },
       }
     );
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     },
     {
       headers: {
-        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
       },
     }
   );

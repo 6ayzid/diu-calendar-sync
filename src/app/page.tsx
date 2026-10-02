@@ -31,8 +31,28 @@ import {
 } from '@/lib/compare-utils';
 import { Search, Sparkles, CalendarDays, WifiOff, RefreshCw } from 'lucide-react';
 
-// 30 minutes client-side routine cache TTL to prevent background API hammering
-const ROUTINE_CACHE_TTL_MS = 30 * 60 * 1000;
+const SYNCED_VERSION_KEY = 'diu_synced_routine_version';
+
+function purgeOldVersionCaches(activeVersion: string) {
+  if (typeof window === 'undefined') return;
+  try {
+    const keysToRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      // Invalidate and remove routine caches from old versions or legacy unversioned caches
+      if (k.startsWith('diu_cached_routine_')) {
+        if (!k.startsWith(`diu_cached_routine_${activeVersion}_`)) {
+          keysToRemove.push(k);
+        }
+      }
+    }
+    keysToRemove.forEach((k) => localStorage.removeItem(k));
+    localStorage.setItem(SYNCED_VERSION_KEY, activeVersion);
+  } catch {
+    // Ignore storage quota errors
+  }
+}
 
 export default function Home() {
   // 1. Initialize Active Target State (Section or Faculty) - null when unselected
@@ -107,7 +127,17 @@ export default function Home() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isScheduleLoading, setIsScheduleLoading] = useState(false);
   const [liveSchedule, setLiveSchedule] = useState<RoutineClass[] | null>(null);
-  const [routineVersion, setRoutineVersion] = useState<string>('v3.1');
+  const [routineVersion, setRoutineVersion] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(SYNCED_VERSION_KEY);
+        if (saved && saved.trim()) return saved.trim();
+      } catch {
+        // Ignore
+      }
+    }
+    return 'v4.1';
+  });
   const [isOfflineCached, setIsOfflineCached] = useState(false);
   const [fetchError, setFetchError] = useState(false);
   const [reloadTrigger, setReloadTrigger] = useState(0);
@@ -401,13 +431,60 @@ export default function Home() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isSectionPickerOpen]);
 
-  // Cache helpers for offline support
-  const getCacheKey = useCallback((target: ActiveRoutineTarget) => {
-    if (target.type === 'faculty') {
-      return `diu_cached_routine_t_${target.faculty.code.toUpperCase()}`;
-    }
-    return `diu_cached_routine_s_${target.section.id}_sub_${target.subSection}`;
+  // 1. Lightweight Version Check on mount / page refresh
+  // Asks for version info from the server, and only version info.
+  // If version matches synced version, keep cached data.
+  // If version changes, the whole site's version changes and old caches are purged.
+  useEffect(() => {
+    let isCancelled = false;
+
+    fetch(`/api/routine_version?t=${Date.now()}`, { cache: 'no-store' })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        if (isCancelled || !data.success || !data.version) return;
+
+        const serverVersion = String(data.version).trim();
+        const storedVersion =
+          typeof window !== 'undefined'
+            ? localStorage.getItem(SYNCED_VERSION_KEY)
+            : null;
+
+        // If version info matches with currently synced version, do nothing: show cached data!
+        if (storedVersion && serverVersion === storedVersion) {
+          return;
+        }
+
+        // If version changes (or first sync), whole site's version changes!
+        console.info(
+          `[Routine Version] Upstream routine version updated to ${serverVersion}. Purging previous cache.`
+        );
+        purgeOldVersionCaches(serverVersion);
+        setRoutineVersion(serverVersion);
+        setReloadTrigger((prev) => prev + 1);
+      })
+      .catch((err) => {
+        console.warn('Routine version query fallback:', err);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
   }, []);
+
+  // Cache helpers for offline and instant retrieval namespaced by routine version
+  const getCacheKey = useCallback(
+    (target: ActiveRoutineTarget, ver?: string) => {
+      const v = ver || routineVersion;
+      if (target.type === 'faculty') {
+        return `diu_cached_routine_${v}_t_${target.faculty.code.toUpperCase()}`;
+      }
+      return `diu_cached_routine_${v}_s_${target.section.id}_sub_${target.subSection}`;
+    },
+    [routineVersion]
+  );
 
   // Stable string primitive representing what routine needs to be fetched
   const activeScheduleKey = useMemo(() => {
@@ -425,7 +502,7 @@ export default function Home() {
 
   const lastReloadTriggerRef = useRef(reloadTrigger);
 
-  // Fetch live schedule whenever activeScheduleKey or manual reloadTrigger changes
+  // Fetch live schedule whenever activeScheduleKey, routineVersion, or manual reloadTrigger changes
   useEffect(() => {
     if (!isInitialized || !hasSavedPreference || !activeScheduleKey || !activeTargetRef.current) {
       return;
@@ -433,12 +510,13 @@ export default function Home() {
 
     let isCancelled = false;
     const currentTarget = activeTargetRef.current;
-    const cacheKey = getCacheKey(currentTarget);
+    const currentVersion = routineVersion;
+    const cacheKey = getCacheKey(currentTarget, currentVersion);
     const isManualReload = lastReloadTriggerRef.current !== reloadTrigger;
     lastReloadTriggerRef.current = reloadTrigger;
 
     // 1. Try reading cached schedule from localStorage
-    let cachedData: { classes: RoutineClass[]; version?: string; cachedAt?: number } | null = null;
+    let cachedData: { classes: RoutineClass[]; version?: string } | null = null;
     try {
       if (typeof window !== 'undefined') {
         const raw = localStorage.getItem(cacheKey);
@@ -447,8 +525,7 @@ export default function Home() {
           if (Array.isArray(parsed.classes) && parsed.classes.length > 0) {
             cachedData = {
               classes: parsed.classes,
-              version: parsed.version,
-              cachedAt: typeof parsed.cachedAt === 'number' ? parsed.cachedAt : 0,
+              version: parsed.version || currentVersion,
             };
           }
         }
@@ -457,23 +534,19 @@ export default function Home() {
       // Ignore localStorage parse errors
     }
 
-    const isCacheFresh =
-      cachedData &&
-      typeof cachedData.cachedAt === 'number' &&
-      cachedData.cachedAt > 0 &&
-      Date.now() - cachedData.cachedAt < ROUTINE_CACHE_TTL_MS;
-
-    if (cachedData) {
+    // If version info matches and cached data exists, show cached data!
+    if (cachedData && !isManualReload) {
       setLiveSchedule(cachedData.classes);
-      if (cachedData.version) setRoutineVersion(cachedData.version);
       setIsOfflineCached(false);
       setFetchError(false);
       setIsScheduleLoading(false);
+      return;
+    }
 
-      // If cache is fresh and not an explicit user-initiated reload, skip network call!
-      if (isCacheFresh && !isManualReload) {
-        return;
-      }
+    if (cachedData && isManualReload) {
+      // Show existing cached data while updating in background
+      setLiveSchedule(cachedData.classes);
+      setIsScheduleLoading(true);
     } else {
       setLiveSchedule(null);
       setIsScheduleLoading(true);
@@ -481,12 +554,14 @@ export default function Home() {
       setIsOfflineCached(false);
     }
 
+    const versionParam = `&v=${encodeURIComponent(currentVersion)}`;
+    const cacheBuster = isManualReload ? `&t=${Date.now()}` : '';
     const endpoint =
       currentTarget.type === 'faculty'
-        ? `/api/schedule?teacher=${encodeURIComponent(currentTarget.faculty.code)}`
-        : `/api/schedule?section=${currentTarget.section.id}&sub=${currentTarget.subSection}`;
+        ? `/api/schedule?teacher=${encodeURIComponent(currentTarget.faculty.code)}${versionParam}${cacheBuster}`
+        : `/api/schedule?section=${currentTarget.section.id}&sub=${currentTarget.subSection}${versionParam}${cacheBuster}`;
 
-    fetch(endpoint)
+    fetch(endpoint, isManualReload ? { cache: 'no-store' } : undefined)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
@@ -497,24 +572,28 @@ export default function Home() {
             setLiveSchedule(data.classes);
             setIsOfflineCached(false);
             setFetchError(false);
-            // Save valid real schedule to localStorage cache with fresh timestamp
+            // Cache everything user loads in browser
             try {
               if (typeof window !== 'undefined') {
                 localStorage.setItem(
                   cacheKey,
                   JSON.stringify({
                     classes: data.classes,
-                    version: data.version || 'v3.1',
+                    version: data.version || currentVersion,
                     cachedAt: Date.now(),
                   })
                 );
+                localStorage.setItem(SYNCED_VERSION_KEY, currentVersion);
               }
             } catch {
               // Ignore storage quota errors
             }
           }
-          if (data.version) {
+          if (data.version && data.version !== routineVersion) {
             setRoutineVersion(data.version);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(SYNCED_VERSION_KEY, data.version);
+            }
           }
           // Only update faculty metadata if properties actually changed to avoid infinite render loops
           if (data.faculty && currentTarget.type === 'faculty') {
@@ -561,7 +640,7 @@ export default function Home() {
     return () => {
       isCancelled = true;
     };
-  }, [activeScheduleKey, isInitialized, hasSavedPreference, reloadTrigger, getCacheKey]);
+  }, [activeScheduleKey, isInitialized, hasSavedPreference, reloadTrigger, routineVersion, getCacheKey]);
 
   // Fetch secondary live schedule whenever compare target changes
   const secondaryTargetKey =
@@ -581,10 +660,10 @@ export default function Home() {
 
     let isCancelled = false;
     const target = secondaryTargetRef.current;
-    const secondaryCacheKey = getCacheKey(target);
+    const secondaryCacheKey = getCacheKey(target, routineVersion);
 
     // Check cached secondary schedule
-    let cachedSecondary: { classes: RoutineClass[]; version?: string; cachedAt?: number } | null = null;
+    let cachedSecondary: { classes: RoutineClass[]; version?: string } | null = null;
     try {
       if (typeof window !== 'undefined') {
         const raw = localStorage.getItem(secondaryCacheKey);
@@ -593,8 +672,7 @@ export default function Home() {
           if (Array.isArray(parsed.classes) && parsed.classes.length > 0) {
             cachedSecondary = {
               classes: parsed.classes,
-              version: parsed.version,
-              cachedAt: typeof parsed.cachedAt === 'number' ? parsed.cachedAt : 0,
+              version: parsed.version || routineVersion,
             };
           }
         }
@@ -603,36 +681,30 @@ export default function Home() {
       // Ignore
     }
 
-    const isSecondaryCacheFresh =
-      cachedSecondary &&
-      typeof cachedSecondary.cachedAt === 'number' &&
-      cachedSecondary.cachedAt > 0 &&
-      Date.now() - cachedSecondary.cachedAt < ROUTINE_CACHE_TTL_MS;
-
     if (cachedSecondary) {
       setSecondaryLiveSchedule(cachedSecondary.classes);
-      if (isSecondaryCacheFresh) {
-        return;
-      }
+      return;
     }
 
+    const versionParam = `&v=${encodeURIComponent(routineVersion)}`;
     const endpoint =
       target.type === 'faculty'
-        ? `/api/schedule?teacher=${encodeURIComponent(target.faculty.code)}`
-        : `/api/schedule?section=${target.section.id}&sub=${target.subSection}`;
+        ? `/api/schedule?teacher=${encodeURIComponent(target.faculty.code)}${versionParam}`
+        : `/api/schedule?section=${target.section.id}&sub=${target.subSection}${versionParam}`;
 
     fetch(endpoint)
       .then((res) => res.json())
       .then((data) => {
         if (!isCancelled && data.success && Array.isArray(data.classes)) {
           setSecondaryLiveSchedule(data.classes);
+          // Cache everything user loads in browser
           try {
             if (typeof window !== 'undefined') {
               localStorage.setItem(
                 secondaryCacheKey,
                 JSON.stringify({
                   classes: data.classes,
-                  version: data.version || 'v3.1',
+                  version: data.version || routineVersion,
                   cachedAt: Date.now(),
                 })
               );
@@ -649,7 +721,7 @@ export default function Home() {
     return () => {
       isCancelled = true;
     };
-  }, [secondaryTargetKey, getCacheKey]);
+  }, [secondaryTargetKey, getCacheKey, routineVersion]);
 
   // Current real schedule (never synthetic mock data)
   const currentSchedule = useMemo(() => {

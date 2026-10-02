@@ -84,23 +84,35 @@ export async function robustFetch<T = unknown>(
   url: string,
   options: RobustFetchOptions = {}
 ): Promise<RobustResponse<T>> {
-  // If running in browser, delegate to native browser fetch
-  if (typeof window !== 'undefined') {
+  // If running in browser or modern Node environment, try standard native fetch first
+  try {
+    const controller = new AbortController();
+    const timeoutMs = options.timeout || 6000;
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
     const nativeRes = await fetch(url, {
       method: options.method || 'GET',
-      headers: options.headers,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)',
+        ...(options.headers || {}),
+      },
       body: options.body,
+      signal: controller.signal,
     });
+    clearTimeout(timer);
+
     return {
       ok: nativeRes.ok,
       status: nativeRes.status,
       statusText: nativeRes.statusText,
-      json: () => nativeRes.json(),
+      json: () => nativeRes.json() as Promise<T>,
       text: () => nativeRes.text(),
     };
+  } catch {
+    // If native fetch throws (e.g., DNS SERVFAIL on local Windows ISP), fall back to custom DNS https.request
   }
 
-  // Server-side Node.js execution
+  // Server-side Node.js execution fallback with custom DNS
   return new Promise<RobustResponse<T>>((resolve, reject) => {
     try {
       const parsedUrl = new URL(url);

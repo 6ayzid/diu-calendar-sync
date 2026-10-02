@@ -48,7 +48,7 @@ export async function getScheduleWithMeta(
     if (liveResult && liveResult.classes.length > 0) {
       return {
         classes: filterBySubSection(liveResult.classes, subSection),
-        version: liveResult.version || officialRoutine.version || '3.1',
+        version: liveResult.version || officialRoutine.version || '4.1',
       };
     }
   } catch (err) {
@@ -65,7 +65,7 @@ export async function getScheduleWithMeta(
     }));
     return {
       classes: filterBySubSection(enriched, subSection),
-      version: officialRoutine.version || '3.1',
+      version: officialRoutine.version || '4.1',
     };
   }
 
@@ -165,7 +165,7 @@ export async function getScheduleForFacultyWithMeta(
       const refreshedFaculty = getFacultyByCode(cleanCode) || faculty;
       return {
         classes: deduplicateAndSortClasses(liveResult.classes),
-        version: liveResult.version || officialRoutine.version || '3.1',
+        version: liveResult.version || officialRoutine.version || '4.1',
         faculty: refreshedFaculty,
       };
     }
@@ -196,7 +196,7 @@ export async function getScheduleForFacultyWithMeta(
     }));
     return {
       classes: deduplicateAndSortClasses(enriched),
-      version: officialRoutine.version || '3.1',
+      version: officialRoutine.version || '4.1',
       faculty,
     };
   }

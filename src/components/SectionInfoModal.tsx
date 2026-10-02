@@ -120,17 +120,23 @@ export function SectionInfoModal({
     }
 
     // 2. Check localStorage cache from primary app
+    const activeVersion =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('diu_synced_routine_version') || 'v4.1'
+        : 'v4.1';
+    const cacheKey = `diu_cached_routine_${activeVersion}_s_${resolvedSection.id}_sub_all`;
+
     try {
       if (typeof window !== 'undefined') {
-        const raw = localStorage.getItem(`diu_cached_routine_s_${resolvedSection.id}_sub_all`);
+        const raw =
+          localStorage.getItem(cacheKey) ||
+          localStorage.getItem(`diu_cached_routine_s_${resolvedSection.id}_sub_all`);
         if (raw) {
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed.classes) && parsed.classes.length > 0) {
             setClasses(parsed.classes);
             setLoading(false);
-            if (typeof parsed.cachedAt === 'number' && Date.now() - parsed.cachedAt < 30 * 60 * 1000) {
-              return;
-            }
+            return;
           }
         }
       }
@@ -149,11 +155,25 @@ export function SectionInfoModal({
 
     // 4. Fetch live section routine from API
     let isCancelled = false;
-    fetch(`/api/schedule?section=${encodeURIComponent(resolvedSection.id)}&sub=all`)
+    fetch(`/api/schedule?section=${encodeURIComponent(resolvedSection.id)}&sub=all&v=${encodeURIComponent(activeVersion)}`)
       .then((res) => res.json())
       .then((data) => {
         if (!isCancelled && data.success && Array.isArray(data.classes) && data.classes.length > 0) {
           setClasses(data.classes);
+          try {
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(
+                cacheKey,
+                JSON.stringify({
+                  classes: data.classes,
+                  version: data.version || activeVersion,
+                  cachedAt: Date.now(),
+                })
+              );
+            }
+          } catch {
+            // Ignore
+          }
         }
       })
       .catch((err) => {

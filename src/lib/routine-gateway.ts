@@ -72,9 +72,9 @@ const VERSION_CHECK_INTERVAL_MS = 5 * 60 * 1000; // Check for routine updates ev
  * Periodically checks the upstream server's active routine version.
  * If the university updates the routine version mid-semester, this flushes the cache automatically.
  */
-export async function checkAndInvalidateOnNewRoutineVersion(): Promise<string> {
+export async function checkAndInvalidateOnNewRoutineVersion(force = false): Promise<string> {
   const now = Date.now();
-  if (now - lastVersionCheckTime < VERSION_CHECK_INTERVAL_MS) {
+  if (!force && now - lastVersionCheckTime < VERSION_CHECK_INTERVAL_MS) {
     return lastKnownVersion;
   }
   lastVersionCheckTime = now;
@@ -84,7 +84,7 @@ export async function checkAndInvalidateOnNewRoutineVersion(): Promise<string> {
     if (!gateway) return lastKnownVersion;
     const res = await robustFetch<RoutineVersionResponse>(
       `${gateway}/api/routine_version?t=${now}`,
-      { timeout: 1500 }
+      { timeout: 4000 }
     );
     if (res.ok) {
       const data = await res.json();
@@ -141,7 +141,7 @@ export async function fetchLiveScheduleFromUpstream(
         batch: normalizedSection,
         department: 'cse',
       }),
-      timeout: 3000,
+      timeout: 5000,
     });
 
     if (!res.ok) {

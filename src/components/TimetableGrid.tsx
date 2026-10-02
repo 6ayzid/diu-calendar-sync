@@ -10,7 +10,6 @@ import {
   FlaskConical,
   LayoutGrid,
   CalendarDays,
-  Sparkles,
   Info,
 } from 'lucide-react';
 import { getCourseShortTitle } from '@/lib/course-utils';
@@ -61,7 +60,7 @@ export function TimetableGrid({
   viewMode,
   onViewModeChange,
   onActiveDayChange,
-  routineVersion = 'v3.1',
+  routineVersion = 'v4.1',
   onOpenFacultyInfo,
   onOpenSectionInfo,
 }: TimetableGridProps) {
@@ -75,7 +74,7 @@ export function TimetableGrid({
 
   const cleanVersion = (() => {
     const match = (routineVersion || '').match(/\bv?([0-9]+(?:\.[0-9]+)?)\b/i);
-    return match ? `v${match[1]}` : (routineVersion || 'v3.1');
+    return match ? `v${match[1]}` : (routineVersion || 'v4.1');
   })();
 
   useEffect(() => {
