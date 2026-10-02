@@ -315,13 +315,13 @@ export function SubscriptionActions({
                 Paste into <strong className="text-slate-900 dark:text-white">&quot;URL of calendar&quot;</strong> &rarr; tap <strong className="text-slate-900 dark:text-white">&quot;Add calendar&quot;</strong>.
               </li>
               <li>
-                Turn <strong className="text-emerald-700 dark:text-emerald-400 font-bold">Sync ON</strong> in phone app (watch 12s video below).
+                In Google Calendar app: switch <strong className="text-emerald-700 dark:text-emerald-400 font-bold">Sync to ON</strong>.
               </li>
             </ol>
           </div>
 
-          {/* Sync video walkthrough - expanded by default */}
-          <SyncVideoGuide defaultExpanded={true} />
+          {/* Sync video walkthrough - minimal thumbnail */}
+          <SyncVideoGuide defaultExpanded={false} />
 
           {/* Offline / Samsung fallback */}
           <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200 dark:border-slate-800">
@@ -402,8 +402,8 @@ export function SubscriptionActions({
             <ExternalLink className="h-3.5 w-3.5 opacity-70" />
           </a>
 
-          {/* Sync walkthrough for phone notifications - expanded by default */}
-          <SyncVideoGuide defaultExpanded={true} />
+          {/* Sync walkthrough for phone notifications */}
+          <SyncVideoGuide defaultExpanded={false} />
 
           <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200 dark:border-slate-800">
             <a

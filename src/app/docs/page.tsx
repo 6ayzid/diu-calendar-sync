@@ -246,7 +246,7 @@ export default function DocsPage() {
           </div>
 
           {/* Video Walkthrough Guide */}
-          <SyncVideoGuide defaultExpanded={true} />
+          <SyncVideoGuide defaultExpanded={false} />
 
           {/* Quick Notice about University Email Compatibility */}
           <div className="flex items-start gap-2 text-xs text-slate-600 dark:text-slate-400 pt-1">
