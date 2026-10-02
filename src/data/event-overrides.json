@@ -1,0 +1,17 @@
+[
+  {
+    "id": "override-66_O-CSE326-20261008",
+    "sectionId": "66_O",
+    "date": "2026-10-08",
+    "dayOfWeek": "THURSDAY",
+    "startTime": "13:00",
+    "endTime": "14:30",
+    "courseCode": "CSE326",
+    "type": "quiz",
+    "title": "Quiz",
+    "description": "Social & Ethics (CSE326) Class Quiz. Room KT-223.",
+    "room": "KT-223",
+    "status": "CONFIRMED",
+    "createdAt": "2026-10-02T17:40:00Z"
+  }
+]

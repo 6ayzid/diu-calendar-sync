@@ -5,6 +5,7 @@ import ical, {
   ICalWeekday,
 } from 'ical-generator';
 import { DayOfWeek, RoutineClass, FacultyMeta } from '@/types/schedule';
+import { ClassEventOverride } from '@/types/events';
 import { getSectionById } from '@/data/sections';
 import { getFacultyByCode } from '@/data/faculty';
 import { getCourseShortTitle } from '@/lib/course-utils';
@@ -53,6 +54,7 @@ export interface BuildCalendarOptions {
   timezone?: string;
   sourceDomain?: string;
   routineVersion?: string;
+  overrides?: ClassEventOverride[];
 }
 
 /**
@@ -75,6 +77,7 @@ export function buildCalendarFeed(
     timezone = 'Asia/Dhaka',
     sourceDomain = 'schedule.campus.edu',
     routineVersion = 'v2.2',
+    overrides = [],
   } = options;
 
   let calendarName = 'DIU Routine';
@@ -202,6 +205,152 @@ export function buildCalendarFeed(
       trigger: 900, // 15 mins
       description: `Class Reminder: ${cleanCourseCode} in Room ${cleanRoom}`,
     });
+  }
+
+  // Process Event Overrides (e.g. Quizzes, class tests, assignments, cancellations, makeup classes)
+  if (overrides && overrides.length > 0) {
+    for (const override of overrides) {
+      if (override.status === 'CANCELLED') continue;
+
+      const [oYear, oMonth, oDay] = override.date.split('-').map(Number);
+      if (!oYear || !oMonth || !oDay) continue;
+
+      // Determine day of week from override date in Asia/Dhaka
+      const testDate = new Date(Date.UTC(oYear, oMonth - 1, oDay, 12, 0, 0));
+      const weekdayStr = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Dhaka',
+        weekday: 'long',
+      }).format(testDate).toUpperCase();
+
+      const oCleanCourse = override.courseCode.split('(')[0].trim().toUpperCase();
+
+      // Find matching recurring class in classes
+      const matchingClass = classes.find((c) => {
+        const cCleanCode = c.courseCode.split('(')[0].trim().toUpperCase();
+        if (cCleanCode !== oCleanCourse) return false;
+        if (c.dayOfWeek !== weekdayStr) return false;
+        if (override.startTime && c.startTime !== override.startTime) return false;
+        return true;
+      });
+
+      const startTimeStr = override.startTime || matchingClass?.startTime || '08:30';
+      const endTimeStr = override.endTime || matchingClass?.endTime || '10:00';
+      const [startH, startM] = startTimeStr.split(':').map(Number);
+      const [endH, endM] = endTimeStr.split(':').map(Number);
+
+      const startDate = new Date(oYear, oMonth - 1, oDay, startH, startM, 0);
+      const endDate = new Date(oYear, oMonth - 1, oDay, endH, endM, 0);
+
+      const typeTag = override.type.toUpperCase();
+      const typeBadge =
+        override.type === 'quiz' || override.type === 'ct'
+          ? '📝 [QUIZ]'
+          : override.type === 'assignment'
+          ? '📑 [ASSIGNMENT]'
+          : override.type === 'presentation'
+          ? '🎤 [PRESENTATION]'
+          : `📢 [${typeTag}]`;
+
+      const targetRoom = override.room || matchingClass?.room || 'Campus';
+      const cleanRoom = targetRoom.split('(')[0].trim();
+
+      if (matchingClass) {
+        // Occurrence exception for an existing recurring slot via RECURRENCE-ID
+        const subIdentifier = matchingClass.subSection ? `sub${matchingClass.subSection}` : 'common';
+        const cleanCourseCode = matchingClass.courseCode.split('(')[0].trim().toUpperCase();
+        const sectionBadge = matchingClass.sectionId
+          ? (matchingClass.subSection ? `${matchingClass.sectionId}${matchingClass.subSection}` : matchingClass.sectionId)
+          : (matchingClass.batch && matchingClass.section ? `${matchingClass.batch}_${matchingClass.section}` : 'All');
+
+        const deterministicUid = faculty
+          ? `slot-faculty-${faculty.code}-${cleanCourseCode}-${sectionBadge}-${matchingClass.dayOfWeek}-${matchingClass.startTime.replace(':', '')}@${sourceDomain}`
+          : `slot-${matchingClass.sectionId}-${matchingClass.courseCode.replace(/[^a-zA-Z0-9]/g, '')}-${subIdentifier}-${matchingClass.dayOfWeek}-${matchingClass.startTime.replace(':', '')}@${sourceDomain}`;
+
+        const isLab = matchingClass.type === 'Lab' || matchingClass.courseCode.toLowerCase().includes('lab') || matchingClass.courseTitle.toLowerCase().includes('lab');
+        const siteTitle = getCourseShortTitle(cleanCourseCode, matchingClass.courseTitle, isLab);
+
+        const summary = `${typeBadge} ${siteTitle} (${cleanCourseCode})${override.title && !override.title.toLowerCase().includes(override.type.toLowerCase()) ? ` - ${override.title}` : ''}`;
+
+        const teacherMeta = matchingClass.teacherCode ? getFacultyByCode(matchingClass.teacherCode) : undefined;
+        const instructorName = teacherMeta
+          ? `${teacherMeta.name} (${matchingClass.teacherCode})`
+          : matchingClass.teacherName
+          ? `${matchingClass.teacherName} (${matchingClass.teacherCode})`
+          : matchingClass.teacherCode || (faculty ? `${faculty.name} (${faculty.code})` : 'TBA');
+
+        const catalogEntry = COURSE_CATALOG[cleanCourseCode];
+        const fullCourseTitle = (matchingClass.courseTitle && !matchingClass.courseTitle.toLowerCase().endsWith('course'))
+          ? matchingClass.courseTitle
+          : catalogEntry?.name || matchingClass.courseTitle || cleanCourseCode;
+
+        const sectionDisplay = matchingClass.subSection
+          ? `${matchingClass.sectionId} (Subsection ${matchingClass.section || ''}${matchingClass.subSection})`
+          : matchingClass.sectionId || sectionBadge;
+
+        const description = [
+          `⚠️ ANNOUNCEMENT: ${override.title}`,
+          override.description ? `${override.description}` : '',
+          ``,
+          `Instructor: ${instructorName}`,
+          `Course: ${fullCourseTitle} (${cleanCourseCode})`,
+          `Section: ${sectionDisplay}`,
+          `Room: ${targetRoom}`,
+          `Type: ${matchingClass.type}`,
+          `Routine Version: ${formattedVersion}`,
+          ``,
+          `synced from diucal.vercel.app`,
+        ].filter(Boolean).join('\n');
+
+        const overrideEvent = calendar.createEvent({
+          id: deterministicUid,
+          recurrenceId: startDate,
+          start: startDate,
+          end: endDate,
+          timezone,
+          summary,
+          description,
+          location: targetRoom,
+          sequence: 1,
+        });
+
+        // Alarms: 2 hours before & 15 mins before
+        overrideEvent.createAlarm({
+          type: ICalAlarmType.display,
+          trigger: 7200, // 2 hours
+          description: `Class Alert: ${cleanCourseCode} ${override.title} in Room ${cleanRoom}`,
+        });
+        overrideEvent.createAlarm({
+          type: ICalAlarmType.display,
+          trigger: 900, // 15 mins
+          description: `Class Alert: ${cleanCourseCode} ${override.title} in Room ${cleanRoom}`,
+        });
+      } else {
+        // Standalone event (e.g. Makeup or extra class)
+        const standaloneUid = `event-${override.sectionId}-${override.id}@${sourceDomain}`;
+        const standaloneEvent = calendar.createEvent({
+          id: standaloneUid,
+          start: startDate,
+          end: endDate,
+          timezone,
+          summary: `${typeBadge} ${override.courseCode} - ${override.title}`,
+          description: [
+            `⚠️ ANNOUNCEMENT: ${override.title}`,
+            override.description ? `${override.description}` : '',
+            `Room: ${targetRoom}`,
+            ``,
+            `synced from diucal.vercel.app`,
+          ].filter(Boolean).join('\n'),
+          location: targetRoom,
+          sequence: 1,
+        });
+
+        standaloneEvent.createAlarm({
+          type: ICalAlarmType.display,
+          trigger: 3600, // 1 hour
+          description: `Class Reminder: ${override.courseCode} ${override.title}`,
+        });
+      }
+    }
   }
 
   return calendar;

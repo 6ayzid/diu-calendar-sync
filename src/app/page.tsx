@@ -23,6 +23,7 @@ import {
   CompareState,
   FreeTimeSlot,
 } from '@/types/schedule';
+import { ClassEventOverride } from '@/types/events';
 import {
   calculateSharedFreeTime,
   getTotalSharedFreeHours,
@@ -57,6 +58,7 @@ function purgeOldVersionCaches(activeVersion: string) {
 export default function Home() {
   // 1. Initialize Active Target State (Section or Faculty) - null when unselected
   const [activeTarget, setActiveTarget] = useState<ActiveRoutineTarget | null>(null);
+  const [eventOverrides, setEventOverrides] = useState<ClassEventOverride[]>([]);
 
   const [hasSavedPreference, setHasSavedPreference] = useState(false);
 
@@ -570,6 +572,20 @@ export default function Home() {
         ? `/api/schedule?teacher=${encodeURIComponent(currentTarget.faculty.code)}${versionParam}${cacheBuster}`
         : `/api/schedule?section=${currentTarget.section.id}&sub=${currentTarget.subSection}${versionParam}${cacheBuster}`;
 
+    // Fetch event overrides for section (e.g. Quizzes, announcements)
+    if (currentTarget.type === 'section') {
+      fetch(`/api/events?section=${currentTarget.section.id}${cacheBuster}`)
+        .then((res) => res.json())
+        .then((evData) => {
+          if (!isCancelled && evData.success && Array.isArray(evData.events)) {
+            setEventOverrides(evData.events);
+          }
+        })
+        .catch(() => {});
+    } else {
+      setEventOverrides([]);
+    }
+
     fetch(endpoint, isManualReload ? { cache: 'no-store' } : undefined)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -969,6 +985,7 @@ export default function Home() {
             subSection={selectedSubSection}
             activeTarget={activeTarget}
             classes={currentSchedule}
+            eventOverrides={eventOverrides}
             compareState={compareState}
             secondaryClasses={secondarySchedule}
             sharedFreeSlotsMap={sharedFreeSlotsMap}

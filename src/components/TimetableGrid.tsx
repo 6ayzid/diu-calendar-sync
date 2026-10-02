@@ -15,16 +15,18 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { getCourseShortTitle } from '@/lib/course-utils';
-import { formatTime12, getDhakaClock, DhakaClockState, getUpcomingDays, getCurrentWeekScheduleDays, WeekScheduleDay, timeToMinutes } from '@/lib/time-utils';
+import { formatTime12, getDhakaClock, DhakaClockState, getUpcomingDays, getCurrentWeekScheduleDays, WeekScheduleDay, ContinuousScheduleDay, getContinuousScheduleDays, timeToMinutes } from '@/lib/time-utils';
 import { HOURLY_MARKS, layoutDayEvents, getCurrentTimeTopPercent, PositionedEvent } from '@/lib/timeline-layout';
 import { getTimelinePercentForInterval, getTargetLabel } from '@/lib/compare-utils';
 import { VersionBadge } from './VersionBadge';
+import { ClassEventOverride } from '@/types/events';
 
 interface TimetableGridProps {
   section?: SectionMeta | null;
   subSection?: '1' | '2' | 'all';
   activeTarget?: ActiveRoutineTarget | null;
   classes: RoutineClass[];
+  eventOverrides?: ClassEventOverride[];
   compareState?: CompareState;
   secondaryClasses?: RoutineClass[];
   sharedFreeSlotsMap?: Record<DayOfWeek, FreeTimeSlot[]>;
@@ -58,6 +60,7 @@ export function TimetableGrid({
   section,
   activeTarget,
   classes,
+  eventOverrides = [],
   compareState,
   secondaryClasses,
   sharedFreeSlotsMap,
@@ -112,21 +115,30 @@ export function TimetableGrid({
 
   const todayDay = currentDhakaTime.day;
 
+  // Continuous multi-week strip (from week -2 to week +8: 11 full weeks = 77 consecutive days)
+  const continuousDays = useMemo(() => {
+    void currentDhakaTime.day;
+    return getContinuousScheduleDays(-2, 8);
+  }, [currentDhakaTime.day]);
+
+  // Current visible week offset based on horizontal scroll position
+  const [visibleWeekOffset, setVisibleWeekOffset] = useState<number>(0);
+
   // Matrix view scroll reference and selected day
   const matrixScrollRef = useRef<HTMLDivElement>(null);
   const scrollRafRef = useRef<number | null>(null);
 
-  // Fluid Zoom Level: 1.0 (1 day view) to 6.0 (full week view)
-  const [zoomDays, setZoomDays] = useState<number>(6);
+  // Fluid Zoom Level: 1.0 (1 day view) to 7.0 (full week view)
+  const [zoomDays, setZoomDays] = useState<number>(7);
   const zoomDaysRef = useRef(zoomDays);
   useEffect(() => {
     zoomDaysRef.current = zoomDays;
   }, [zoomDays]);
 
-  // Compression limit: on mobile (<640px) max comfortable days is 3.0. On desktop/tablet (>=640px) it is 6.0.
+  // Compression limit: on mobile (<640px) max comfortable days is 3.0. On desktop/tablet (>=640px) it is 7.0.
   const getCompressionLimit = useCallback(() => {
-    if (typeof window === 'undefined') return 6.0;
-    return window.innerWidth < 640 ? 3.0 : 6.0;
+    if (typeof window === 'undefined') return 7.0;
+    return window.innerWidth < 640 ? 3.0 : 7.0;
   }, []);
 
   const minZoomLimit = 1.0;
@@ -168,7 +180,7 @@ export function TimetableGrid({
       const centerOffsetX = dayAreaWidth / 2;
       const centerViewportX = timeWidth + centerOffsetX;
       const dayX = container.scrollLeft + centerOffsetX;
-      const dayUnits = Math.max(0, Math.min(6, (dayX * prevZoom) / dayAreaWidth));
+      const dayUnits = Math.max(0, Math.min(continuousDays.length, (dayX * prevZoom) / dayAreaWidth));
       anchor = {
         dayUnits,
         viewportX: centerViewportX,
@@ -180,9 +192,9 @@ export function TimetableGrid({
     const newDayX = anchor.dayUnits * currentDayWidth;
     const newScrollLeft = newDayX - targetOffsetX;
 
-    const maxScroll = Math.max(0, dayAreaWidth * (6 / zoomDays - 1));
+    const maxScroll = Math.max(0, dayAreaWidth * (continuousDays.length / zoomDays - 1));
     container.scrollLeft = Math.max(0, Math.min(maxScroll, newScrollLeft));
-  }, [zoomDays, getTimeColWidth]);
+  }, [zoomDays, getTimeColWidth, continuousDays.length]);
 
   // Spring animation ref for realistic damped bounce effect
   const springRafRef = useRef<number | null>(null);
@@ -244,34 +256,24 @@ export function TimetableGrid({
   const scrollToDay = useCallback((dayKey: DayOfWeek, smooth = true) => {
     if (!matrixScrollRef.current) return;
     const container = matrixScrollRef.current;
-    if (dayKey === 'SATURDAY') {
-      container.scrollTo({ left: 0, behavior: smooth ? 'smooth' : 'auto' });
-      return;
+    let targetIdx = continuousDays.findIndex(
+      (d) => d.weekOffset === visibleWeekOffset && d.dayKey === dayKey
+    );
+    if (targetIdx < 0) {
+      targetIdx = continuousDays.findIndex(
+        (d) => d.weekOffset === 0 && d.dayKey === dayKey
+      );
     }
-    const colEl = container.querySelector<HTMLElement>(`#matrix-col-${dayKey}`);
-    if (colEl) {
-      const timeColWidth = window.innerWidth < 640 ? 64 : 72;
-      const targetLeft = Math.max(0, colEl.offsetLeft - timeColWidth);
+    if (targetIdx >= 0) {
+      const timeWidth = window.innerWidth < 640 ? 64 : 72;
+      const dayAreaWidth = Math.max(1, container.clientWidth - timeWidth);
+      const dayWidth = dayAreaWidth / zoomDaysRef.current;
       container.scrollTo({
-        left: targetLeft,
+        left: targetIdx * dayWidth,
         behavior: smooth ? 'smooth' : 'auto',
       });
     }
-  }, []);
-
-  // Initial load: on mobile, initialize zoom to the compression limit (3 days) and scroll to today
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (typeof window !== 'undefined' && window.innerWidth < 640) {
-        const mobileLimit = 3.0;
-        setZoomDays(mobileLimit);
-        if (todayDay && todayDay !== 'SATURDAY') {
-          scrollToDay(todayDay, false);
-        }
-      }
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [scrollToDay, todayDay]);
+  }, [continuousDays, visibleWeekOffset]);
 
   // Handle window resize compression bounds
   useEffect(() => {
@@ -285,7 +287,7 @@ export function TimetableGrid({
     return () => window.removeEventListener('resize', handleResize);
   }, [getCompressionLimit, triggerSpringBounce]);
 
-  // Update active day based on user sideways scrolling / dragging the scrollbar
+  // Update active week and day based on user horizontal scrolling / dragging
   const handleMatrixScroll = () => {
     if (scrollRafRef.current !== null) return;
 
@@ -294,25 +296,23 @@ export function TimetableGrid({
       if (!matrixScrollRef.current) return;
       const container = matrixScrollRef.current;
       const timeWidth = window.innerWidth < 640 ? 64 : 72;
+      const dayAreaWidth = Math.max(1, container.clientWidth - timeWidth);
+      const dayWidth = dayAreaWidth / zoomDaysRef.current;
       const scrollLeft = container.scrollLeft;
 
-      let closestDay: DayOfWeek = 'SATURDAY';
-      let minDiff = Infinity;
-
-      for (const d of DAYS) {
-        const colEl = container.querySelector<HTMLElement>(`#matrix-col-${d.key}`);
-        if (colEl) {
-          const diff = Math.abs(colEl.offsetLeft - (scrollLeft + timeWidth));
-          if (diff < minDiff) {
-            minDiff = diff;
-            closestDay = d.key;
-          }
+      const visibleDayIdx = Math.max(
+        0,
+        Math.min(continuousDays.length - 1, Math.round(scrollLeft / dayWidth))
+      );
+      const activeDay = continuousDays[visibleDayIdx];
+      if (activeDay) {
+        if (activeDay.weekOffset !== visibleWeekOffset) {
+          setVisibleWeekOffset(activeDay.weekOffset);
         }
-      }
-
-      if (closestDay && closestDay !== selectedGridDay) {
-        setSelectedGridDay(closestDay);
-        onActiveDayChange?.(closestDay);
+        if (activeDay.dayKey !== 'FRIDAY' && activeDay.dayKey !== selectedGridDay) {
+          setSelectedGridDay(activeDay.dayKey as DayOfWeek);
+          onActiveDayChange?.(activeDay.dayKey as DayOfWeek);
+        }
       }
     });
   };
@@ -350,7 +350,7 @@ export function TimetableGrid({
           Math.abs(viewportX - zoomAnchorRef.current.viewportX) > 15
         ) {
           const currentDayX = el.scrollLeft + offsetX;
-          const dayUnits = Math.max(0, Math.min(6, (currentDayX * zoomDaysRef.current) / dayAreaWidth));
+          const dayUnits = Math.max(0, Math.min(continuousDays.length, (currentDayX * zoomDaysRef.current) / dayAreaWidth));
           zoomAnchorRef.current = {
             dayUnits,
             viewportX,
@@ -398,7 +398,7 @@ export function TimetableGrid({
         const offsetX = Math.max(0, viewportX - timeWidth);
 
         const currentDayX = el.scrollLeft + offsetX;
-        const dayUnits = Math.max(0, Math.min(6, (currentDayX * zoomDaysRef.current) / dayAreaWidth));
+        const dayUnits = Math.max(0, Math.min(continuousDays.length, (currentDayX * zoomDaysRef.current) / dayAreaWidth));
 
         touchAnchorRef.current = {
           dayUnits,
@@ -527,139 +527,94 @@ export function TimetableGrid({
     return getUpcomingDays(7);
   }, [currentDhakaTime.minuteInt]);
 
-  // Week offset state for vertical scroll navigation across weeks
-  const [weekOffset, setWeekOffset] = useState<number>(0);
-  const [slideDirection, setSlideDirection] = useState<'down' | 'up' | 'none'>('none');
-  const wheelThrottleRef = useRef(false);
-
-  const handleNextWeek = useCallback(() => {
-    setSlideDirection('down');
-    setWeekOffset((prev) => prev + 1);
-    setTimeout(() => setSlideDirection('none'), 280);
-  }, []);
-
-  const handlePrevWeek = useCallback(() => {
-    setSlideDirection('up');
-    setWeekOffset((prev) => prev - 1);
-    setTimeout(() => setSlideDirection('none'), 280);
-  }, []);
-
-  const handleResetWeek = useCallback(() => {
-    setSlideDirection('none');
-    setWeekOffset(0);
-  }, []);
 
   const relativeWeekLabel = useMemo(() => {
-    if (weekOffset === 0) return null;
-    if (weekOffset === 1) return 'Next week';
-    if (weekOffset === -1) return 'Last week';
-    if (weekOffset > 1) return `+${weekOffset} wks`;
-    return `${weekOffset} wks`;
-  }, [weekOffset]);
+    if (visibleWeekOffset === 0) return null;
+    if (visibleWeekOffset === 1) return 'Next week';
+    if (visibleWeekOffset === -1) return 'Last week';
+    if (visibleWeekOffset > 1) return `+${visibleWeekOffset} wks`;
+    return `${visibleWeekOffset} wks`;
+  }, [visibleWeekOffset]);
 
-  // Academic week days (Saturday to Thursday) with calendar dates for active weekOffset
-  const weekDays = useMemo(() => {
-    void currentDhakaTime.day;
-    return getCurrentWeekScheduleDays(weekOffset);
-  }, [currentDhakaTime.day, weekOffset]);
-  const weekDaysMap = useMemo(() => {
-    const map: Record<string, WeekScheduleDay> = {};
-    for (const d of weekDays) {
-      map[d.dayKey] = d;
+  const scrollToWeek = useCallback((targetOffset: number, smooth = true) => {
+    if (!matrixScrollRef.current) return;
+    const container = matrixScrollRef.current;
+    const targetDayIdx = continuousDays.findIndex(
+      (d) => d.weekOffset === targetOffset && d.dayIndexInWeek === 0
+    );
+    if (targetDayIdx >= 0) {
+      const timeWidth = window.innerWidth < 640 ? 64 : 72;
+      const dayAreaWidth = Math.max(1, container.clientWidth - timeWidth);
+      const dayWidth = dayAreaWidth / zoomDaysRef.current;
+      container.scrollTo({
+        left: targetDayIdx * dayWidth,
+        behavior: smooth ? 'smooth' : 'auto',
+      });
+      setVisibleWeekOffset(targetOffset);
     }
-    return map;
-  }, [weekDays]);
+  }, [continuousDays]);
 
-  // Vertically scrollable week navigation: rolling mouse wheel over timetable changes weeks
+  const scrollToToday = useCallback((smooth = true) => {
+    if (!matrixScrollRef.current) return;
+    const container = matrixScrollRef.current;
+    const todayIdx = continuousDays.findIndex((d) => d.isToday);
+    const targetIdx =
+      todayIdx >= 0
+        ? todayIdx
+        : continuousDays.findIndex((d) => d.weekOffset === 0 && d.dayIndexInWeek === 0);
+    if (targetIdx >= 0) {
+      const timeWidth = window.innerWidth < 640 ? 64 : 72;
+      const dayAreaWidth = Math.max(1, container.clientWidth - timeWidth);
+      const dayWidth = dayAreaWidth / zoomDaysRef.current;
+      container.scrollTo({
+        left: Math.max(0, targetIdx * dayWidth),
+        behavior: smooth ? 'smooth' : 'auto',
+      });
+      setVisibleWeekOffset(0);
+    }
+  }, [continuousDays]);
+
+  const handlePrevWeek = useCallback(() => {
+    scrollToWeek(visibleWeekOffset - 1, true);
+  }, [visibleWeekOffset, scrollToWeek]);
+
+  const handleNextWeek = useCallback(() => {
+    scrollToWeek(visibleWeekOffset + 1, true);
+  }, [visibleWeekOffset, scrollToWeek]);
+
+  const handleResetWeek = useCallback(() => {
+    scrollToToday(true);
+  }, [scrollToToday]);
+
+  // Initial jump to current week / today on mount
+  const initialScrollDoneRef = useRef(false);
   useEffect(() => {
-    const el = matrixScrollRef.current;
-    if (!el) return;
+    if (initialScrollDoneRef.current || !matrixScrollRef.current || continuousDays.length === 0) return;
+    initialScrollDoneRef.current = true;
+    const timer = setTimeout(() => {
+      scrollToToday(false);
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [continuousDays, scrollToToday]);
 
-    const onWheelNative = (e: WheelEvent) => {
-      // Allow horizontal shift scrolling and ctrl-pinch zoom
-      if (e.ctrlKey || e.shiftKey) return;
-      if (Math.abs(e.deltaY) <= 25) return;
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-
-      e.preventDefault();
-
-      if (wheelThrottleRef.current) return;
-      wheelThrottleRef.current = true;
-      setTimeout(() => {
-        wheelThrottleRef.current = false;
-      }, 350);
-
-      if (e.deltaY > 0) {
-        handleNextWeek();
-      } else {
-        handlePrevWeek();
-      }
-    };
-
-    el.addEventListener('wheel', onWheelNative, { passive: false });
-    return () => {
-      el.removeEventListener('wheel', onWheelNative);
-    };
-  }, [handleNextWeek, handlePrevWeek]);
-
-  // Touch swipe gesture navigation on mobile devices (swipe up -> next week, swipe down -> prev week)
-  useEffect(() => {
-    const el = matrixScrollRef.current;
-    if (!el) return;
-
-    let touchStartY = 0;
-    let touchStartX = 0;
-
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 1) {
-        touchStartY = e.touches[0].clientY;
-        touchStartX = e.touches[0].clientX;
-      }
-    };
-
-    const onTouchEnd = (e: TouchEvent) => {
-      if (!touchStartY) return;
-      const touchEndY = e.changedTouches[0].clientY;
-      const touchEndX = e.changedTouches[0].clientX;
-      const diffY = touchEndY - touchStartY;
-      const diffX = touchEndX - touchStartX;
-      touchStartY = 0;
-      touchStartX = 0;
-
-      if (Math.abs(diffY) > 50 && Math.abs(diffY) > Math.abs(diffX) * 1.5) {
-        if (diffY < 0) {
-          handleNextWeek();
-        } else {
-          handlePrevWeek();
-        }
-      }
-    };
-
-    el.addEventListener('touchstart', onTouchStart, { passive: true });
-    el.addEventListener('touchend', onTouchEnd, { passive: true });
-    return () => {
-      el.removeEventListener('touchstart', onTouchStart);
-      el.removeEventListener('touchend', onTouchEnd);
-    };
-  }, [handleNextWeek, handlePrevWeek]);
-
-  // Dynamic Notion Calendar Date Title
+  // Dynamic Notion Calendar Date Title based on visible week
   const notionDateTitle = useMemo(() => {
     if (effectiveViewMode === 'agenda') {
       const firstUpcoming = upcomingDays[0];
-      return firstUpcoming ? `${firstUpcoming.monthLong} ${weekDays[0]?.year || 2026}` : 'Schedule';
+      return firstUpcoming ? `${firstUpcoming.monthLong} ${firstUpcoming.year || 2026}` : 'Schedule';
     }
 
-    const first = weekDays[0];
-    const last = weekDays[weekDays.length - 1];
+    const currentWeekDays = continuousDays.filter((d) => d.weekOffset === visibleWeekOffset);
+    const first = currentWeekDays[0];
+    const last = currentWeekDays[currentWeekDays.length - 1];
     if (first && last) {
       if (first.monthShort === last.monthShort) {
         return `${first.monthLong} ${first.year}`;
       }
       return `${first.monthShort} – ${last.monthShort} ${last.year}`;
     }
-    return 'September 2026';
-  }, [weekDays, effectiveViewMode, upcomingDays]);
+    return 'October 2026';
+  }, [continuousDays, visibleWeekOffset, effectiveViewMode, upcomingDays]);
 
   // Calendar View Keyboard Shortcuts: W for Week, A for Agenda, Arrows/J/K for Week Navigation
   useEffect(() => {
@@ -788,7 +743,7 @@ export function TimetableGrid({
                 <ChevronLeft className="w-3.5 h-3.5" />
               </button>
 
-              {weekOffset !== 0 ? (
+              {visibleWeekOffset !== 0 ? (
                 <button
                   type="button"
                   onClick={handleResetWeek}
@@ -969,24 +924,18 @@ export function TimetableGrid({
           onMouseUp={handleMouseUpOrLeave}
           onMouseLeave={handleMouseUpOrLeave}
           className={`calendar-matrix-scroll mt-1 sm:mt-2 pb-2 print:overflow-visible print:pb-0 ${
-            isDragging ? 'cursor-grabbing select-none' : 'cursor-default'
+            isDragging ? 'cursor-grabbing select-none' : 'cursor-default snap-x snap-mandatory'
           }`}
           style={{
             containerType: 'inline-size',
-            scrollPaddingLeft: 'var(--col-time, 44px)',
+            scrollPaddingLeft: 'var(--col-time, 72px)',
           }}
         >
           <div
-            className={`timeline-grid-layout relative print:min-w-0 transition-transform duration-200 ease-out ${
-              slideDirection === 'down'
-                ? 'animate-in fade-in slide-in-from-bottom-2 duration-200'
-                : slideDirection === 'up'
-                ? 'animate-in fade-in slide-in-from-top-2 duration-200'
-                : ''
-            }`}
+            className="timeline-grid-layout relative print:min-w-0"
             style={{
-              gridTemplateColumns: `var(--col-time) repeat(6, calc((100cqw - var(--col-time)) / ${zoomDays}))`,
-              width: `calc(var(--col-time) + 6 * ((100cqw - var(--col-time)) / ${zoomDays}))`,
+              gridTemplateColumns: `var(--col-time) repeat(${continuousDays.length}, calc((100cqw - var(--col-time)) / ${zoomDays}))`,
+              width: `calc(var(--col-time) + ${continuousDays.length} * ((100cqw - var(--col-time)) / ${zoomDays}))`,
             }}
           >
             {/* ROW 1: HEADER - Col 1 is GMT+06 Timezone Label (Topest Corner) */}
@@ -999,40 +948,57 @@ export function TimetableGrid({
               </span>
             </div>
 
-            {/* ROW 1: HEADER - Cols 2 to 7 are Day Headers (Google Calendar Style) */}
-            {visibleGridDays.map((d, vIdx) => {
-              const isToday = weekOffset === 0 && d.key === todayDay;
-              const dateInfo = weekDaysMap[d.key];
-              const dayNum = dateInfo?.dayNumber || '';
+            {/* ROW 1: HEADER - Continuous Day Headers across weeks */}
+            {continuousDays.map((d, vIdx) => {
+              const isToday = d.isToday;
+              const isFriday = d.isFriday;
+              const isWeekStart = d.isWeekStart;
 
               return (
                 <div
-                  key={`hdr-${d.key}`}
-                  id={`matrix-col-${d.key}`}
-                  className="sticky top-0 z-26 flex flex-col items-center justify-center py-2 px-1 text-center bg-slate-50 dark:bg-[#080d1a] border-b border-l border-slate-200 dark:border-slate-800 transition-colors"
+                  key={`hdr-${d.globalDayIndex}-${d.dayKey}-${d.formattedDate}`}
+                  id={`matrix-col-${d.weekOffset}-${d.dayKey}`}
+                  className={`sticky top-0 z-26 flex flex-col items-center justify-center py-2 px-1 text-center bg-slate-50 dark:bg-[#080d1a] border-b border-b-slate-200 dark:border-b-slate-800 transition-colors ${
+                    isWeekStart
+                      ? 'border-l-2 border-l-slate-300 dark:border-l-slate-700'
+                      : 'border-l border-l-slate-200 dark:border-l-slate-800'
+                  }`}
                   style={{
                     gridColumn: vIdx + 2,
                     gridRow: 1,
+                    scrollSnapAlign: 'start',
+                    scrollSnapStop: isWeekStart ? 'always' : 'normal',
                   }}
                 >
-                  <span
-                    className={`text-[11px] font-mono font-bold uppercase tracking-wider ${
-                      isToday ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'
-                    }`}
-                  >
-                    {zoomDays <= 1.5 ? d.label : d.short}
-                  </span>
-                  {dayNum && (
+                  <div className="flex items-center gap-1">
                     <span
-                      className={`mt-0.5 inline-flex items-center justify-center font-bold text-xs sm:text-sm h-7 w-7 rounded-full ${
+                      className={`text-[11px] font-mono font-bold uppercase tracking-wider ${
                         isToday
-                          ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-emerald-950 shadow-xs'
-                          : 'text-slate-800 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : isFriday
+                          ? 'text-slate-400 dark:text-slate-500'
+                          : 'text-slate-500 dark:text-slate-400'
                       }`}
                     >
-                      {dayNum}
+                      {zoomDays <= 1.5 ? d.dayLabel : d.dayShort}
                     </span>
-                  )}
+                    {(d.dayNumber === '1' || (isWeekStart && vIdx > 0 && continuousDays[vIdx - 1]?.monthShort !== d.monthShort)) && (
+                      <span className="text-[9px] font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                        {d.monthShort}
+                      </span>
+                    )}
+                  </div>
+                  <span
+                    className={`mt-0.5 inline-flex items-center justify-center font-bold text-xs sm:text-sm h-7 w-7 rounded-full ${
+                      isToday
+                        ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-emerald-950 shadow-xs'
+                        : isFriday
+                        ? 'text-slate-400 dark:text-slate-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/40'
+                        : 'text-slate-800 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
+                    }`}
+                  >
+                    {d.dayNumber}
+                  </span>
                 </div>
               );
             })}
@@ -1062,55 +1028,76 @@ export function TimetableGrid({
               })}
             </div>
 
-            {/* ROW 2: DAY TIMELINE COLUMNS (Cols 2 to 7) */}
-            {visibleGridDays.map((day, vIdx) => {
-              const isToday = weekOffset === 0 && day.key === todayDay;
-              const positionedEvents = dayEventsMap[day.key] || [];
+            {/* ROW 2: DAY TIMELINE COLUMNS (Cols 2 to continuousDays.length + 1) */}
+            {continuousDays.map((d, vIdx) => {
+              const isToday = d.isToday;
+              const isFriday = d.isFriday;
+              const isWeekStart = d.isWeekStart;
+              const positionedEvents = isFriday ? [] : (dayEventsMap[d.dayKey as DayOfWeek] || []);
 
               return (
                 <div
-                  key={`timeline-${day.key}`}
-                  className="relative h-[600px] border-l border-slate-200 dark:border-slate-800/80"
+                  key={`timeline-${d.globalDayIndex}-${d.dayKey}-${d.formattedDate}`}
+                  className={`relative h-[600px] ${
+                    isWeekStart
+                      ? 'border-l-2 border-l-slate-300 dark:border-l-slate-700'
+                      : 'border-l border-slate-200 dark:border-slate-800/80'
+                  } ${isFriday ? 'bg-slate-100/30 dark:bg-slate-900/20' : ''}`}
                   style={{
                     gridColumn: vIdx + 2,
                     gridRow: 2,
+                    scrollSnapAlign: 'start',
+                    scrollSnapStop: isWeekStart ? 'always' : 'normal',
                   }}
                 >
                   {/* Background Hourly Dashed Grid Lines (Google Calendar with dashed guides) */}
                   <div className="absolute inset-0 grid grid-rows-10 pointer-events-none">
                     {Array.from({ length: 10 }).map((_, hIdx) => (
                       <div
-                        key={`hour-grid-${day.key}-${hIdx}`}
+                        key={`hour-grid-${d.globalDayIndex}-${hIdx}`}
                         className="border-b border-dashed border-slate-200/85 dark:border-slate-800/75 w-full h-full"
                       />
                     ))}
                   </div>
 
-                  {/* Floating Event Blocks (Google Calendar Style) + Shared Free Time Highlights */}
-                  <div className="absolute inset-0">
-                    {/* Shared Free Time Highlights (Option 1: Solid green with zero text, hover tooltip for details) */}
-                    {compareState?.active && compareState.showFreeTimeHighlight && (sharedFreeSlotsMap?.[day.key] || []).map((fs, fIdx) => {
-                      const { topPercent, heightPercent } = getTimelinePercentForInterval(fs.startMinutes, fs.endMinutes);
-                      const durationHours = Math.round((fs.durationMinutes / 60) * 10) / 10;
+                  {isFriday ? (
+                    /* Friday Weekend Column Content */
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-3 pointer-events-none select-none">
+                      <div className="inline-flex flex-col items-center gap-1.5 rounded-2xl border border-slate-200/80 bg-slate-100/80 dark:border-slate-800/80 dark:bg-slate-900/60 px-3 py-2 text-center shadow-2xs backdrop-blur-xs">
+                        <span className="text-[11px] font-mono font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                          Weekend
+                        </span>
+                        <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
+                          No academic classes
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Floating Event Blocks (Google Calendar Style) + Shared Free Time Highlights */
+                    <div className="absolute inset-0">
+                      {/* Shared Free Time Highlights (Option 1: Solid green with zero text, hover tooltip for details) */}
+                      {compareState?.active && compareState.showFreeTimeHighlight && (sharedFreeSlotsMap?.[d.dayKey as DayOfWeek] || []).map((fs, fIdx) => {
+                        const { topPercent, heightPercent } = getTimelinePercentForInterval(fs.startMinutes, fs.endMinutes);
+                        const durationHours = Math.round((fs.durationMinutes / 60) * 10) / 10;
 
-                      return (
-                        <div
-                          key={`free-${day.key}-${fIdx}`}
-                          title={`Shared Free Time: ${fs.formattedRange} (${durationHours}h)`}
-                          className="absolute rounded-lg border border-emerald-700/30 bg-emerald-600 dark:border-emerald-400/40 dark:bg-emerald-500 z-0 flex items-center justify-center p-1 pointer-events-auto cursor-default transition-all shadow-xs"
-                          style={{
-                            top: `calc(${topPercent}% + 2px)`,
-                            height: `calc(${heightPercent}% - 4px)`,
-                            left: '2px',
-                            right: '2px',
-                          }}
-                        >
-                          <span className="font-mono font-bold text-[9.5px] sm:text-[10px] text-white dark:text-emerald-950 tracking-tight select-none">
-                            {durationHours}h
-                          </span>
-                        </div>
-                      );
-                    })}
+                        return (
+                          <div
+                            key={`free-${d.globalDayIndex}-${fIdx}`}
+                            title={`Shared Free Time: ${fs.formattedRange} (${durationHours}h)`}
+                            className="absolute rounded-lg border border-emerald-700/30 bg-emerald-600 dark:border-emerald-400/40 dark:bg-emerald-500 z-0 flex items-center justify-center p-1 pointer-events-auto cursor-default transition-all shadow-xs"
+                            style={{
+                              top: `calc(${topPercent}% + 2px)`,
+                              height: `calc(${heightPercent}% - 4px)`,
+                              left: '2px',
+                              right: '2px',
+                            }}
+                          >
+                            <span className="font-mono font-bold text-[9.5px] sm:text-[10px] text-white dark:text-emerald-950 tracking-tight select-none">
+                              {durationHours}h
+                            </span>
+                          </div>
+                        );
+                      })}
 
                     {/* Off-Day Status: When a day has no classes for high priority or both */}
                     {!positionedEvents.some((pe) => pe.isHighPriority) && !positionedEvents.some((pe) => pe.isBlockMode) && (
@@ -1177,7 +1164,7 @@ export function TimetableGrid({
 
                         return (
                           <div
-                            key={`block-${c.id}`}
+                            key={`block-${d.globalDayIndex}-${c.id}`}
                             title={`${pe.targetBadge}: ${c.courseCode} (${pe.formattedRange}) in ${c.room}`}
                             className={`absolute rounded-lg overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 select-none z-20 transition-all shadow-2xs opacity-85 hover:opacity-100 ${blockStyle}`}
                             style={{
@@ -1273,7 +1260,7 @@ export function TimetableGrid({
 
                       return (
                         <div
-                          key={c.id}
+                          key={`class-${d.globalDayIndex}-${c.id}`}
                           className={`absolute rounded-lg transition-all overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 cursor-pointer select-none group z-20 hover:z-22 ${cardTheme}`}
                           style={{
                             top: `calc(${pe.topPercent}% + 2px)`,
@@ -1326,8 +1313,30 @@ export function TimetableGrid({
                                 )}
                               </div>
 
-                              {/* Subsection badge (only in student mode) */}
+                              {/* Subsection badge & Event Override Pill (e.g. Quiz) */}
                               <div className="flex items-center gap-1 shrink-0 relative z-10">
+                                {(() => {
+                                  const cardOverride = eventOverrides.find((ev) => {
+                                    if (ev.status === 'CANCELLED') return false;
+                                    if (ev.dayOfWeek && ev.dayOfWeek !== d.dayKey) return false;
+                                    const cClean = cleanCode.toUpperCase();
+                                    const evClean = ev.courseCode.split('(')[0].trim().toUpperCase();
+                                    if (cClean !== evClean) return false;
+                                    if (ev.startTime && ev.startTime !== c.startTime) return false;
+                                    return true;
+                                  });
+
+                                  if (!cardOverride) return null;
+
+                                  return (
+                                    <span
+                                      title={`${cardOverride.title}${cardOverride.description ? `: ${cardOverride.description}` : ''}`}
+                                      className="shrink-0 rounded px-1.5 py-0.2 text-[9px] font-bold font-mono bg-amber-400 text-amber-950 border border-amber-500/60 shadow-xs animate-pulse relative z-10"
+                                    >
+                                      📝 QUIZ
+                                    </span>
+                                  );
+                                })()}
                                 {!isFaculty && (
                                   c.subSection ? (
                                     <span className={`shrink-0 rounded px-1.5 py-0.2 text-[9px] font-bold font-mono border relative z-10 ${subsectionBadgeClass}`}>
@@ -1390,6 +1399,7 @@ export function TimetableGrid({
                       );
                     })}
                   </div>
+                )}
 
                   {/* Current Time Indicator across Today's column */}
                   {isToday && currentTimeTopPercent !== null && (
@@ -1593,6 +1603,34 @@ export function TimetableGrid({
                                   )}
                                 </div>
                               </div>
+
+                              {/* Event Override Announcement Banner (e.g. Quiz / CT / Notice) */}
+                              {(() => {
+                                const agendaOverride = eventOverrides.find((ev) => {
+                                  if (ev.status === 'CANCELLED') return false;
+                                  if (ev.date !== d.isoDate) return false;
+                                  const cClean = cleanCourseCode.toUpperCase();
+                                  const evClean = ev.courseCode.split('(')[0].trim().toUpperCase();
+                                  if (cClean !== evClean) return false;
+                                  if (ev.startTime && ev.startTime !== classItem.startTime) return false;
+                                  return true;
+                                });
+
+                                if (!agendaOverride) return null;
+
+                                return (
+                                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-400 text-amber-950 font-bold text-xs shadow-xs">
+                                    <span className="shrink-0 uppercase font-black tracking-wide">
+                                      📝 {agendaOverride.type}: {agendaOverride.title}
+                                    </span>
+                                    {agendaOverride.description && (
+                                      <span className="font-medium opacity-90 truncate">
+                                        — {agendaOverride.description}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })()}
 
                               {/* Line 2: Single Compact Meta Row: Time • Room • Faculty/Section */}
                               <div className="flex items-center gap-2 text-xs font-mono">

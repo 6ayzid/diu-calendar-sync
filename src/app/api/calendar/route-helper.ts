@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getScheduleWithMeta, getSection, getScheduleForFacultyWithMeta } from '@/lib/schedule';
 import { buildCalendarFeed, serializeCalendarToIcs } from '@/lib/ical-builder';
 import { getFacultyByCode } from '@/data/faculty';
+import { getEventOverridesForSection } from '@/lib/event-overrides';
 
 export async function handleCalendarFeedRequest(
   req: NextRequest,
@@ -63,12 +64,16 @@ export async function handleCalendarFeedRequest(
   // Fetch schedule with subsection filtering and version
   const { classes, version } = await getScheduleWithMeta(sectionId, subSection);
 
+  // Fetch active event overrides for this section (e.g. Quizzes, tests, cancellations)
+  const overrides = await getEventOverridesForSection(sectionId);
+
   // Generate RFC 5545 iCalendar string
   const calendar = buildCalendarFeed(classes, {
     sectionId,
     subSection,
     sourceDomain: host,
     routineVersion: version,
+    overrides,
   });
 
   const icsOutput = serializeCalendarToIcs(calendar);

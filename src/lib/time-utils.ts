@@ -104,12 +104,14 @@ export interface UpcomingDay {
   dayNumber: string;
   monthShort: string;
   monthLong: string;
+  year: number;
   formattedDate: string;
   fullFormatted: string;
   isToday: boolean;
   isTomorrow: boolean;
   isFriday: boolean;
   relativeLabel: string;
+  isoDate: string;
 }
 
 export interface WeekScheduleDay {
@@ -123,6 +125,7 @@ export interface WeekScheduleDay {
   formattedDate: string;
   fullFormatted: string;
   isToday: boolean;
+  isoDate: string;
 }
 
 /**
@@ -189,6 +192,13 @@ export function getCurrentWeekScheduleDays(weekOffset: number = 0): WeekSchedule
 
       const isToday = weekOffset === 0 && offsetFromSat === i && weekdayStr !== 'Fri';
 
+      const isoDate = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Dhaka',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(stepDate);
+
       return {
         dayKey,
         dayLabel: weekdayLong,
@@ -200,6 +210,7 @@ export function getCurrentWeekScheduleDays(weekOffset: number = 0): WeekSchedule
         formattedDate: `${monthShort} ${dayNum}`,
         fullFormatted: `${weekdayLong}, ${monthShort} ${dayNum}`,
         isToday,
+        isoDate,
       };
     });
   } catch {
@@ -215,7 +226,145 @@ export function getCurrentWeekScheduleDays(weekOffset: number = 0): WeekSchedule
       formattedDate: 'Sep 1',
       fullFormatted: `${k.charAt(0) + k.slice(1).toLowerCase()}, Sep 1`,
       isToday: false,
+      isoDate: '2026-09-01',
     }));
+  }
+}
+
+export interface ContinuousScheduleDay {
+  weekOffset: number;
+  dayIndexInWeek: number; // 0 (Sat) to 6 (Fri)
+  globalDayIndex: number;
+  dayKey: DayOfWeek | 'FRIDAY';
+  dayLabel: string;
+  dayShort: string;
+  dayNumber: string;
+  monthShort: string;
+  monthLong: string;
+  year: number;
+  formattedDate: string;
+  fullFormatted: string;
+  isToday: boolean;
+  isFriday: boolean;
+  isWeekStart: boolean;
+  isoDate: string;
+}
+
+/**
+ * Returns continuous multi-week schedule days (7 days per week: Sat to Fri).
+ * Enables seamless horizontal scrolling from past weeks to present to future weeks.
+ */
+export function getContinuousScheduleDays(
+  startWeekOffset: number = -2,
+  endWeekOffset: number = 6
+): ContinuousScheduleDay[] {
+  try {
+    const now = new Date();
+    const dhakaDateStr = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Dhaka',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(now); // "YYYY-MM-DD"
+
+    const [year, month, day] = dhakaDateStr.split('-').map(Number);
+    const todayDhaka = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+
+    const weekdayStr = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Dhaka',
+      weekday: 'short',
+    }).format(todayDhaka); // "Sat", "Sun", "Mon", etc.
+
+    const dayOffsets: Record<string, number> = {
+      Sat: 0,
+      Sun: 1,
+      Mon: 2,
+      Tue: 3,
+      Wed: 4,
+      Thu: 5,
+      Fri: 6,
+    };
+    const offsetFromSat = dayOffsets[weekdayStr] ?? 0;
+    const baseSaturdayMs = todayDhaka.getTime() - offsetFromSat * 24 * 60 * 60 * 1000;
+
+    const daysInWeek: { key: DayOfWeek | 'FRIDAY'; label: string; short: string }[] = [
+      { key: 'SATURDAY', label: 'Saturday', short: 'Sat' },
+      { key: 'SUNDAY', label: 'Sunday', short: 'Sun' },
+      { key: 'MONDAY', label: 'Monday', short: 'Mon' },
+      { key: 'TUESDAY', label: 'Tuesday', short: 'Tue' },
+      { key: 'WEDNESDAY', label: 'Wednesday', short: 'Wed' },
+      { key: 'THURSDAY', label: 'Thursday', short: 'Thu' },
+      { key: 'FRIDAY', label: 'Friday', short: 'Fri' },
+    ];
+
+    const result: ContinuousScheduleDay[] = [];
+    let globalIndex = 0;
+
+    for (let w = startWeekOffset; w <= endWeekOffset; w++) {
+      const weekSaturdayMs = baseSaturdayMs + w * 7 * 24 * 60 * 60 * 1000;
+
+      for (let d = 0; d < 7; d++) {
+        const stepDate = new Date(weekSaturdayMs + d * 24 * 60 * 60 * 1000);
+
+        const dayNum = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Asia/Dhaka',
+          day: 'numeric',
+        }).format(stepDate);
+
+        const monthShort = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Asia/Dhaka',
+          month: 'short',
+        }).format(stepDate);
+
+        const monthLong = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Asia/Dhaka',
+          month: 'long',
+        }).format(stepDate);
+
+        const stepYear = parseInt(
+          new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Dhaka', year: 'numeric' }).format(stepDate),
+          10
+        );
+
+        const weekdayLong = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Asia/Dhaka',
+          weekday: 'long',
+        }).format(stepDate);
+
+        const isoDate = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Asia/Dhaka',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        }).format(stepDate);
+
+        const isToday = w === 0 && d === offsetFromSat;
+        const isFriday = d === 6;
+
+        result.push({
+          weekOffset: w,
+          dayIndexInWeek: d,
+          globalDayIndex: globalIndex++,
+          dayKey: daysInWeek[d].key,
+          dayLabel: weekdayLong,
+          dayShort: daysInWeek[d].short,
+          dayNumber: dayNum,
+          monthShort,
+          monthLong,
+          year: stepYear,
+          formattedDate: `${monthShort} ${dayNum}`,
+          fullFormatted: `${weekdayLong}, ${monthShort} ${dayNum}`,
+          isToday,
+          isFriday,
+          isWeekStart: d === 0,
+          isoDate,
+        });
+      }
+    }
+
+    return result;
+  } catch {
+    return [];
   }
 }
 
@@ -271,6 +420,18 @@ export function getUpcomingDays(count = 7): UpcomingDay[] {
         ? 'Tomorrow'
         : dayLabel;
 
+      const stepYear = parseInt(
+        new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Dhaka', year: 'numeric' }).format(stepDate),
+        10
+      );
+
+      const isoDate = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Dhaka',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(stepDate);
+
       result.push({
         dayKey: weekday as DayOfWeek | 'FRIDAY',
         dayLabel,
@@ -278,12 +439,14 @@ export function getUpcomingDays(count = 7): UpcomingDay[] {
         dayNumber: dayNum,
         monthShort,
         monthLong,
+        year: stepYear,
         formattedDate: `${monthShort} ${dayNum}`,
         fullFormatted: `${dayLabel}, ${monthShort} ${dayNum}`,
         isToday,
         isTomorrow,
         isFriday,
         relativeLabel,
+        isoDate,
       });
     }
 
