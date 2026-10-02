@@ -290,11 +290,16 @@ html.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background-clip: content-box;
 }
 
-/* Responsive Timeline Grid Layout (Google Calendar Style) */
+/* Responsive Timeline Grid Layout (Google / Notion Calendar Style) */
+.calendar-matrix-scroll,
 .timeline-grid-layout,
 .matrix-grid-layout {
   --col-time: 44px;
   --col-day: 0px;
+}
+
+.timeline-grid-layout,
+.matrix-grid-layout {
   display: grid;
   grid-template-columns: var(--col-time) repeat(6, minmax(var(--col-day), 1fr));
   grid-template-rows: auto 600px;
@@ -302,6 +307,7 @@ html.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
 }
 
 @media (min-width: 640px) {
+  .calendar-matrix-scroll,
   .timeline-grid-layout,
   .matrix-grid-layout {
     --col-time: 68px;
