@@ -128,17 +128,17 @@ export function TimetableGrid({
   const matrixScrollRef = useRef<HTMLDivElement>(null);
   const scrollRafRef = useRef<number | null>(null);
 
-  // Fluid Zoom Level: 1.0 (1 day view) to 6.0 (full week view)
-  const [zoomDays, setZoomDays] = useState<number>(6);
+  // Fluid Zoom Level: 1.0 (1 day view) to 7.0 (full week view: 7 grids)
+  const [zoomDays, setZoomDays] = useState<number>(7);
   const zoomDaysRef = useRef(zoomDays);
   useEffect(() => {
     zoomDaysRef.current = zoomDays;
   }, [zoomDays]);
 
-  // Compression limit: on mobile (<640px) max comfortable days is 3.0. On desktop/tablet (>=640px) it is 6.0.
+  // Compression limit: on mobile (<640px) max comfortable days is 3.0. On desktop/tablet (>=640px) it is 7.0 (7 grids).
   const getCompressionLimit = useCallback(() => {
-    if (typeof window === 'undefined') return 6.0;
-    return window.innerWidth < 640 ? 3.0 : 6.0;
+    if (typeof window === 'undefined') return 7.0;
+    return window.innerWidth < 640 ? 3.0 : 7.0;
   }, []);
 
   const minZoomLimit = 1.0;
@@ -318,7 +318,7 @@ export function TimetableGrid({
       if (centerDay && centerDay.weekOffset !== visibleWeekOffset) {
         setVisibleWeekOffset(centerDay.weekOffset);
       }
-      if (leftDay && leftDay.dayKey !== selectedGridDay) {
+      if (leftDay && leftDay.dayKey !== 'FRIDAY' && leftDay.dayKey !== selectedGridDay) {
         setSelectedGridDay(leftDay.dayKey as DayOfWeek);
         onActiveDayChange?.(leftDay.dayKey as DayOfWeek);
       }
@@ -367,7 +367,7 @@ export function TimetableGrid({
 
         const delta = (e.deltaY / 100) * 0.4;
         const limit = getCompressionLimit();
-        const next = Math.max(0.8, Math.min(6.2, zoomDaysRef.current + delta));
+        const next = Math.max(0.8, Math.min(7.2, zoomDaysRef.current + delta));
         setZoomDays(Math.round(next * 100) / 100);
 
         if (wheelTimer) clearTimeout(wheelTimer);
@@ -444,7 +444,7 @@ export function TimetableGrid({
         if (rawZoom > limit) {
           const over = rawZoom - limit;
           nextZoom = limit + over * 0.45;
-          nextZoom = Math.min(6.2, nextZoom);
+          nextZoom = Math.min(7.2, nextZoom);
         } else if (rawZoom < minZoomLimit) {
           const under = minZoomLimit - rawZoom;
           nextZoom = minZoomLimit - under * 0.45;
@@ -773,9 +773,9 @@ export function TimetableGrid({
                   </button>
                 </div>
 
-                {/* Relative week badge when not on current week */}
+                {/* Relative week badge when not on current week - subtle, non attention-grabby */}
                 {relativeWeekLabel && (
-                  <span className="hidden md:inline-flex items-center text-[10px] font-mono font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 px-1.5 py-0.5 rounded-full select-none shrink-0">
+                  <span className="hidden md:inline-flex items-center text-[10px] font-mono font-medium text-slate-500 dark:text-slate-400 bg-slate-100/70 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800/60 px-1.5 py-0.5 rounded-md select-none shrink-0">
                     {relativeWeekLabel}
                   </span>
                 )}
@@ -961,6 +961,7 @@ export function TimetableGrid({
             {/* ROW 1: HEADER - Continuous Day Headers across weeks */}
             {continuousDays.map((d, vIdx) => {
               const isToday = d.isToday;
+              const isFriday = d.isFriday;
               const isWeekStart = d.isWeekStart;
 
               return (
@@ -984,6 +985,8 @@ export function TimetableGrid({
                       className={`text-[11px] font-mono font-bold uppercase tracking-wider ${
                         isToday
                           ? 'text-emerald-600 dark:text-emerald-400'
+                          : isFriday
+                          ? 'text-slate-400 dark:text-slate-500'
                           : 'text-slate-500 dark:text-slate-400'
                       }`}
                     >
@@ -999,6 +1002,8 @@ export function TimetableGrid({
                     className={`mt-0.5 inline-flex items-center justify-center font-bold text-xs sm:text-sm h-7 w-7 rounded-full ${
                       isToday
                         ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-emerald-950 shadow-xs'
+                        : isFriday
+                        ? 'text-slate-400 dark:text-slate-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/40'
                         : 'text-slate-800 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
                     }`}
                   >
@@ -1036,8 +1041,9 @@ export function TimetableGrid({
             {/* ROW 2: DAY TIMELINE COLUMNS (Cols 2 to continuousDays.length + 1) */}
             {continuousDays.map((d, vIdx) => {
               const isToday = d.isToday;
+              const isFriday = d.isFriday;
               const isWeekStart = d.isWeekStart;
-              const positionedEvents = dayEventsMap[d.dayKey as DayOfWeek] || [];
+              const positionedEvents = isFriday ? [] : (dayEventsMap[d.dayKey as DayOfWeek] || []);
 
               return (
                 <div
@@ -1046,7 +1052,7 @@ export function TimetableGrid({
                     isWeekStart
                       ? 'border-l-2 border-l-slate-300 dark:border-l-slate-700'
                       : 'border-l border-slate-200 dark:border-slate-800/80'
-                  }`}
+                  } ${isFriday ? 'bg-slate-100/30 dark:bg-slate-900/20' : ''}`}
                   style={{
                     gridColumn: vIdx + 2,
                     gridRow: 2,
@@ -1064,8 +1070,21 @@ export function TimetableGrid({
                     ))}
                   </div>
 
-                  {/* Floating Event Blocks (Google Calendar Style) + Shared Free Time Highlights */}
-                  <div className="absolute inset-0">
+                  {isFriday ? (
+                    /* Subtle Friday Weekend Column Content */
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-3 pointer-events-none select-none">
+                      <div className="inline-flex flex-col items-center gap-1 rounded-2xl border border-slate-200/60 bg-slate-100/60 dark:border-slate-800/60 dark:bg-slate-900/40 px-3 py-2 text-center shadow-2xs backdrop-blur-xs">
+                        <span className="text-[10px] font-mono font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                          Weekend
+                        </span>
+                        <span className="text-[9.5px] font-mono text-slate-400/80 dark:text-slate-500/80">
+                          No classes
+                        </span>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Floating Event Blocks (Google Calendar Style) + Shared Free Time Highlights */
+                    <div className="absolute inset-0">
                       {/* Shared Free Time Highlights (Option 1: Solid green with zero text, hover tooltip for details) */}
                       {compareState?.active && compareState.showFreeTimeHighlight && (sharedFreeSlotsMap?.[d.dayKey as DayOfWeek] || []).map((fs, fIdx) => {
                         const { topPercent, heightPercent } = getTimelinePercentForInterval(fs.startMinutes, fs.endMinutes);
@@ -1397,6 +1416,7 @@ export function TimetableGrid({
                       );
                     })}
                   </div>
+                )}
 
                   {/* Current Time Indicator across Today's column */}
                   {isToday && currentTimeTopPercent !== null && (
