@@ -946,7 +946,7 @@ export function TimetableGrid({
             </div>
 
             {/* Desktop-only VersionBadge placement inline with title */}
-            <div className="hidden sm:inline-flex items-center shrink-0">
+            <div className="hidden sm:inline-flex items-center shrink-0 relative z-30">
               <VersionBadge
                 routineVersion={cleanVersion}
                 onVersionChange={onVersionChange}
@@ -995,7 +995,7 @@ export function TimetableGrid({
           }`}
         >
           {/* Mobile-only VersionBadge placement on Row 2 */}
-          <div className="sm:hidden inline-flex items-center shrink-0">
+          <div className="sm:hidden inline-flex items-center shrink-0 relative z-30">
             <VersionBadge
               routineVersion={cleanVersion}
               onVersionChange={onVersionChange}
