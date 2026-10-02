@@ -633,13 +633,13 @@ export function TimetableGrid({
       } else if (e.key === 'a' || e.key === 'A') {
         e.preventDefault();
         setEffectiveViewMode('agenda');
-      } else if (e.key === 'ArrowDown' || e.key === 'j' || e.key === 'J' || e.key === 'PageDown') {
+      } else if (effectiveViewMode === 'matrix' && (e.key === 'ArrowDown' || e.key === 'j' || e.key === 'J' || e.key === 'PageDown')) {
         e.preventDefault();
         handleNextWeek();
-      } else if (e.key === 'ArrowUp' || e.key === 'k' || e.key === 'K' || e.key === 'PageUp') {
+      } else if (effectiveViewMode === 'matrix' && (e.key === 'ArrowUp' || e.key === 'k' || e.key === 'K' || e.key === 'PageUp')) {
         e.preventDefault();
         handlePrevWeek();
-      } else if (e.key === 't' || e.key === 'T') {
+      } else if (effectiveViewMode === 'matrix' && (e.key === 't' || e.key === 'T')) {
         e.preventDefault();
         handleResetWeek();
       }
@@ -647,7 +647,7 @@ export function TimetableGrid({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setEffectiveViewMode, handleNextWeek, handlePrevWeek, handleResetWeek]);
+  }, [effectiveViewMode, setEffectiveViewMode, handleNextWeek, handlePrevWeek, handleResetWeek]);
 
 
 
@@ -731,45 +731,49 @@ export function TimetableGrid({
               <span>{notionDateTitle}</span>
             </h2>
 
-            {/* Minimal Week Navigation Controls (‹ Today ›) */}
-            <div className="inline-flex items-center gap-0.5 rounded-lg border border-slate-200/90 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-950 p-0.5 shadow-2xs shrink-0">
-              <button
-                type="button"
-                onClick={handlePrevWeek}
-                title="Previous week (or scroll up / ↑)"
-                aria-label="Previous week"
-                className="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                <ChevronLeft className="w-3.5 h-3.5" />
-              </button>
+            {/* Minimal Week Navigation Controls (‹ Today ›) - ONLY in Week view */}
+            {effectiveViewMode === 'matrix' && (
+              <>
+                <div className="inline-flex items-center gap-0.5 rounded-lg border border-slate-200/90 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-950 p-0.5 shadow-2xs shrink-0">
+                  <button
+                    type="button"
+                    onClick={handlePrevWeek}
+                    title="Previous week (or scroll up / ↑)"
+                    aria-label="Previous week"
+                    className="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                  </button>
 
-              {visibleWeekOffset !== 0 ? (
-                <button
-                  type="button"
-                  onClick={handleResetWeek}
-                  title="Jump to current week (or press T)"
-                  className="px-1.5 py-0.5 text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400 hover:bg-white dark:hover:bg-slate-800 rounded transition-colors cursor-pointer"
-                >
-                  Today
-                </button>
-              ) : null}
+                  {visibleWeekOffset !== 0 ? (
+                    <button
+                      type="button"
+                      onClick={handleResetWeek}
+                      title="Jump to current week (or press T)"
+                      className="px-1.5 py-0.5 text-[10px] font-mono font-bold text-emerald-700 dark:text-emerald-400 hover:bg-white dark:hover:bg-slate-800 rounded transition-colors cursor-pointer"
+                    >
+                      Today
+                    </button>
+                  ) : null}
 
-              <button
-                type="button"
-                onClick={handleNextWeek}
-                title="Next week (or scroll down / ↓)"
-                aria-label="Next week"
-                className="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
+                  <button
+                    type="button"
+                    onClick={handleNextWeek}
+                    title="Next week (or scroll down / ↓)"
+                    aria-label="Next week"
+                    className="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
 
-            {/* Relative week badge when not on current week */}
-            {relativeWeekLabel && (
-              <span className="hidden md:inline-flex items-center text-[10px] font-mono font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 px-1.5 py-0.5 rounded-full select-none shrink-0">
-                {relativeWeekLabel}
-              </span>
+                {/* Relative week badge when not on current week */}
+                {relativeWeekLabel && (
+                  <span className="hidden md:inline-flex items-center text-[10px] font-mono font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 px-1.5 py-0.5 rounded-full select-none shrink-0">
+                    {relativeWeekLabel}
+                  </span>
+                )}
+              </>
             )}
 
             {/* Desktop-only VersionBadge placement inline with title */}
@@ -1603,34 +1607,6 @@ export function TimetableGrid({
                                   )}
                                 </div>
                               </div>
-
-                              {/* Event Override Announcement Banner (e.g. Quiz / CT / Notice) */}
-                              {(() => {
-                                const agendaOverride = eventOverrides.find((ev) => {
-                                  if (ev.status === 'CANCELLED') return false;
-                                  if (ev.date !== d.isoDate) return false;
-                                  const cClean = cleanCourseCode.toUpperCase();
-                                  const evClean = ev.courseCode.split('(')[0].trim().toUpperCase();
-                                  if (cClean !== evClean) return false;
-                                  if (ev.startTime && ev.startTime !== classItem.startTime) return false;
-                                  return true;
-                                });
-
-                                if (!agendaOverride) return null;
-
-                                return (
-                                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-400 text-amber-950 font-bold text-xs shadow-xs">
-                                    <span className="shrink-0 uppercase font-black tracking-wide">
-                                      📝 {agendaOverride.type}: {agendaOverride.title}
-                                    </span>
-                                    {agendaOverride.description && (
-                                      <span className="font-medium opacity-90 truncate">
-                                        — {agendaOverride.description}
-                                      </span>
-                                    )}
-                                  </div>
-                                );
-                              })()}
 
                               {/* Line 2: Single Compact Meta Row: Time • Room • Faculty/Section */}
                               <div className="flex items-center gap-2 text-xs font-mono">
