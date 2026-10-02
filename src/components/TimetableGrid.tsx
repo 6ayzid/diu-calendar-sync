@@ -543,55 +543,159 @@ export function TimetableGrid({
     };
   }, [getCompressionLimit, getTimeColWidth, triggerSpringBounce]);
 
-  // Mouse drag-to-scroll for desktop
-  const isMouseDownRef = useRef(false);
-  const startXRef = useRef(0);
-  const scrollLeftRef = useRef(0);
+  // Mouse grab-to-scroll navigation for Week View (desktop mouse grab & drag)
+  const isPointerDownRef = useRef(false);
+  const pointerIdRef = useRef<number | null>(null);
+  const startClientXRef = useRef(0);
+  const startClientYRef = useRef(0);
+  const startScrollLeftRef = useRef(0);
+  const lastClientXRef = useRef(0);
+  const lastTimestampRef = useRef(0);
+  const velocityXRef = useRef(0);
+  const hasDraggedRef = useRef(false);
+  const dragJustEndedRef = useRef(false);
+  const settleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const [isDragging, setIsDragging] = useState(false);
+  const [isSettling, setIsSettling] = useState(false);
   const [isInitialPositioned, setIsInitialPositioned] = useState(false);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return;
-    const target = e.target as HTMLElement;
-    if (target.closest('button, a, input, select')) return;
+  useEffect(() => {
+    return () => {
+      if (settleTimeoutRef.current) clearTimeout(settleTimeoutRef.current);
+    };
+  }, []);
 
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Only handle primary left click (button === 0) for mouse/pen input.
+    // Native touch scrolling and multi-touch pinch-to-zoom handle touch devices.
+    if (e.button !== 0 || e.pointerType === 'touch') return;
     if (!matrixScrollRef.current) return;
-    isMouseDownRef.current = true;
-    startXRef.current = e.pageX - matrixScrollRef.current.offsetLeft;
-    scrollLeftRef.current = matrixScrollRef.current.scrollLeft;
+
+    if (settleTimeoutRef.current) {
+      clearTimeout(settleTimeoutRef.current);
+      settleTimeoutRef.current = null;
+    }
+    setIsSettling(false);
+
+    isPointerDownRef.current = true;
+    hasDraggedRef.current = false;
+    dragJustEndedRef.current = false;
+    startClientXRef.current = e.clientX;
+    startClientYRef.current = e.clientY;
+    startScrollLeftRef.current = matrixScrollRef.current.scrollLeft;
+    lastClientXRef.current = e.clientX;
+    lastTimestampRef.current = performance.now();
+    velocityXRef.current = 0;
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isMouseDownRef.current || !matrixScrollRef.current) return;
-    const x = e.pageX - matrixScrollRef.current.offsetLeft;
-    const diff = x - startXRef.current;
-    if (!isDragging && Math.abs(diff) < 4) return;
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isPointerDownRef.current || !matrixScrollRef.current) return;
+    if (e.pointerType === 'touch') return;
+
+    const deltaX = e.clientX - startClientXRef.current;
+    const deltaY = e.clientY - startClientYRef.current;
+
+    // Deadband check: don't engage drag for micro-movements < 4px so pure clicks work reliably
+    if (!hasDraggedRef.current) {
+      if (Math.hypot(deltaX, deltaY) < 4) return;
+      try {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        pointerIdRef.current = e.pointerId;
+      } catch {
+        // Fallback if setPointerCapture is unsupported
+      }
+      hasDraggedRef.current = true;
+      setIsDragging(true);
+    }
+
     e.preventDefault();
-    if (!isDragging) setIsDragging(true);
-    const walk = diff * 1.15;
-    matrixScrollRef.current.scrollLeft = scrollLeftRef.current - walk;
+
+    // 1:1 direct anchor grab-to-scroll: grabbed point stays glued under cursor
+    const maxScroll = Math.max(0, matrixScrollRef.current.scrollWidth - matrixScrollRef.current.clientWidth);
+    const targetScroll = Math.max(0, Math.min(maxScroll, startScrollLeftRef.current - deltaX));
+    matrixScrollRef.current.scrollLeft = targetScroll;
+
+    // Track smoothed horizontal velocity (px / ms) for flick momentum
+    const now = performance.now();
+    const dt = now - lastTimestampRef.current;
+    if (dt > 10) {
+      const dx = e.clientX - lastClientXRef.current;
+      velocityXRef.current = 0.7 * (dx / dt) + 0.3 * velocityXRef.current;
+      lastClientXRef.current = e.clientX;
+      lastTimestampRef.current = now;
+    }
   };
 
-  const handleMouseUpOrLeave = () => {
-    if (!isMouseDownRef.current) return;
-    isMouseDownRef.current = false;
+  const handlePointerUpOrCancel = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isPointerDownRef.current) return;
+    isPointerDownRef.current = false;
 
-    if (isDragging && matrixScrollRef.current) {
+    if (pointerIdRef.current !== null) {
+      try {
+        e.currentTarget.releasePointerCapture(pointerIdRef.current);
+      } catch {
+        // Ignore
+      }
+      pointerIdRef.current = null;
+    }
+
+    if (hasDraggedRef.current && matrixScrollRef.current) {
+      dragJustEndedRef.current = true;
       const container = matrixScrollRef.current;
       const timeWidth = getTimeColWidth();
       const dayAreaWidth = Math.max(1, container.clientWidth - timeWidth);
       const dayWidth = dayAreaWidth / zoomDaysRef.current;
+      const v = velocityXRef.current;
 
-      // Notion Calendar smooth snapping to nearest day grid boundary
-      const nearestGrid = Math.round(container.scrollLeft / dayWidth);
-      const targetLeft = Math.max(0, nearestGrid * dayWidth);
+      // Notion Calendar smooth snapping:
+      // If user flicked with velocity (|v| > 0.35 px/ms), advance 1 day in flick direction
+      let targetLeft: number;
+      if (Math.abs(v) > 0.35) {
+        // v > 0: dragged rightwards -> scroll leftwards (flickDir = -1)
+        // v < 0: dragged leftwards -> scroll rightwards (flickDir = +1)
+        const flickDir = v > 0 ? -1 : 1;
+        const currentGrid = Math.round(container.scrollLeft / dayWidth);
+        const targetGrid = Math.max(0, currentGrid + flickDir);
+        targetLeft = targetGrid * dayWidth;
+      } else {
+        // Gentle release: snap to nearest day boundary
+        const nearestGrid = Math.round(container.scrollLeft / dayWidth);
+        targetLeft = Math.max(0, nearestGrid * dayWidth);
+      }
+
+      const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+      const clampedTarget = Math.max(0, Math.min(maxScroll, targetLeft));
 
       container.scrollTo({
-        left: targetLeft,
+        left: clampedTarget,
         behavior: 'smooth',
       });
 
-      setTimeout(() => setIsDragging(false), 50);
+      setIsDragging(false);
+      setIsSettling(true);
+
+      if (settleTimeoutRef.current) clearTimeout(settleTimeoutRef.current);
+      settleTimeoutRef.current = setTimeout(() => {
+        setIsSettling(false);
+        settleTimeoutRef.current = null;
+      }, 400);
+
+      setTimeout(() => {
+        dragJustEndedRef.current = false;
+        hasDraggedRef.current = false;
+      }, 150);
+    } else {
+      setIsDragging(false);
+      hasDraggedRef.current = false;
+    }
+  };
+
+  const handleClickCapture = (e: React.MouseEvent) => {
+    if (dragJustEndedRef.current || hasDraggedRef.current) {
+      e.stopPropagation();
+      e.preventDefault();
+      dragJustEndedRef.current = false;
     }
   };
 
@@ -1096,16 +1200,19 @@ export function TimetableGrid({
         <div
           ref={matrixScrollRef}
           onScroll={handleMatrixScroll}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUpOrLeave}
-          onMouseLeave={handleMouseUpOrLeave}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUpOrCancel}
+          onPointerCancel={handlePointerUpOrCancel}
+          onClickCapture={handleClickCapture}
           className={`calendar-matrix-scroll mt-1 sm:mt-2 pb-2 print:overflow-visible print:pb-0 ${
             isDragging
-              ? 'cursor-grabbing select-none'
+              ? 'is-dragging cursor-grabbing select-none'
+              : isSettling
+              ? 'cursor-grab select-none'
               : isInitialPositioned
-              ? 'cursor-default snap-x snap-proximity'
-              : 'cursor-default'
+              ? 'cursor-grab snap-x snap-proximity'
+              : 'cursor-grab'
           }`}
           style={{
             containerType: 'inline-size',
@@ -1448,7 +1555,7 @@ export function TimetableGrid({
                       return (
                         <div
                           key={`class-${d.globalDayIndex}-${c.id}`}
-                          className={`absolute rounded-lg transition-all overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 cursor-pointer select-none group z-20 hover:z-22 ${cardTheme}`}
+                          className={`absolute rounded-lg transition-all overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 cursor-grab select-none group z-20 hover:z-22 ${cardTheme}`}
                           style={{
                             top: `calc(${pe.topPercent}% + 2px)`,
                             height: `calc(${pe.heightPercent}% - 4px)`,

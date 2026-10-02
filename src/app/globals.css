@@ -238,6 +238,13 @@ html.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   overscroll-behavior-x: contain;
 }
 
+/* Mouse grab-to-scroll interaction for timetable grid */
+.calendar-matrix-scroll.is-dragging,
+.calendar-matrix-scroll.is-dragging * {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
 .calendar-matrix-scroll::-webkit-scrollbar {
   height: 9px;
   width: 8px;
