@@ -654,16 +654,67 @@ export function TimetableGrid({
       className="w-full space-y-3 sm:space-y-4 transition-colors"
     >
       {/* Calendar Header & View Switcher (ONLY Week and Agenda) */}
-      <div className="flex items-center justify-between gap-2.5 print:hidden select-none">
-        {/* Left: Date Title + Routine Version + Attribution Subheader */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-2.5 print:hidden select-none">
+        {/* Mobile Row 1 / Desktop Left: Month Title & (on mobile) View Switcher */}
+        <div className="flex items-center justify-between sm:justify-start gap-2 min-w-0 w-full sm:w-auto">
+          <div className="flex items-center gap-2 min-w-0">
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 shrink-0">
+              <span>{notionDateTitle}</span>
+            </h2>
+
+            {/* Desktop-only VersionBadge placement inline with title */}
+            <div className="hidden sm:inline-flex items-center shrink-0">
+              <VersionBadge
+                routineVersion={cleanVersion}
+                onVersionChange={onVersionChange}
+              />
+            </div>
+          </div>
+
+          {/* Mobile-only view switcher on Row 1 (Right) */}
+          <div className="sm:hidden flex items-center shrink-0">
+            <div className="inline-flex items-center gap-0.5 rounded-xl border border-slate-200 bg-slate-100/90 dark:border-slate-800 dark:bg-slate-950 p-0.5 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setEffectiveViewMode('matrix')}
+                aria-pressed={effectiveViewMode === 'matrix'}
+                className={`flex items-center justify-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer min-h-[28px] ${
+                  effectiveViewMode === 'matrix'
+                    ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80 dark:bg-slate-800 dark:text-white dark:border-slate-700 font-bold'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                }`}
+              >
+                <LayoutGrid className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                <span>Week</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setEffectiveViewMode('agenda')}
+                aria-pressed={effectiveViewMode === 'agenda'}
+                className={`flex items-center justify-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer min-h-[28px] ${
+                  effectiveViewMode === 'agenda'
+                    ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80 dark:bg-slate-800 dark:text-white dark:border-slate-700 font-bold'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
+                }`}
+              >
+                <CalendarDays className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                <span>Agenda</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Row 2 / Desktop continuation: VersionBadge (mobile) + Section or Faculty Info */}
         <div className="flex items-center gap-2 flex-wrap min-w-0">
-          <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 shrink-0">
-            <span>{notionDateTitle}</span>
-          </h2>
-          <VersionBadge
-            routineVersion={cleanVersion}
-            onVersionChange={onVersionChange}
-          />
+          {/* Mobile-only VersionBadge placement on Row 2 */}
+          <div className="sm:hidden inline-flex items-center shrink-0">
+            <VersionBadge
+              routineVersion={cleanVersion}
+              onVersionChange={onVersionChange}
+            />
+          </div>
+
           {isFaculty && faculty ? (
             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium text-slate-600 dark:text-slate-300 max-w-[280px] sm:max-w-none">
               <span className="truncate">{faculty.name}</span>
@@ -697,8 +748,8 @@ export function TimetableGrid({
           ) : null}
         </div>
 
-        {/* Right: ONLY Week and Agenda Toggle */}
-        <div className="flex items-center">
+        {/* Desktop-only: View switcher on the right */}
+        <div className="hidden sm:flex items-center shrink-0">
           <div className="inline-flex items-center gap-0.5 rounded-xl border border-slate-200 bg-slate-100/90 dark:border-slate-800 dark:bg-slate-950 p-0.5 shadow-2xs">
             {/* Week View */}
             <button

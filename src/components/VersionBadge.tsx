@@ -131,24 +131,41 @@ export function VersionBadge({
 
   const formatDisplayTime = (raw: string) => {
     try {
-      // Input e.g. "2026-10-02 09:28:00"
-      const parts = raw.split(' ');
+      if (!raw) return 'Morning, Oct 2';
+      // Normalize raw string e.g. "2026-10-02 09:28:00"
+      const parts = raw.trim().split(' ');
+      let hour = 9;
+      let monthStr = 'Oct';
+      let day = 2;
+
       if (parts.length >= 2) {
-        const [year, month, day] = parts[0].split('-').map(Number);
-        const [hour, minute] = parts[1].split(':').map(Number);
-        const dateObj = new Date(year, month - 1, day, hour, minute);
-        return dateObj.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true,
-        });
+        const [year, m, d] = parts[0].split('-').map(Number);
+        const [h] = parts[1].split(':').map(Number);
+        hour = h;
+        day = d;
+        const dateObj = new Date(year, m - 1, d);
+        if (!isNaN(dateObj.getTime())) {
+          monthStr = dateObj.toLocaleDateString('en-US', { month: 'short' });
+        }
+      } else {
+        const dObj = new Date(raw);
+        if (!isNaN(dObj.getTime())) {
+          hour = dObj.getHours();
+          monthStr = dObj.toLocaleDateString('en-US', { month: 'short' });
+          day = dObj.getDate();
+        }
       }
+
+      let period = 'morning';
+      if (hour >= 12 && hour < 17) period = 'afternoon';
+      else if (hour >= 17 && hour < 21) period = 'evening';
+      else if (hour >= 21 || hour < 5) period = 'night';
+
+      const capitalized = period.charAt(0).toUpperCase() + period.slice(1);
+      return `${capitalized}, ${monthStr} ${day}`;
     } catch {
-      // Fallback
+      return 'Morning, Oct 2';
     }
-    return raw;
   };
 
   return (
@@ -158,25 +175,25 @@ export function VersionBadge({
       onMouseLeave={handleMouseLeave}
       onClick={handleToggle}
       title="Official CSE Department Routine Version (Hover or tap to check updates)"
-      className={`inline-flex items-center rounded-full text-[10px] sm:text-[11px] font-mono border transition-all duration-300 ease-out select-none cursor-pointer overflow-hidden shrink-0 ${
+      className={`inline-flex items-center h-6 rounded-full text-[10px] sm:text-[11px] font-mono border transition-all duration-300 ease-out select-none cursor-pointer overflow-hidden shrink-0 box-border ${
         isExpanded
-          ? 'px-2.5 py-1 bg-emerald-50 text-emerald-950 border-emerald-300 shadow-sm dark:bg-emerald-950 dark:text-emerald-200 dark:border-emerald-700 max-w-[420px]'
-          : 'px-2 py-0.5 bg-emerald-100 text-emerald-800 border-emerald-300/80 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-700/60 hover:bg-emerald-200/80 dark:hover:bg-emerald-900/80 max-w-[80px]'
+          ? 'px-2.5 bg-emerald-50 text-emerald-950 border-emerald-300 shadow-2xs dark:bg-emerald-950 dark:text-emerald-200 dark:border-emerald-700 max-w-[280px]'
+          : 'px-2 bg-emerald-100 text-emerald-800 border-emerald-300/80 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-700/60 hover:bg-emerald-200/80 dark:hover:bg-emerald-900/80 max-w-[65px]'
       } ${className}`}
     >
       {/* Version Tag */}
-      <span className="font-bold tracking-tight shrink-0">{cleanVersion}</span>
+      <span className="font-bold tracking-tight shrink-0 leading-none">{cleanVersion}</span>
 
-      {/* Expanded Inline Content: Grows seamlessly with the pill */}
+      {/* Expanded Inline Content: Stays strictly inside h-6 without getting taller */}
       <div
-        className={`flex items-center gap-1.5 overflow-hidden transition-all duration-300 ease-out ${
-          isExpanded ? 'max-w-[340px] opacity-100 ml-1.5' : 'max-w-0 opacity-0 ml-0 pointer-events-none'
+        className={`flex items-center gap-1.5 overflow-hidden transition-all duration-300 ease-out h-full ${
+          isExpanded ? 'max-w-[210px] opacity-100 ml-1.5' : 'max-w-0 opacity-0 ml-0 pointer-events-none'
         }`}
       >
-        <span className="text-emerald-400 dark:text-emerald-600 font-sans select-none">•</span>
+        <span className="text-emerald-400 dark:text-emerald-600 font-sans select-none leading-none">•</span>
 
-        <span className="text-[10px] whitespace-nowrap text-emerald-800/80 dark:text-emerald-300/80 font-medium">
-          Updated {formatDisplayTime(lastUpdatedAt)}
+        <span className="text-[10px] whitespace-nowrap text-emerald-800/85 dark:text-emerald-300/85 font-medium leading-none">
+          {formatDisplayTime(lastUpdatedAt)}
         </span>
 
         {/* Inline Action Button */}
@@ -184,7 +201,7 @@ export function VersionBadge({
           type="button"
           onClick={handleCheckUpdate}
           disabled={isChecking}
-          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold transition-all shrink-0 cursor-pointer shadow-2xs ${
+          className={`inline-flex items-center gap-1 h-[18px] px-1.5 rounded-full text-[9.5px] font-semibold leading-none transition-all shrink-0 cursor-pointer shadow-2xs ${
             checkResult.status === 'up-to-date'
               ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-slate-950'
               : checkResult.status === 'updated'
@@ -195,11 +212,11 @@ export function VersionBadge({
           } disabled:opacity-70`}
         >
           {checkResult.status === 'up-to-date' ? (
-            <Check className="w-2.5 h-2.5" />
+            <Check className="w-2.5 h-2.5 shrink-0" />
           ) : (
-            <RefreshCw className={`w-2.5 h-2.5 ${isChecking ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-2.5 h-2.5 shrink-0 ${isChecking ? 'animate-spin' : ''}`} />
           )}
-          <span>
+          <span className="leading-none">
             {isChecking
               ? 'Checking...'
               : checkResult.status === 'up-to-date'
