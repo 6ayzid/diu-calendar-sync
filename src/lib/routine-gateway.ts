@@ -1,7 +1,7 @@
 import { RoutineClass, FacultyMeta } from '@/types/schedule';
 import { robustFetch } from './robust-fetch';
 import { getFacultyByCode, registerDynamicFaculty } from '@/data/faculty';
-import { getRoutineGatewayUrl } from './gateway-config';
+import { getRoutineGatewayUrl, getRoutineSyncKey } from './gateway-config';
 
 interface UpstreamClassItem {
   course_code: string;
@@ -51,6 +51,7 @@ interface RoutineVersionResponse {
   success?: boolean;
   version?: string;
   updated_at?: string;
+  synced_at?: string;
   cache_invalidation_timestamp?: number;
 }
 
@@ -64,7 +65,9 @@ export interface UpstreamScheduleResult {
 const cache = new Map<string, { timestamp: number; data: RoutineClass[]; version: string }>();
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-let lastKnownVersion = '2.2';
+let lastKnownVersion = '4.1';
+let lastKnownUpdatedAt = '2026-10-02 09:28:00';
+let lastKnownSyncedAt = '';
 let lastVersionCheckTime = 0;
 const VERSION_CHECK_INTERVAL_MS = 5 * 60 * 1000; // Check for routine updates every 5 min
 
@@ -90,6 +93,8 @@ export async function checkAndInvalidateOnNewRoutineVersion(force = false): Prom
       const data = await res.json();
       if (data.success && data.version) {
         const upstreamVer = String(data.version).trim();
+        if (data.updated_at) lastKnownUpdatedAt = String(data.updated_at).trim();
+        if (data.synced_at) lastKnownSyncedAt = String(data.synced_at).trim();
         if (upstreamVer !== lastKnownVersion) {
           console.info(`[Routine Gateway] Upstream routine version updated from ${lastKnownVersion} to ${upstreamVer}. Clearing schedule cache.`);
           cache.clear();
@@ -102,6 +107,130 @@ export async function checkAndInvalidateOnNewRoutineVersion(force = false): Prom
   }
 
   return lastKnownVersion;
+}
+
+export interface VersionMetaResult {
+  version: string;
+  updatedAt?: string;
+  syncedAt?: string;
+}
+
+export async function getUpstreamVersionMeta(force = false): Promise<VersionMetaResult> {
+  const version = await checkAndInvalidateOnNewRoutineVersion(force);
+  return {
+    version,
+    updatedAt: lastKnownUpdatedAt,
+    syncedAt: lastKnownSyncedAt,
+  };
+}
+
+export interface UpstreamUpdateCheckResult {
+  success: boolean;
+  updateAvailable: boolean;
+  currentVersion: string;
+  upstreamVersion?: string;
+  updatedAt?: string;
+  syncedAt?: string;
+  statusMessage?: string;
+  syncedNow?: boolean;
+}
+
+/**
+ * Checks live update status from upstream worker.
+ * If an update is detected, triggers synchronization and flushes cache.
+ */
+export async function checkLiveUpstreamUpdate(triggerSyncIfAvailable = true): Promise<UpstreamUpdateCheckResult> {
+  const gateway = getRoutineGatewayUrl();
+  if (!gateway) {
+    return {
+      success: false,
+      updateAvailable: false,
+      currentVersion: lastKnownVersion,
+      statusMessage: 'Routine gateway not configured',
+    };
+  }
+
+  try {
+    const res = await robustFetch<{
+      success?: boolean;
+      update_available?: boolean;
+      status?: string;
+      current?: { version?: string; updated_at?: string; synced_at?: string; total_classes?: number };
+      upstream?: { version?: string; updated_at?: string };
+    }>(`${gateway}/api/check-update?t=${Date.now()}`, { timeout: 6000 });
+
+    if (res.ok) {
+      const data = await res.json();
+      const currentVer = data.current?.version || lastKnownVersion;
+      const upstreamVer = data.upstream?.version || currentVer;
+      const updatedAt = data.current?.updated_at || data.upstream?.updated_at || lastKnownUpdatedAt;
+      const syncedAt = data.current?.synced_at || lastKnownSyncedAt;
+      const hasUpdate = Boolean(data.update_available || (upstreamVer && upstreamVer !== currentVer));
+
+      if (data.current?.version) lastKnownVersion = data.current.version;
+      if (updatedAt) lastKnownUpdatedAt = updatedAt;
+      if (syncedAt) lastKnownSyncedAt = syncedAt;
+
+      if (hasUpdate && triggerSyncIfAvailable) {
+        const syncKey = getRoutineSyncKey();
+        try {
+          const syncRes = await robustFetch<{
+            success?: boolean;
+            version?: string;
+            current?: { version?: string; updated_at?: string; synced_at?: string };
+          }>(
+            `${gateway}/api/check-update?sync=true&key=${encodeURIComponent(syncKey)}&t=${Date.now()}`,
+            { timeout: 15000 }
+          );
+          if (syncRes.ok) {
+            const syncData = await syncRes.json();
+            const newVersion = syncData.current?.version || syncData.version || upstreamVer;
+            cache.clear();
+            lastKnownVersion = newVersion;
+            if (syncData.current?.updated_at) lastKnownUpdatedAt = syncData.current.updated_at;
+            if (syncData.current?.synced_at) lastKnownSyncedAt = syncData.current.synced_at;
+            return {
+              success: true,
+              updateAvailable: true,
+              currentVersion: newVersion,
+              upstreamVersion: newVersion,
+              updatedAt: syncData.current?.updated_at || updatedAt,
+              syncedAt: syncData.current?.synced_at || new Date().toISOString(),
+              statusMessage: `Routine upgraded to v${newVersion}!`,
+              syncedNow: true,
+            };
+          }
+        } catch (syncErr) {
+          console.warn('[Routine Gateway] Automated sync trigger failed:', syncErr);
+        }
+      }
+
+      return {
+        success: true,
+        updateAvailable: hasUpdate,
+        currentVersion: currentVer,
+        upstreamVersion: upstreamVer,
+        updatedAt,
+        syncedAt,
+        statusMessage: data.status || (hasUpdate ? `New version v${upstreamVer} available!` : `Routine is up to date (Version ${currentVer}).`),
+        syncedNow: false,
+      };
+    }
+  } catch (err) {
+    console.warn('[Routine Gateway] check-update failed:', err);
+  }
+
+  // Graceful fallback: check routine_version endpoint
+  const ver = await checkAndInvalidateOnNewRoutineVersion(true);
+  return {
+    success: true,
+    updateAvailable: false,
+    currentVersion: ver,
+    updatedAt: lastKnownUpdatedAt,
+    syncedAt: lastKnownSyncedAt,
+    statusMessage: `Routine version is ${ver}.`,
+    syncedNow: false,
+  };
 }
 
 function parse12HourTime(t: string): string {

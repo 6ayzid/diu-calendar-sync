@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { checkAndInvalidateOnNewRoutineVersion } from '@/lib/routine-gateway';
+import { getUpstreamVersionMeta } from '@/lib/routine-gateway';
 import officialRoutine from '@/data/official-routine.json';
 
 function formatShortVersion(v?: string): string {
@@ -10,14 +10,16 @@ function formatShortVersion(v?: string): string {
 
 export async function GET() {
   try {
-    const rawVersion = await checkAndInvalidateOnNewRoutineVersion(true);
-    const cleanVersion = formatShortVersion(rawVersion || officialRoutine.version || '4.1');
+    const meta = await getUpstreamVersionMeta(true);
+    const cleanVersion = formatShortVersion(meta.version || officialRoutine.version || '4.1');
 
     return NextResponse.json(
       {
         success: true,
         version: cleanVersion,
-        rawVersion: rawVersion || officialRoutine.version || '4.1',
+        rawVersion: meta.version || officialRoutine.version || '4.1',
+        updatedAt: meta.updatedAt || '2026-10-02 09:28:00',
+        syncedAt: meta.syncedAt || null,
         timestamp: Date.now(),
       },
       {

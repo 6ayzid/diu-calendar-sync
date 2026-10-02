@@ -390,6 +390,15 @@ export default function Home() {
     }
   };
 
+  // System-wide Routine Version Update handler
+  const handleSystemWideVersionUpdate = useCallback((newVer: string) => {
+    const formatted = newVer.startsWith('v') ? newVer : `v${newVer}`;
+    console.info(`[System Update] Triggering system-wide routine version update to ${formatted}`);
+    purgeOldVersionCaches(formatted);
+    setRoutineVersion(formatted);
+    setReloadTrigger((prev) => prev + 1);
+  }, []);
+
   // Global Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -968,6 +977,7 @@ export default function Home() {
             activeDay={activeDay}
             onActiveDayChange={setActiveDay}
             routineVersion={routineVersion}
+            onVersionChange={handleSystemWideVersionUpdate}
             onOpenFacultyInfo={handleOpenFacultyInfo}
             onOpenSectionInfo={handleOpenSectionInfo}
           />

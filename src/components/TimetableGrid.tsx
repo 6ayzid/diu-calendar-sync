@@ -16,6 +16,7 @@ import { getCourseShortTitle } from '@/lib/course-utils';
 import { formatTime12, getDhakaClock, DhakaClockState, getUpcomingDays, getCurrentWeekScheduleDays, WeekScheduleDay, timeToMinutes } from '@/lib/time-utils';
 import { HOURLY_MARKS, layoutDayEvents, getCurrentTimeTopPercent, PositionedEvent } from '@/lib/timeline-layout';
 import { getTimelinePercentForInterval, getTargetLabel } from '@/lib/compare-utils';
+import { VersionBadge } from './VersionBadge';
 
 interface TimetableGridProps {
   section?: SectionMeta | null;
@@ -30,6 +31,7 @@ interface TimetableGridProps {
   activeDay?: DayOfWeek;
   onActiveDayChange?: (day: DayOfWeek) => void;
   routineVersion?: string;
+  onVersionChange?: (newVersion: string) => void;
   onOpenFacultyInfo?: (facultyCode: string) => void;
   onOpenSectionInfo?: (sectionId: string) => void;
 }
@@ -61,6 +63,7 @@ export function TimetableGrid({
   onViewModeChange,
   onActiveDayChange,
   routineVersion = 'v4.1',
+  onVersionChange,
   onOpenFacultyInfo,
   onOpenSectionInfo,
 }: TimetableGridProps) {
@@ -657,12 +660,10 @@ export function TimetableGrid({
           <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-1.5 shrink-0">
             <span>{notionDateTitle}</span>
           </h2>
-          <span
-            title="Official CSE Department Class Routine Version"
-            className="inline-flex items-center px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-700/60 shadow-2xs shrink-0"
-          >
-            {cleanVersion}
-          </span>
+          <VersionBadge
+            routineVersion={cleanVersion}
+            onVersionChange={onVersionChange}
+          />
           {isFaculty && faculty ? (
             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium text-slate-600 dark:text-slate-300 max-w-[280px] sm:max-w-none">
               <span className="truncate">{faculty.name}</span>

@@ -30,3 +30,24 @@ export function getRoutineGatewayUrl(): string | null {
   const defaultUrl = getDefaultGatewayUrl();
   return defaultUrl || null;
 }
+
+// Base64 encoded default: 'bayzid_diu_sync_key_2026'
+const DEFAULT_SYNC_KEY_B64 = 'YmF5emlkX2RpdV9zeW5jX2tleV8yMDI2';
+
+export function getRoutineSyncKey(): string {
+  const envKey = process.env.ROUTINE_SYNC_KEY || process.env.SYNC_API_KEY;
+  if (envKey && envKey.trim()) {
+    return envKey.trim();
+  }
+  try {
+    if (typeof atob === 'function') {
+      return atob(DEFAULT_SYNC_KEY_B64);
+    }
+    if (typeof Buffer !== 'undefined') {
+      return Buffer.from(DEFAULT_SYNC_KEY_B64, 'base64').toString('utf-8');
+    }
+  } catch {
+    // ignore
+  }
+  return 'bayzid_diu_sync_key_2026';
+}
