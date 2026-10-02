@@ -502,6 +502,7 @@ export function TimetableGrid({
   const startXRef = useRef(0);
   const scrollLeftRef = useRef(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [isInitialPositioned, setIsInitialPositioned] = useState(false);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
@@ -516,16 +517,34 @@ export function TimetableGrid({
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isMouseDownRef.current || !matrixScrollRef.current) return;
+    const x = e.pageX - matrixScrollRef.current.offsetLeft;
+    const diff = x - startXRef.current;
+    if (!isDragging && Math.abs(diff) < 4) return;
     e.preventDefault();
     if (!isDragging) setIsDragging(true);
-    const x = e.pageX - matrixScrollRef.current.offsetLeft;
-    const walk = (x - startXRef.current) * 1.15;
+    const walk = diff * 1.15;
     matrixScrollRef.current.scrollLeft = scrollLeftRef.current - walk;
   };
 
   const handleMouseUpOrLeave = () => {
+    if (!isMouseDownRef.current) return;
     isMouseDownRef.current = false;
-    if (isDragging) {
+
+    if (isDragging && matrixScrollRef.current) {
+      const container = matrixScrollRef.current;
+      const timeWidth = window.innerWidth < 640 ? 64 : 72;
+      const dayAreaWidth = Math.max(1, container.clientWidth - timeWidth);
+      const dayWidth = dayAreaWidth / zoomDaysRef.current;
+
+      // Only snap when dragged into more than half of the grid
+      const nearestGrid = Math.round(container.scrollLeft / dayWidth);
+      const targetLeft = Math.max(0, nearestGrid * dayWidth);
+
+      container.scrollTo({
+        left: targetLeft,
+        behavior: 'smooth',
+      });
+
       setTimeout(() => setIsDragging(false), 50);
     }
   };
@@ -565,15 +584,22 @@ export function TimetableGrid({
   const scrollToToday = useCallback((smooth = true) => {
     if (!matrixScrollRef.current) return;
     const container = matrixScrollRef.current;
+    const todayIdx = continuousDays.findIndex((d) => d.isToday);
     const weekStartIdx = continuousDays.findIndex(
       (d) => d.weekOffset === 0 && d.dayIndexInWeek === 0
     );
-    if (weekStartIdx >= 0) {
+    // On narrower views (mobile 3-day view or zoomed in), start directly at today if found.
+    // On full 7-day week views, start at Saturday to show the entire current academic week.
+    const targetIdx = (zoomDaysRef.current < 6 && todayIdx >= 0)
+      ? todayIdx
+      : (weekStartIdx >= 0 ? weekStartIdx : 0);
+
+    if (targetIdx >= 0) {
       const timeWidth = window.innerWidth < 640 ? 64 : 72;
       const dayAreaWidth = Math.max(1, container.clientWidth - timeWidth);
       const dayWidth = dayAreaWidth / zoomDaysRef.current;
       container.scrollTo({
-        left: Math.max(0, weekStartIdx * dayWidth),
+        left: Math.max(0, targetIdx * dayWidth),
         behavior: smooth ? 'smooth' : 'auto',
       });
       setVisibleWeekOffset(0);
@@ -592,16 +618,67 @@ export function TimetableGrid({
     scrollToToday(true);
   }, [scrollToToday]);
 
-  // Initial jump to current week / today on mount
+  // Initial jump to current week / today on mount - guaranteed never to get stuck two weeks back
   const initialScrollDoneRef = useRef(false);
   useEffect(() => {
     if (initialScrollDoneRef.current || !matrixScrollRef.current || continuousDays.length === 0) return;
-    initialScrollDoneRef.current = true;
-    const timer = setTimeout(() => {
-      scrollToToday(false);
-    }, 60);
-    return () => clearTimeout(timer);
-  }, [continuousDays, scrollToToday]);
+    const container = matrixScrollRef.current;
+
+    const performInitialScroll = () => {
+      if (!container || container.clientWidth < 100) return false;
+
+      const todayIdx = continuousDays.findIndex((d) => d.isToday);
+      const weekStartIdx = continuousDays.findIndex(
+        (d) => d.weekOffset === 0 && d.dayIndexInWeek === 0
+      );
+      const targetIdx = (zoomDaysRef.current < 6 && todayIdx >= 0)
+        ? todayIdx
+        : (weekStartIdx >= 0 ? weekStartIdx : 0);
+
+      const timeWidth = window.innerWidth < 640 ? 64 : 72;
+      const dayAreaWidth = Math.max(1, container.clientWidth - timeWidth);
+      const dayWidth = dayAreaWidth / zoomDaysRef.current;
+      const targetLeft = Math.max(0, targetIdx * dayWidth);
+
+      container.scrollLeft = targetLeft;
+      setVisibleWeekOffset(0);
+      initialScrollDoneRef.current = true;
+      setIsInitialPositioned(true);
+      return true;
+    };
+
+    if (performInitialScroll()) return;
+
+    let rafId: number;
+    const checkFrame = () => {
+      if (!performInitialScroll()) {
+        rafId = requestAnimationFrame(checkFrame);
+      }
+    };
+    rafId = requestAnimationFrame(checkFrame);
+
+    const ro = new ResizeObserver(() => {
+      if (performInitialScroll()) {
+        ro.disconnect();
+      }
+    });
+    ro.observe(container);
+
+    return () => {
+      cancelAnimationFrame(rafId);
+      ro.disconnect();
+    };
+  }, [continuousDays]);
+
+  // Maintain position at Today / Week 0 if toggled from agenda to matrix
+  useEffect(() => {
+    if (effectiveViewMode === 'matrix' && matrixScrollRef.current) {
+      const container = matrixScrollRef.current;
+      if (container.clientWidth > 100 && container.scrollLeft === 0) {
+        scrollToToday(false);
+      }
+    }
+  }, [effectiveViewMode, scrollToToday]);
 
   // Dynamic Notion Calendar Date Title based on visible week
   const notionDateTitle = useMemo(() => {
@@ -934,7 +1011,11 @@ export function TimetableGrid({
           onMouseUp={handleMouseUpOrLeave}
           onMouseLeave={handleMouseUpOrLeave}
           className={`calendar-matrix-scroll mt-1 sm:mt-2 pb-2 print:overflow-visible print:pb-0 ${
-            isDragging ? 'cursor-grabbing select-none' : 'cursor-default snap-x snap-mandatory'
+            isDragging
+              ? 'cursor-grabbing select-none'
+              : isInitialPositioned
+              ? 'cursor-default snap-x snap-proximity'
+              : 'cursor-default'
           }`}
           style={{
             containerType: 'inline-size',
@@ -976,8 +1057,8 @@ export function TimetableGrid({
                   style={{
                     gridColumn: vIdx + 2,
                     gridRow: 1,
-                    scrollSnapAlign: isWeekStart ? 'start' : 'none',
-                    scrollSnapStop: isWeekStart ? 'always' : 'normal',
+                    scrollSnapAlign: 'start',
+                    scrollSnapStop: 'normal',
                   }}
                 >
                   <div className="flex items-center gap-1">
@@ -1608,6 +1689,35 @@ export function TimetableGrid({
                                 </div>
 
                                 <div className="flex items-center gap-1.5 shrink-0">
+                                  {(() => {
+                                    const cardOverride = (eventOverrides || []).find((ev) => {
+                                      if (ev.status === 'CANCELLED') return false;
+                                      if (ev.date) {
+                                        const matchesIso = d.isoDate && ev.date.trim() === d.isoDate.trim();
+                                        const dayNum = String(parseInt(ev.date.split('-')[2] || '0', 10));
+                                        const matchesDayNum = d.dayNumber === dayNum && (!ev.dayOfWeek || d.dayKey === ev.dayOfWeek);
+                                        if (!matchesIso && !matchesDayNum) return false;
+                                      } else if (ev.dayOfWeek && ev.dayOfWeek !== d.dayKey) {
+                                        return false;
+                                      }
+                                      const cClean = (cleanCourseCode || classItem.courseCode || '').split('(')[0].trim().toUpperCase();
+                                      const evClean = (ev.courseCode || '').split('(')[0].trim().toUpperCase();
+                                      if (cClean !== evClean) return false;
+                                      if (ev.startTime && classItem.startTime && ev.startTime !== classItem.startTime) return false;
+                                      return true;
+                                    });
+
+                                    if (!cardOverride) return null;
+
+                                    return (
+                                      <span
+                                        title={`${cardOverride.title}${cardOverride.description ? `: ${cardOverride.description}` : ''}`}
+                                        className="shrink-0 rounded px-1.5 py-0.5 text-[9.5px] font-bold font-mono uppercase bg-amber-400 text-amber-950 border border-amber-500/60 shadow-2xs"
+                                      >
+                                        {cardOverride.type === 'ct' ? 'CT' : (cardOverride.type?.toUpperCase() || 'QUIZ')}
+                                      </span>
+                                    );
+                                  })()}
                                   {isDoubleSlot && (
                                     <span className="text-[10px] font-mono font-semibold bg-black/25 text-white border border-white/20 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20 px-1.5 py-0.5 rounded">
                                       3h Lab
