@@ -1,18 +1,18 @@
 [
   {
-    "id": "override-66_O-CSE328-20261008",
+    "id": "override-66_O-CSE328-20261010",
     "sectionId": "66_O",
-    "date": "2026-10-08",
-    "dayOfWeek": "THURSDAY",
-    "startTime": "10:00",
-    "endTime": "11:30",
+    "date": "2026-10-10",
+    "dayOfWeek": "SATURDAY",
+    "startTime": "16:00",
+    "endTime": "17:30",
     "courseCode": "CSE328",
     "type": "quiz",
     "title": "Quiz 1",
-    "description": "Introduction to Data Science (CSE328) Quiz 1. Syllabus: Slides 1–3 (10 marks) | OBE: 5 marks. Room KT-217.",
-    "room": "KT-217",
+    "description": "Introduction to Data Science (CSE328) Quiz 1. Syllabus: Chapter 1,2,3 +OBE. Room KT-306.",
+    "room": "KT-306",
     "status": "CONFIRMED",
-    "createdAt": "2026-10-02T23:22:00Z"
+    "createdAt": "2026-10-05T17:22:00Z"
   },
   {
     "id": "override-66_O-CSE326-20261008",
@@ -23,10 +23,10 @@
     "endTime": "14:30",
     "courseCode": "CSE326",
     "type": "quiz",
-    "title": "Quiz",
-    "description": "Social & Ethics (CSE326) Class Quiz. Room KT-223.",
+    "title": "Quiz 1",
+    "description": "Social and Professional Issues in Computing (CSE326) Quiz 1. Syllabus: Benefits and Privacy (4slides) +OBE. Room KT-223.",
     "room": "KT-223",
     "status": "CONFIRMED",
-    "createdAt": "2026-10-02T17:40:00Z"
+    "createdAt": "2026-10-05T17:22:00Z"
   }
 ]
