@@ -8,6 +8,7 @@ export type EventOverrideType =
   | 'cancelled'
   | 'rescheduled'
   | 'makeup'
+  | 'online'
   | 'custom';
 
 export interface ClassEventOverride {

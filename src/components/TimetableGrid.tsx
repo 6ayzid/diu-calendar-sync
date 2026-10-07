@@ -58,6 +58,7 @@ const DAYS: { key: DayOfWeek; label: string; short: string; colIndex: number }[]
 
 export function TimetableGrid({
   section,
+  subSection,
   activeTarget,
   classes,
   eventOverrides = [],
@@ -1327,6 +1328,30 @@ export function TimetableGrid({
               const isWeekStart = d.isWeekStart;
               const positionedEvents = isFriday ? [] : (dayEventsMap[d.dayKey as DayOfWeek] || []);
 
+              // Standalone overrides (e.g. online/evening makeup classes)
+              const dayStandaloneOverrides = isFriday
+                ? []
+                : (eventOverrides || []).filter((ev) => {
+                    if (ev.status === 'CANCELLED') return false;
+                    if (ev.date) {
+                      const matchesIso = d.isoDate && ev.date.trim() === d.isoDate.trim();
+                      const dayNum = String(parseInt(ev.date.split('-')[2] || '0', 10));
+                      const matchesDayNum = d.dayNumber === dayNum && (!ev.dayOfWeek || d.dayKey === ev.dayOfWeek);
+                      if (!matchesIso && !matchesDayNum) return false;
+                    } else if (ev.dayOfWeek && ev.dayOfWeek !== d.dayKey) {
+                      return false;
+                    }
+                    const regularClasses = dayEventsMap[d.dayKey as DayOfWeek] || [];
+                    const evClean = (ev.courseCode || '').split('(')[0].trim().toUpperCase();
+                    const matchesRegular = regularClasses.some((pe) => {
+                      const cClean = pe.event.courseCode.split('(')[0].trim().toUpperCase();
+                      if (cClean !== evClean) return false;
+                      if (ev.startTime && pe.event.startTime && ev.startTime !== pe.event.startTime) return false;
+                      return true;
+                    });
+                    return !matchesRegular;
+                  });
+
               return (
                 <div
                   key={`timeline-${d.globalDayIndex}-${d.dayKey}-${d.formattedDate}`}
@@ -1393,13 +1418,46 @@ export function TimetableGrid({
                         );
                       })}
 
-                    {/* Off-Day Status: When a day has no classes for high priority or both */}
-                    {!positionedEvents.some((pe) => pe.isHighPriority) && !positionedEvents.some((pe) => pe.isBlockMode) && (
+                    {/* Off-Day Status: When a day has no classes for high priority or both AND no standalone events */}
+                    {!positionedEvents.some((pe) => pe.isHighPriority) && !positionedEvents.some((pe) => pe.isBlockMode) && dayStandaloneOverrides.length === 0 && (
                       <div className="absolute inset-0 flex items-center justify-center p-2 pointer-events-none z-10">
                         <span className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-100/80 dark:border-slate-800/80 dark:bg-slate-900/70 px-2.5 py-1 text-[11px] font-mono font-medium text-slate-500 dark:text-slate-400 shadow-2xs">
                           <span className="h-1.5 w-1.5 rounded-full bg-slate-400 dark:bg-slate-500 shrink-0" />
                           <span>{isComparing ? `Off day for ${highBadge} & ${lowBadge}` : `Off day for ${highBadge}`}</span>
                         </span>
+                      </div>
+                    )}
+
+                    {/* Standalone Event Card in Matrix Column (e.g. Online / Evening classes) */}
+                    {dayStandaloneOverrides.length > 0 && (
+                      <div className="absolute inset-x-1.5 top-6 z-20 space-y-2 pointer-events-auto">
+                        <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300 px-1 flex items-center gap-1.5">
+                          <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+                          <span>Evening / Online</span>
+                        </div>
+                        {dayStandaloneOverrides.map((ev) => (
+                          <div
+                            key={ev.id}
+                            title={ev.description || ev.title}
+                            className="rounded-xl border border-sky-300/80 bg-sky-50/95 dark:border-sky-800/80 dark:bg-sky-950/90 backdrop-blur-xs p-2.5 shadow-sm space-y-1 transition-all hover:scale-[1.01]"
+                          >
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="font-mono font-bold text-[11px] text-sky-950 dark:text-sky-100 truncate">
+                                {ev.courseCode}
+                              </span>
+                              <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-sky-400 text-sky-950">
+                                {ev.type === 'ct' ? 'CT' : ev.type === 'online' ? 'ONLINE' : (ev.type?.toUpperCase() || 'EVENT')}
+                              </span>
+                            </div>
+                            <div className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-snug">
+                              {ev.title}
+                            </div>
+                            <div className="text-[10.5px] font-mono text-slate-600 dark:text-slate-300 flex items-center justify-between pt-0.5 border-t border-sky-200/60 dark:border-sky-800/60">
+                              <span>{formatTime12(ev.startTime || '19:00')}</span>
+                              <span className="text-sky-700 dark:text-sky-300 font-medium">{ev.room || 'Online'}</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
 
@@ -1632,9 +1690,17 @@ export function TimetableGrid({
                                   return (
                                     <span
                                       title={`${cardOverride.title}${cardOverride.description ? `: ${cardOverride.description}` : ''}`}
-                                      className="shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold font-mono uppercase bg-amber-400 text-amber-950 border border-amber-500/60 shadow-2xs relative z-10"
+                                      className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold font-mono uppercase shadow-2xs relative z-10 ${
+                                        cardOverride.type === 'online'
+                                          ? 'bg-sky-400 text-sky-950 border border-sky-500/60'
+                                          : 'bg-amber-400 text-amber-950 border border-amber-500/60'
+                                      }`}
                                     >
-                                      {cardOverride.type === 'ct' ? 'CT' : (cardOverride.type?.toUpperCase() || 'QUIZ')}
+                                      {cardOverride.type === 'ct'
+                                        ? 'CT'
+                                        : cardOverride.type === 'online'
+                                        ? 'ONLINE'
+                                        : (cardOverride.type?.toUpperCase() || 'QUIZ')}
                                     </span>
                                   );
                                 })()}
@@ -1739,11 +1805,61 @@ export function TimetableGrid({
             // Compare mode is ONLY for week view, not on agenda mode.
             const targetBadge = activeTarget ? getTargetLabel(activeTarget).badge : (section?.id || 'Class');
 
-            const dayClassList = d.isFriday
+            const regularClasses = d.isFriday
               ? []
-              : classes
-                  .filter((c) => c.dayOfWeek === d.dayKey)
-                  .sort((a, b) => a.startTime.localeCompare(b.startTime));
+              : classes.filter((c) => c.dayOfWeek === d.dayKey);
+
+            // Standalone overrides (e.g. online/makeup classes not matching a regular routine slot)
+            const standaloneOverrides = (eventOverrides || []).filter((ev) => {
+              if (ev.status === 'CANCELLED') return false;
+              if (ev.date) {
+                const matchesIso = d.isoDate && ev.date.trim() === d.isoDate.trim();
+                const dayNum = String(parseInt(ev.date.split('-')[2] || '0', 10));
+                const matchesDayNum = d.dayNumber === dayNum && (!ev.dayOfWeek || d.dayKey === ev.dayOfWeek);
+                if (!matchesIso && !matchesDayNum) return false;
+              } else if (ev.dayOfWeek && ev.dayOfWeek !== d.dayKey) {
+                return false;
+              }
+              const evClean = (ev.courseCode || '').split('(')[0].trim().toUpperCase();
+              const matchesRegular = regularClasses.some((c) => {
+                const cClean = c.courseCode.split('(')[0].trim().toUpperCase();
+                if (cClean !== evClean) return false;
+                if (ev.startTime && c.startTime && ev.startTime !== c.startTime) return false;
+                return true;
+              });
+              return !matchesRegular;
+            });
+
+            const syntheticClasses: RoutineClass[] = standaloneOverrides
+              .filter((ev) => {
+                if (subSection === '1' && (ev.courseCode.includes('O2') || ev.title.includes('O2'))) return false;
+                if (subSection === '2' && (ev.courseCode.includes('O1') || ev.title.includes('O1'))) return false;
+                return true;
+              })
+              .map((ev) => {
+                const isLab = ev.courseCode.toLowerCase().includes('lab') || ev.title.toLowerCase().includes('lab');
+                const subSecMatch = ev.courseCode.match(/O([12])/i) || ev.title.match(/O([12])/i);
+                return {
+                  id: ev.id,
+                  batch: section?.batch || '66',
+                  section: section?.sectionLetter || 'O',
+                  sectionId: ev.sectionId,
+                  subSection: subSecMatch ? (subSecMatch[1] as '1' | '2') : null,
+                  courseCode: ev.courseCode,
+                  courseTitle: ev.title || ev.courseCode,
+                  teacherCode: 'MRM',
+                  room: ev.room || 'Online',
+                  dayOfWeek: d.dayKey as DayOfWeek,
+                  startTime: ev.startTime || '19:00',
+                  endTime: ev.endTime || '20:00',
+                  type: isLab ? 'Lab' : 'Theory',
+                  color: 'indigo',
+                };
+              });
+
+            const dayClassList = [...regularClasses, ...syntheticClasses].sort((a, b) =>
+              a.startTime.localeCompare(b.startTime)
+            );
 
             // Standalone indicator if today, during class hours, and before the first class of the day
             const showStandaloneBeforeFirst =
@@ -1915,9 +2031,17 @@ export function TimetableGrid({
                                     return (
                                       <span
                                         title={`${cardOverride.title}${cardOverride.description ? `: ${cardOverride.description}` : ''}`}
-                                        className="shrink-0 rounded px-1.5 py-0.5 text-[9.5px] font-bold font-mono uppercase bg-amber-400 text-amber-950 border border-amber-500/60 shadow-2xs"
+                                        className={`shrink-0 rounded px-1.5 py-0.5 text-[9.5px] font-bold font-mono uppercase shadow-2xs ${
+                                          cardOverride.type === 'online'
+                                            ? 'bg-sky-400 text-sky-950 border border-sky-500/60'
+                                            : 'bg-amber-400 text-amber-950 border border-amber-500/60'
+                                        }`}
                                       >
-                                        {cardOverride.type === 'ct' ? 'CT' : (cardOverride.type?.toUpperCase() || 'QUIZ')}
+                                        {cardOverride.type === 'ct'
+                                          ? 'CT'
+                                          : cardOverride.type === 'online'
+                                          ? 'ONLINE'
+                                          : (cardOverride.type?.toUpperCase() || 'QUIZ')}
                                       </span>
                                     );
                                   })()}

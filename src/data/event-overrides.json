@@ -1,18 +1,33 @@
 [
   {
-    "id": "override-66_O-CSE328-20261010",
+    "id": "override-66_O-CSE323-online-20261007",
     "sectionId": "66_O",
-    "date": "2026-10-10",
-    "dayOfWeek": "SATURDAY",
-    "startTime": "16:00",
-    "endTime": "17:30",
-    "courseCode": "CSE328",
-    "type": "quiz",
-    "title": "Quiz 1",
-    "description": "Introduction to Data Science (CSE328) Quiz 1. Syllabus: Chapter 1,2,3 +OBE. Room KT-306.",
-    "room": "KT-306",
+    "date": "2026-10-07",
+    "dayOfWeek": "WEDNESDAY",
+    "startTime": "19:00",
+    "endTime": "20:00",
+    "courseCode": "CSE323",
+    "type": "online",
+    "title": "Online Class: Operating Systems",
+    "description": "Operating Systems (CSE323) Online Class at 7:00 PM.",
+    "room": "Online",
     "status": "CONFIRMED",
-    "createdAt": "2026-10-05T17:22:00Z"
+    "createdAt": "2026-10-07T15:20:00Z"
+  },
+  {
+    "id": "override-66_O-CSE324-online-20261007",
+    "sectionId": "66_O",
+    "date": "2026-10-07",
+    "dayOfWeek": "WEDNESDAY",
+    "startTime": "20:00",
+    "endTime": "21:30",
+    "courseCode": "CSE324(66_O2)",
+    "type": "online",
+    "title": "Online Lab: OS Lab (O2)",
+    "description": "Operating Systems Lab (CSE324 - O2) Online Lab at 8:00 PM.",
+    "room": "Online",
+    "status": "CONFIRMED",
+    "createdAt": "2026-10-07T15:20:00Z"
   },
   {
     "id": "override-66_O-CSE326-20261008",
@@ -28,5 +43,35 @@
     "room": "KT-223",
     "status": "CONFIRMED",
     "createdAt": "2026-10-05T17:22:00Z"
+  },
+  {
+    "id": "override-66_O-CSE328-20261010",
+    "sectionId": "66_O",
+    "date": "2026-10-10",
+    "dayOfWeek": "SATURDAY",
+    "startTime": "16:00",
+    "endTime": "17:30",
+    "courseCode": "CSE328",
+    "type": "quiz",
+    "title": "Quiz 1",
+    "description": "Introduction to Data Science (CSE328) Quiz 1. Syllabus: Chapter 1,2,3 +OBE. Room KT-306.",
+    "room": "KT-306",
+    "status": "CONFIRMED",
+    "createdAt": "2026-10-05T17:22:00Z"
+  },
+  {
+    "id": "override-66_O-CSE323-20261017",
+    "sectionId": "66_O",
+    "date": "2026-10-17",
+    "dayOfWeek": "SATURDAY",
+    "startTime": "14:30",
+    "endTime": "16:00",
+    "courseCode": "CSE323",
+    "type": "quiz",
+    "title": "Quiz 2",
+    "description": "Operating Systems (CSE323) Quiz 2. Syllabus: Chapter 3. Room KT-306.",
+    "room": "KT-306",
+    "status": "CONFIRMED",
+    "createdAt": "2026-10-07T15:20:00Z"
   }
 ]
