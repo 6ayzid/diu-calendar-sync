@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
 
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
-import { DayOfWeek, RoutineClass, SectionMeta, ActiveRoutineTarget, CompareState, FreeTimeSlot } from '@/types/schedule';
+import { DayOfWeek, RoutineClass, SectionMeta, FacultyMeta, ActiveRoutineTarget, CompareState, FreeTimeSlot } from '@/types/schedule';
 import {
   Clock,
   MapPin,
@@ -13,10 +13,14 @@ import {
   Info,
   ChevronLeft,
   ChevronRight,
+  X,
+  User,
+  ArrowUpRight,
 } from 'lucide-react';
+import { getFacultyByCode, registerDynamicFaculty } from '@/data/faculty';
 import { getCourseShortTitle } from '@/lib/course-utils';
 import { formatTime12, getDhakaClock, DhakaClockState, getUpcomingDays, getCurrentWeekScheduleDays, WeekScheduleDay, ContinuousScheduleDay, getContinuousScheduleDays, timeToMinutes } from '@/lib/time-utils';
-import { HOURLY_MARKS, layoutDayEvents, getCurrentTimeTopPercent, PositionedEvent } from '@/lib/timeline-layout';
+import { HOURLY_MARKS, layoutDayEvents, getCurrentTimeTopPercent, PositionedEvent, TIMELINE_START_HOUR, TIMELINE_END_HOUR } from '@/lib/timeline-layout';
 import { getTimelinePercentForInterval, getTargetLabel } from '@/lib/compare-utils';
 import { VersionBadge } from './VersionBadge';
 import { ClassEventOverride } from '@/types/events';
@@ -45,6 +49,7 @@ export interface AugmentedPositionedEvent extends PositionedEvent {
   isBlockMode?: boolean;
   targetBadge?: string;
   isPrimaryTarget?: boolean;
+  override?: ClassEventOverride;
 }
 
 const DAYS: { key: DayOfWeek; label: string; short: string; colIndex: number }[] = [
@@ -141,6 +146,84 @@ export function TimetableGrid({
   const matrixScrollRef = useRef<HTMLDivElement>(null);
   const scrollRafRef = useRef<number | null>(null);
 
+  // Mouse grab-to-scroll navigation for Week View (desktop mouse grab & drag)
+  const isPointerDownRef = useRef(false);
+  const pointerIdRef = useRef<number | null>(null);
+  const startClientXRef = useRef(0);
+  const startClientYRef = useRef(0);
+  const startScrollLeftRef = useRef(0);
+  const lastClientXRef = useRef(0);
+  const lastTimestampRef = useRef(0);
+  const velocityXRef = useRef(0);
+  const hasDraggedRef = useRef(false);
+  const dragJustEndedRef = useRef(false);
+  const settleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Tap-to-Grow Expanded Card state (reveals unabbreviated course title, room, teacher & office details)
+  const [expandedCard, setExpandedCard] = useState<{
+    classItem: RoutineClass;
+    isBlockMode?: boolean;
+    targetBadge?: string;
+    isPrimaryTarget?: boolean;
+    dayLabel: string;
+    override?: ClassEventOverride;
+  } | null>(null);
+
+  const [expandedFacultyDetails, setExpandedFacultyDetails] = useState<FacultyMeta | null>(null);
+  const [isLoadingFacultyDetails, setIsLoadingFacultyDetails] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!expandedCard || !expandedCard.classItem.teacherCode) {
+      setExpandedFacultyDetails(null);
+      setIsLoadingFacultyDetails(false);
+      return;
+    }
+
+    const code = expandedCard.classItem.teacherCode.trim().toUpperCase();
+    const local = getFacultyByCode(code);
+    if (local?.room) {
+      setExpandedFacultyDetails(local);
+      setIsLoadingFacultyDetails(false);
+      return;
+    }
+
+    setExpandedFacultyDetails(local || null);
+    setIsLoadingFacultyDetails(true);
+
+    let isCancelled = false;
+    fetch(`/api/faculty/info?code=${encodeURIComponent(code)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!isCancelled && data.success && data.faculty) {
+          registerDynamicFaculty(data.faculty);
+          setExpandedFacultyDetails(data.faculty);
+        }
+      })
+      .catch((err) => {
+        console.warn('Expanded card faculty info fetch error:', err);
+      })
+      .finally(() => {
+        if (!isCancelled) {
+          setIsLoadingFacultyDetails(false);
+        }
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [expandedCard]);
+
+  useEffect(() => {
+    if (!expandedCard) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setExpandedCard(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [expandedCard]);
+
   // Fluid Zoom Level: 1.0 (1 day view) to 7.0 (full week view: 7 grids)
   const [zoomDays, setZoomDays] = useState<number>(7);
   const zoomDaysRef = useRef(zoomDays);
@@ -156,19 +239,32 @@ export function TimetableGrid({
 
   const minZoomLimit = 1.0;
 
-  // Measure time column width dynamically from DOM or fallback to CSS defaults (44px on mobile, 68px on desktop)
-  const getTimeColWidth = useCallback(() => {
+  // Cached time column width to avoid expensive layout thrashing (querySelector + offsetWidth) during 60/120fps scrolling
+  const timeColWidthRef = useRef<number>(typeof window !== 'undefined' && window.innerWidth < 640 ? 44 : 68);
+
+  const measureTimeColWidth = useCallback(() => {
     if (typeof window === 'undefined') return 68;
     if (matrixScrollRef.current) {
       const timeHeader = matrixScrollRef.current.querySelector<HTMLElement>(
         'div[style*="grid-column: 1"], div[style*="gridColumn: 1"], div[style*="grid-column:1"]'
       );
       if (timeHeader && timeHeader.offsetWidth > 0) {
+        timeColWidthRef.current = timeHeader.offsetWidth;
         return timeHeader.offsetWidth;
       }
     }
-    return window.innerWidth < 640 ? 44 : 68;
+    const val = window.innerWidth < 640 ? 44 : 68;
+    timeColWidthRef.current = val;
+    return val;
   }, []);
+
+  const getTimeColWidth = useCallback(() => {
+    return timeColWidthRef.current;
+  }, []);
+
+  useEffect(() => {
+    measureTimeColWidth();
+  }, [measureTimeColWidth]);
 
   // Zoom anchor: keeps the exact day coordinate static under the user's cursor / touch midpoint
   const zoomAnchorRef = useRef<{
@@ -290,18 +386,13 @@ export function TimetableGrid({
     }
   }, [continuousDays, visibleWeekOffset, getTimeColWidth]);
 
-  // Handle window resize compression bounds
+  const scrollEndTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   useEffect(() => {
-    const handleResize = () => {
-      const limit = getCompressionLimit();
-      if (zoomDaysRef.current > limit) {
-        triggerSpringBounce(limit);
-      }
-      handleMatrixScroll();
+    return () => {
+      if (scrollEndTimerRef.current) clearTimeout(scrollEndTimerRef.current);
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, [getCompressionLimit, triggerSpringBounce]);
+  }, []);
 
   // Update active week, visible day range, and today visibility based on horizontal scrolling / dragging
   const handleMatrixScroll = () => {
@@ -367,10 +458,32 @@ export function TimetableGrid({
       }
       if (leftDay && leftDay.dayKey !== 'FRIDAY' && leftDay.dayKey !== selectedGridDay) {
         setSelectedGridDay(leftDay.dayKey as DayOfWeek);
-        onActiveDayChange?.(leftDay.dayKey as DayOfWeek);
       }
+
+      if (scrollEndTimerRef.current) {
+        clearTimeout(scrollEndTimerRef.current);
+      }
+      scrollEndTimerRef.current = setTimeout(() => {
+        if (leftDay && leftDay.dayKey !== 'FRIDAY' && !isPointerDownRef.current && !hasDraggedRef.current) {
+          onActiveDayChange?.(leftDay.dayKey as DayOfWeek);
+        }
+      }, 150);
     });
   };
+
+  // Handle window resize compression bounds
+  useEffect(() => {
+    const handleResize = () => {
+      measureTimeColWidth();
+      const limit = getCompressionLimit();
+      if (zoomDaysRef.current > limit) {
+        triggerSpringBounce(limit);
+      }
+      handleMatrixScroll();
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [getCompressionLimit, triggerSpringBounce, measureTimeColWidth]);
 
   // Continuous pinch & wheel zoom handlers attached with { passive: false }
   const initialTouchDistRef = useRef<number | null>(null);
@@ -543,19 +656,6 @@ export function TimetableGrid({
       if (wheelTimer) clearTimeout(wheelTimer);
     };
   }, [getCompressionLimit, getTimeColWidth, triggerSpringBounce]);
-
-  // Mouse grab-to-scroll navigation for Week View (desktop mouse grab & drag)
-  const isPointerDownRef = useRef(false);
-  const pointerIdRef = useRef<number | null>(null);
-  const startClientXRef = useRef(0);
-  const startClientYRef = useRef(0);
-  const startScrollLeftRef = useRef(0);
-  const lastClientXRef = useRef(0);
-  const lastTimestampRef = useRef(0);
-  const velocityXRef = useRef(0);
-  const hasDraggedRef = useRef(false);
-  const dragJustEndedRef = useRef(false);
-  const settleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [isDragging, setIsDragging] = useState(false);
   const [isSettling, setIsSettling] = useState(false);
@@ -922,17 +1022,9 @@ export function TimetableGrid({
     : null;
   const lowBadge = lowTarget ? getTargetLabel(lowTarget).badge : '';
 
-  // Memoize positioned events for each day (Google Calendar Timeline Layout + Compare Mode Support)
-  const dayEventsMap = useMemo(() => {
-    const map: Record<DayOfWeek, AugmentedPositionedEvent[]> = {
-      SATURDAY: [],
-      SUNDAY: [],
-      MONDAY: [],
-      TUESDAY: [],
-      WEDNESDAY: [],
-      THURSDAY: [],
-    };
-
+  // Memoize positioned events and off-grid overrides for each continuous day
+  // Any standalone event that fits within the timeline (8 AM - 6 PM) follows the grid!
+  const continuousDayEventsMap = useMemo(() => {
     const highClasses = isComparing
       ? (isSecondaryPriority ? (secondaryClasses || []) : classes)
       : classes;
@@ -943,30 +1035,154 @@ export function TimetableGrid({
 
     const primaryIdSet = new Set((classes || []).map((c) => c.id));
 
-    for (const d of DAYS) {
-      const highDay = highClasses.filter((c) => c.dayOfWeek === d.key);
-      const lowDay = lowClasses.filter((c) => c.dayOfWeek === d.key);
+    const map: Record<
+      number,
+      {
+        positionedEvents: AugmentedPositionedEvent[];
+        offGridOverrides: ClassEventOverride[];
+      }
+    > = {};
 
-      const highIdSet = new Set(highDay.map((c) => c.id));
-      const combined = [...highDay, ...lowDay];
+    for (const d of continuousDays) {
+      if (d.isFriday) {
+        map[d.globalDayIndex] = { positionedEvents: [], offGridOverrides: [] };
+        continue;
+      }
+
+      const highDay = highClasses.filter((c) => c.dayOfWeek === d.dayKey);
+      const lowDay = lowClasses.filter((c) => c.dayOfWeek === d.dayKey);
+
+      // Filter active overrides for this specific date
+      const activeDayOverrides = (eventOverrides || []).filter((ev) => {
+        if (ev.status === 'CANCELLED') return false;
+        if (ev.date) {
+          const matchesIso = d.isoDate && ev.date.trim() === d.isoDate.trim();
+          const dayNum = String(parseInt(ev.date.split('-')[2] || '0', 10));
+          const matchesDayNum = d.dayNumber === dayNum && (!ev.dayOfWeek || d.dayKey === ev.dayOfWeek);
+          if (!matchesIso && !matchesDayNum) return false;
+        } else if (ev.dayOfWeek && ev.dayOfWeek !== d.dayKey) {
+          return false;
+        }
+        return true;
+      });
+
+      // Filter by subsection if active
+      const filteredDayOverrides = activeDayOverrides.filter((ev) => {
+        if (subSection === '1' && (ev.courseCode.includes('O2') || ev.title.includes('O2'))) return false;
+        if (subSection === '2' && (ev.courseCode.includes('O1') || ev.title.includes('O1'))) return false;
+        return true;
+      });
+
+      // An override matches a regular class slot if it shares course code and start time
+      const isMatchingRegularClass = (ev: ClassEventOverride) => {
+        const evClean = (ev.courseCode || '').split('(')[0].trim().toUpperCase();
+        return [...highDay, ...lowDay].some((c) => {
+          const cClean = c.courseCode.split('(')[0].trim().toUpperCase();
+          if (cClean !== evClean) return false;
+          if (ev.startTime && c.startTime && ev.startTime !== c.startTime) return false;
+          return true;
+        });
+      };
+
+      const standaloneOverrides = filteredDayOverrides.filter((ev) => !isMatchingRegularClass(ev));
+
+      // Separate standalone overrides into on-grid (fits in 8 AM - 6 PM timeline) and off-grid (e.g. evening classes >= 18:00)
+      const onGridOverrides: ClassEventOverride[] = [];
+      const offGridOverrides: ClassEventOverride[] = [];
+
+      for (const ev of standaloneOverrides) {
+        if (!ev.startTime) {
+          offGridOverrides.push(ev);
+          continue;
+        }
+        const sMin = timeToMinutes(ev.startTime);
+        if (isNaN(sMin)) {
+          offGridOverrides.push(ev);
+          continue;
+        }
+        const eMin = ev.endTime ? timeToMinutes(ev.endTime) : sMin + 90;
+        // Check overlap with timeline bounds (8:00 AM / 480 to 6:00 PM / 1080)
+        if (sMin < TIMELINE_END_HOUR * 60 && eMin > TIMELINE_START_HOUR * 60) {
+          onGridOverrides.push(ev);
+        } else {
+          offGridOverrides.push(ev);
+        }
+      }
+
+      // Create synthetic RoutineClass objects for on-grid overrides so they can be positioned on the grid
+      const syntheticHighClasses: { routineClass: RoutineClass; override: ClassEventOverride }[] = onGridOverrides.map((ev) => {
+        const isLab = ev.courseCode.toLowerCase().includes('lab') || ev.title.toLowerCase().includes('lab');
+        const subSecMatch = ev.courseCode.match(/O([12])/i) || ev.title.match(/O([12])/i);
+        const startMin = timeToMinutes(ev.startTime!);
+        const endMin = ev.endTime ? timeToMinutes(ev.endTime) : startMin + 90;
+        const endH = Math.floor(endMin / 60);
+        const endM = endMin % 60;
+        const defaultEndTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+
+        const rClass: RoutineClass = {
+          id: ev.id,
+          batch: section?.batch || '',
+          section: section?.sectionLetter || '',
+          sectionId: ev.sectionId,
+          subSection: subSecMatch ? (subSecMatch[1] as '1' | '2') : null,
+          courseCode: ev.courseCode,
+          courseTitle: ev.title || ev.courseCode,
+          teacherCode: '',
+          room: ev.room || 'TBD',
+          dayOfWeek: d.dayKey as DayOfWeek,
+          startTime: ev.startTime!,
+          endTime: ev.endTime || defaultEndTime,
+          type: isLab ? 'Lab' : 'Theory',
+          color: ev.type === 'quiz' || ev.type === 'ct' ? 'amber' : 'sky',
+        };
+        return { routineClass: rClass, override: ev };
+      });
+
+      const combined = [
+        ...highDay,
+        ...syntheticHighClasses.map((s) => s.routineClass),
+        ...lowDay,
+      ];
 
       const positioned = layoutDayEvents(combined);
 
-      map[d.key] = positioned.map((pe) => {
+      const overrideMap = new Map(syntheticHighClasses.map((s) => [s.routineClass.id, s.override]));
+      const highIdSet = new Set([
+        ...highDay.map((c) => c.id),
+        ...syntheticHighClasses.map((s) => s.routineClass.id),
+      ]);
+
+      const positionedEvents: AugmentedPositionedEvent[] = positioned.map((pe) => {
+        const override = overrideMap.get(pe.event.id);
         const isHigh = !isComparing || highIdSet.has(pe.event.id);
-        const isPrimary = primaryIdSet.has(pe.event.id);
+        const isPrimary = primaryIdSet.has(pe.event.id) || !!override;
         return {
           ...pe,
           isHighPriority: isHigh,
           isBlockMode: isComparing && !isHigh,
           targetBadge: isHigh ? highBadge : lowBadge,
           isPrimaryTarget: isPrimary,
+          override,
         };
       });
+
+      map[d.globalDayIndex] = { positionedEvents, offGridOverrides };
     }
 
     return map;
-  }, [classes, secondaryClasses, isComparing, isSecondaryPriority, isBlockVisible, highBadge, lowBadge]);
+  }, [
+    continuousDays,
+    classes,
+    secondaryClasses,
+    eventOverrides,
+    isComparing,
+    isSecondaryPriority,
+    isBlockVisible,
+    highBadge,
+    lowBadge,
+    subSection,
+    section,
+  ]);
 
   // Google Calendar style current time bar metrics
   const isClassHours = currentDhakaTime.totalMinutes >= 480 && currentDhakaTime.totalMinutes <= 1080;
@@ -1259,8 +1475,6 @@ export function TimetableGrid({
                   style={{
                     gridColumn: vIdx + 2,
                     gridRow: 1,
-                    scrollSnapAlign: 'start',
-                    scrollSnapStop: 'normal',
                   }}
                 >
                   <div className="flex items-center gap-1">
@@ -1326,31 +1540,12 @@ export function TimetableGrid({
               const isToday = d.isToday;
               const isFriday = d.isFriday;
               const isWeekStart = d.isWeekStart;
-              const positionedEvents = isFriday ? [] : (dayEventsMap[d.dayKey as DayOfWeek] || []);
-
-              // Standalone overrides (e.g. online/evening makeup classes)
-              const dayStandaloneOverrides = isFriday
-                ? []
-                : (eventOverrides || []).filter((ev) => {
-                    if (ev.status === 'CANCELLED') return false;
-                    if (ev.date) {
-                      const matchesIso = d.isoDate && ev.date.trim() === d.isoDate.trim();
-                      const dayNum = String(parseInt(ev.date.split('-')[2] || '0', 10));
-                      const matchesDayNum = d.dayNumber === dayNum && (!ev.dayOfWeek || d.dayKey === ev.dayOfWeek);
-                      if (!matchesIso && !matchesDayNum) return false;
-                    } else if (ev.dayOfWeek && ev.dayOfWeek !== d.dayKey) {
-                      return false;
-                    }
-                    const regularClasses = dayEventsMap[d.dayKey as DayOfWeek] || [];
-                    const evClean = (ev.courseCode || '').split('(')[0].trim().toUpperCase();
-                    const matchesRegular = regularClasses.some((pe) => {
-                      const cClean = pe.event.courseCode.split('(')[0].trim().toUpperCase();
-                      if (cClean !== evClean) return false;
-                      if (ev.startTime && pe.event.startTime && ev.startTime !== pe.event.startTime) return false;
-                      return true;
-                    });
-                    return !matchesRegular;
-                  });
+              const dayData = continuousDayEventsMap[d.globalDayIndex] || {
+                positionedEvents: [],
+                offGridOverrides: [],
+              };
+              const positionedEvents = dayData.positionedEvents;
+              const dayOffGridOverrides = dayData.offGridOverrides;
 
               return (
                 <div
@@ -1365,7 +1560,7 @@ export function TimetableGrid({
                   style={{
                     gridColumn: vIdx + 2,
                     gridRow: 2,
-                    scrollSnapAlign: 'start',
+                    scrollSnapAlign: d.isWeekStart ? 'start' : 'none',
                     scrollSnapStop: 'normal',
                   }}
                 >
@@ -1418,8 +1613,8 @@ export function TimetableGrid({
                         );
                       })}
 
-                    {/* Off-Day Status: When a day has no classes for high priority or both AND no standalone events */}
-                    {!positionedEvents.some((pe) => pe.isHighPriority) && !positionedEvents.some((pe) => pe.isBlockMode) && dayStandaloneOverrides.length === 0 && (
+                    {/* Off-Day Status: When a day has no classes for high priority or both AND no standalone/off-grid events */}
+                    {!positionedEvents.some((pe) => pe.isHighPriority) && !positionedEvents.some((pe) => pe.isBlockMode) && dayOffGridOverrides.length === 0 && (
                       <div className="absolute inset-0 flex items-center justify-center p-2 pointer-events-none z-10">
                         <span className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-100/80 dark:border-slate-800/80 dark:bg-slate-900/70 px-2.5 py-1 text-[11px] font-mono font-medium text-slate-500 dark:text-slate-400 shadow-2xs">
                           <span className="h-1.5 w-1.5 rounded-full bg-slate-400 dark:bg-slate-500 shrink-0" />
@@ -1428,18 +1623,41 @@ export function TimetableGrid({
                       </div>
                     )}
 
-                    {/* Standalone Event Card in Matrix Column (e.g. Online / Evening classes) */}
-                    {dayStandaloneOverrides.length > 0 && (
-                      <div className="absolute inset-x-1.5 top-6 z-20 space-y-2 pointer-events-auto">
+                    {/* Off-Grid Event Card in Matrix Column (e.g. Evening / Online classes starting >= 18:00 or untimed) */}
+                    {dayOffGridOverrides.length > 0 && (
+                      <div className="absolute inset-x-1.5 bottom-2 z-20 space-y-1.5 pointer-events-auto">
                         <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300 px-1 flex items-center gap-1.5">
                           <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
                           <span>Evening / Online</span>
                         </div>
-                        {dayStandaloneOverrides.map((ev) => (
+                        {dayOffGridOverrides.map((ev) => (
                           <div
                             key={ev.id}
                             title={ev.description || ev.title}
-                            className="rounded-xl border border-sky-300/80 bg-sky-50/95 dark:border-sky-800/80 dark:bg-sky-950/90 backdrop-blur-xs p-2.5 shadow-sm space-y-1 transition-all hover:scale-[1.01]"
+                            onClick={(e) => {
+                              if (hasDraggedRef.current || dragJustEndedRef.current) return;
+                              e.stopPropagation();
+                              setExpandedCard({
+                                classItem: {
+                                  id: ev.id,
+                                  batch: '',
+                                  section: '',
+                                  sectionId: '',
+                                  courseCode: ev.courseCode,
+                                  courseTitle: ev.title ? `${ev.courseCode} - ${ev.title}` : ev.courseCode,
+                                  teacherCode: '',
+                                  room: ev.room || 'Online',
+                                  dayOfWeek: d.dayKey as DayOfWeek,
+                                  startTime: ev.startTime || '19:00',
+                                  endTime: ev.endTime || '20:00',
+                                  type: 'Theory',
+                                },
+                                isBlockMode: false,
+                                dayLabel: `${d.dayLabel || d.dayShort}, ${d.monthShort} ${d.dayNumber}`,
+                                override: ev,
+                              });
+                            }}
+                            className="rounded-xl border border-sky-300/80 bg-sky-50/95 dark:border-sky-800/80 dark:bg-sky-950/90 backdrop-blur-xs p-2 shadow-xs space-y-1 transition-all hover:scale-[1.01] cursor-pointer"
                           >
                             <div className="flex items-center justify-between gap-1">
                               <span className="font-mono font-bold text-[11px] text-sky-950 dark:text-sky-100 truncate">
@@ -1449,12 +1667,12 @@ export function TimetableGrid({
                                 {ev.type === 'ct' ? 'CT' : ev.type === 'online' ? 'ONLINE' : (ev.type?.toUpperCase() || 'EVENT')}
                               </span>
                             </div>
-                            <div className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-snug">
+                            <div className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-snug truncate">
                               {ev.title}
                             </div>
-                            <div className="text-[10.5px] font-mono text-slate-600 dark:text-slate-300 flex items-center justify-between pt-0.5 border-t border-sky-200/60 dark:border-sky-800/60">
+                            <div className="text-[10px] font-mono text-slate-600 dark:text-slate-300 flex items-center justify-between pt-0.5 border-t border-sky-200/60 dark:border-sky-800/60">
                               <span>{formatTime12(ev.startTime || '19:00')}</span>
-                              <span className="text-sky-700 dark:text-sky-300 font-medium">{ev.room || 'Online'}</span>
+                              <span className="text-sky-700 dark:text-sky-300 font-medium truncate">{ev.room || 'Online'}</span>
                             </div>
                           </div>
                         ))}
@@ -1517,8 +1735,19 @@ export function TimetableGrid({
                         return (
                           <div
                             key={`block-${d.globalDayIndex}-${c.id}`}
-                            title={`${pe.targetBadge}: ${c.courseCode} (${pe.formattedRange}) in ${c.room}`}
-                            className={`absolute rounded-lg overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 select-none z-20 transition-all shadow-2xs opacity-85 hover:opacity-100 ${blockStyle}`}
+                            title={`Tap to view full info: ${pe.targetBadge} - ${c.courseCode} (${pe.formattedRange}) in ${c.room}`}
+                            onClick={(e) => {
+                              if (hasDraggedRef.current || dragJustEndedRef.current) return;
+                              e.stopPropagation();
+                              setExpandedCard({
+                                classItem: c,
+                                isBlockMode: true,
+                                targetBadge: pe.targetBadge,
+                                isPrimaryTarget: pe.isPrimaryTarget,
+                                dayLabel: `${d.dayLabel || d.dayShort}, ${d.monthShort} ${d.dayNumber}`,
+                              });
+                            }}
+                            className={`absolute rounded-lg overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 select-none z-20 transition-all shadow-2xs opacity-85 hover:opacity-100 cursor-pointer hover:shadow-md hover:scale-[1.01] ${blockStyle}`}
                             style={{
                               top: `calc(${pe.topPercent}% + 2px)`,
                               height: `calc(${pe.heightPercent}% - 4px)`,
@@ -1546,6 +1775,107 @@ export function TimetableGrid({
                             <div className="flex items-center justify-between text-[9px] sm:text-[9.5px] font-mono opacity-75 truncate pt-0.5 border-t border-black/10 dark:border-white/10 relative z-10">
                               <span className="truncate">{compactTime}</span>
                               <span className="truncate font-semibold">{c.room.split('(')[0].trim()}</span>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // 1.5. Render On-Grid Event Override Card (e.g. Daytime Quiz, Makeup, CT)
+                      if (pe.override) {
+                        const ev = pe.override;
+                        const isQuizOrCt = ev.type === 'quiz' || ev.type === 'ct';
+                        const isOnline = ev.type === 'online';
+                        const badgeLabel = ev.type === 'ct' ? 'CT' : ev.type === 'online' ? 'ONLINE' : (ev.type?.toUpperCase() || 'QUIZ');
+
+                        const isOverrideLiveNow =
+                          isToday &&
+                          currentDhakaTime.totalMinutes >= pe.startMinutes &&
+                          currentDhakaTime.totalMinutes < pe.endMinutes;
+
+                        const overrideLineTopPercent = isOverrideLiveNow
+                          ? Math.max(
+                              0,
+                              Math.min(
+                                100,
+                                ((currentDhakaTime.totalMinutes - pe.startMinutes) /
+                                  (pe.endMinutes - pe.startMinutes)) *
+                                  100
+                              )
+                            )
+                          : 0;
+
+                        const overrideLineTopOffsetPx = (2 - 4 * (overrideLineTopPercent / 100)).toFixed(1);
+
+                        const overrideCardTheme = isQuizOrCt
+                          ? 'border border-sky-400/80 bg-sky-50/95 dark:border-sky-500/80 dark:bg-sky-950/85 text-sky-950 dark:text-sky-100 shadow-xs hover:border-sky-500 hover:shadow-md'
+                          : isOnline
+                          ? 'border border-indigo-400/80 bg-indigo-50/95 dark:border-indigo-500/80 dark:bg-indigo-950/85 text-indigo-950 dark:text-indigo-100 shadow-xs hover:border-indigo-500 hover:shadow-md'
+                          : 'border border-amber-400/80 bg-amber-50/95 dark:border-amber-500/80 dark:bg-amber-950/85 text-amber-950 dark:text-amber-100 shadow-xs hover:border-amber-500 hover:shadow-md';
+
+                        const badgeClass = isQuizOrCt
+                          ? 'bg-sky-400 text-sky-950'
+                          : isOnline
+                          ? 'bg-indigo-400 text-indigo-950'
+                          : 'bg-amber-400 text-amber-950';
+
+                        return (
+                          <div
+                            key={`override-${d.globalDayIndex}-${ev.id}`}
+                            onClick={(e) => {
+                              if (hasDraggedRef.current || dragJustEndedRef.current) return;
+                              e.stopPropagation();
+                              setExpandedCard({
+                                classItem: {
+                                  ...c,
+                                  courseTitle: ev.title ? `${ev.courseCode} - ${ev.title}` : c.courseTitle,
+                                  room: ev.room || c.room,
+                                },
+                                isBlockMode: false,
+                                targetBadge: pe.targetBadge,
+                                isPrimaryTarget: pe.isPrimaryTarget,
+                                dayLabel: `${d.dayLabel || d.dayShort}, ${d.monthShort} ${d.dayNumber}`,
+                                override: ev,
+                              });
+                            }}
+                            className={`absolute rounded-xl transition-all overflow-hidden flex flex-col justify-between p-1.5 sm:p-2 cursor-pointer select-none group z-20 hover:z-25 ${overrideCardTheme}`}
+                            style={{
+                              top: `calc(${pe.topPercent}% + 2px)`,
+                              height: `calc(${pe.heightPercent}% - 4px)`,
+                              left: `calc(${pe.leftPercent}% + 2px)`,
+                              width: `calc(${pe.widthPercent}% - 4px)`,
+                            }}
+                          >
+                            {/* Live progress indicator line */}
+                            {isOverrideLiveNow && (
+                              <div
+                                className="absolute left-0 right-0 h-[2px] bg-red-500 dark:bg-red-500 pointer-events-none z-0 -translate-y-1/2 shadow-xs"
+                                style={{
+                                  top: `calc(${overrideLineTopPercent}% - ${overrideLineTopOffsetPx}px)`,
+                                }}
+                              />
+                            )}
+
+                            <div className="space-y-0.5 overflow-hidden min-w-0 relative z-10">
+                              <div className="flex items-center justify-between gap-1 min-w-0">
+                                <span className="font-mono font-bold text-[11px] truncate">
+                                  {ev.courseCode}
+                                </span>
+                                <span className={`text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${badgeClass}`}>
+                                  {badgeLabel}
+                                </span>
+                              </div>
+                              <div className="text-xs font-semibold leading-snug truncate">
+                                {ev.title}
+                              </div>
+                              <div className="text-[10px] font-mono opacity-90 truncate whitespace-nowrap">
+                                {compactTime}
+                              </div>
+                            </div>
+                            <div className="pt-0.5 border-t border-black/10 dark:border-white/10 flex items-center justify-between text-[10px] font-mono leading-tight min-w-0 relative z-10">
+                              <span className="flex items-center gap-0.5 font-bold truncate">
+                                <MapPin className="h-2.5 w-2.5 shrink-0 opacity-80" />
+                                <span className="truncate">{ev.room || 'TBD'}</span>
+                              </span>
                             </div>
                           </div>
                         );
@@ -1613,7 +1943,19 @@ export function TimetableGrid({
                       return (
                         <div
                           key={`class-${d.globalDayIndex}-${c.id}`}
-                          className={`absolute rounded-lg transition-all overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 cursor-grab select-none group z-20 hover:z-22 ${cardTheme}`}
+                          onClick={(e) => {
+                            if (hasDraggedRef.current || dragJustEndedRef.current) return;
+                            if ((e.target as HTMLElement).closest('button')) return;
+                            e.stopPropagation();
+                            setExpandedCard({
+                              classItem: c,
+                              isBlockMode: false,
+                              targetBadge: pe.targetBadge,
+                              isPrimaryTarget: pe.isPrimaryTarget,
+                              dayLabel: `${d.dayLabel || d.dayShort}, ${d.monthShort} ${d.dayNumber}`,
+                            });
+                          }}
+                          className={`absolute rounded-lg transition-all overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 cursor-pointer select-none group z-20 hover:z-25 hover:shadow-md ${cardTheme}`}
                           style={{
                             top: `calc(${pe.topPercent}% + 2px)`,
                             height: `calc(${pe.heightPercent}% - 4px)`,
@@ -1736,31 +2078,43 @@ export function TimetableGrid({
                               <MapPin className="h-2.5 w-2.5 shrink-0 opacity-80" />
                               <span className="truncate">{c.room.split('(')[0].trim()}</span>
                             </span>
-                            {isFaculty ? (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (c.sectionId) onOpenSectionInfo?.(c.sectionId);
-                                }}
-                                title={`Click to view info for ${c.sectionId || 'section'}`}
-                                className={`shrink-0 rounded px-1 py-0.2 font-bold text-[9.5px] border transition-all cursor-pointer relative z-10 ${buttonBadgeClass}`}
-                              >
-                                {c.sectionId ? (c.subSection ? `${c.sectionId}${c.subSection}` : c.sectionId) : (c.batch && c.section ? `${c.batch}_${c.section}` : 'Sec')}
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onOpenFacultyInfo?.(c.teacherCode);
-                                }}
-                                title={`Click to view info for ${c.teacherCode}`}
-                                className={`shrink-0 rounded px-1 py-0.2 font-bold text-[9.5px] border transition-all cursor-pointer relative z-10 ${buttonBadgeClass}`}
-                              >
-                                {c.teacherCode}
-                              </button>
-                            )}
+                            {(() => {
+                              const cardTarget = isComparing
+                                ? (pe.isPrimaryTarget ? compareState?.primaryTarget : compareState?.secondaryTarget)
+                                : activeTarget;
+                              const isCardFromFaculty = cardTarget?.type === 'faculty';
+
+                              if (isCardFromFaculty) {
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const sId = c.sectionId || (c.batch && c.section ? `${c.batch}_${c.section}` : null);
+                                      if (sId) onOpenSectionInfo?.(sId);
+                                    }}
+                                    title={`Click to view info for ${c.sectionId || 'section'}`}
+                                    className={`shrink-0 rounded px-1 py-0.2 font-bold text-[9.5px] border transition-all cursor-pointer relative z-10 ${buttonBadgeClass}`}
+                                  >
+                                    {c.sectionId ? (c.subSection ? `${c.sectionId}${c.subSection}` : c.sectionId) : (c.batch && c.section ? `${c.batch}_${c.section}` : 'Sec')}
+                                  </button>
+                                );
+                              }
+
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onOpenFacultyInfo?.(c.teacherCode);
+                                  }}
+                                  title={`Click to view info for ${c.teacherCode}`}
+                                  className={`shrink-0 rounded px-1 py-0.2 font-bold text-[9.5px] border transition-all cursor-pointer relative z-10 ${buttonBadgeClass}`}
+                                >
+                                  {c.teacherCode}
+                                </button>
+                              );
+                            })()}
                           </div>
                         </div>
                       );
@@ -1979,7 +2333,16 @@ export function TimetableGrid({
                           <React.Fragment key={`agenda-class-${classItem.id}`}>
                             <div
                               aria-label={`${shortTitle} in Room ${classItem.room}, ${formatTime12(classItem.startTime)} to ${formatTime12(classItem.endTime)}`}
-                              className={`relative overflow-hidden rounded-xl p-2.5 sm:p-3 transition-all flex flex-col justify-center gap-1.5 ${cardThemeClass} ${
+                              onClick={(e) => {
+                                if ((e.target as HTMLElement).closest('button')) return;
+                                setExpandedCard({
+                                  classItem: classItem,
+                                  isBlockMode: false,
+                                  targetBadge: targetBadge,
+                                  dayLabel: `${d.dayLabel}, ${d.monthLong} ${d.dayNumber}`,
+                                });
+                              }}
+                              className={`relative overflow-hidden rounded-xl p-2.5 sm:p-3 transition-all flex flex-col justify-center gap-1.5 cursor-pointer hover:shadow-md hover:scale-[1.005] ${cardThemeClass} ${
                                 isLiveNow ? 'pb-4 sm:pb-4.5' : ''
                               }`}
                             >
@@ -2125,6 +2488,236 @@ export function TimetableGrid({
           })}
         </div>
       </div>
+
+      {/* Tap-to-Grow Full Info Card Modal */}
+      {expandedCard && (() => {
+        const item = expandedCard.classItem;
+        const fac = expandedFacultyDetails || (item.teacherCode ? getFacultyByCode(item.teacherCode) : null);
+        const isLab = item.type === 'Lab';
+        const startMins = timeToMinutes(item.startTime);
+        const endMins = timeToMinutes(item.endTime);
+        const durationMins = Math.max(0, endMins - startMins);
+        const durationHours = Math.floor(durationMins / 60);
+        const durationRemainderMins = durationMins % 60;
+        const durationStr = durationHours > 0
+          ? `${durationHours}h${durationRemainderMins > 0 ? ` ${durationRemainderMins}m` : ''}`
+          : `${durationRemainderMins}m`;
+
+        const secId = item.sectionId || (item.batch && item.section ? `${item.batch}_${item.section}` : null);
+        const cleanCode = item.courseCode.split('(')[0].trim();
+
+        return (
+          <div
+            className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs p-4 overflow-y-auto print:hidden"
+            onClick={() => setExpandedCard(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="expanded-card-title"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-4 sm:p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150"
+            >
+              {/* Header: Routine source badge + Type Badge + Close Button */}
+              <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-2 min-w-0">
+                  {expandedCard.targetBadge && (
+                    <span
+                      className={`px-2 py-0.5 rounded-md font-mono text-xs font-bold shrink-0 ${
+                        expandedCard.isPrimaryTarget
+                          ? 'bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600'
+                          : 'bg-emerald-100 text-emerald-950 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-700/80'
+                      }`}
+                    >
+                      {expandedCard.targetBadge}
+                    </span>
+                  )}
+                  {isComparing && (
+                    <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500">
+                      {expandedCard.isPrimaryTarget ? 'Primary Routine' : 'Comparing Routine'}
+                    </span>
+                  )}
+                  {expandedCard.isBlockMode && (
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                      Background Block
+                    </span>
+                  )}
+                  {expandedCard.override ? (
+                    <span
+                      className={`px-2 py-0.5 rounded-md font-mono text-xs font-bold shrink-0 ${
+                        expandedCard.override.type === 'quiz' || expandedCard.override.type === 'ct'
+                          ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300/60 dark:border-amber-700/60'
+                          : expandedCard.override.type === 'online'
+                          ? 'bg-sky-100 text-sky-900 dark:bg-sky-950/80 dark:text-sky-300 border border-sky-300/60 dark:border-sky-700/60'
+                          : 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-700/60'
+                      }`}
+                    >
+                      {expandedCard.override.type === 'ct'
+                        ? 'Class Test'
+                        : expandedCard.override.type === 'quiz'
+                        ? 'Quiz'
+                        : expandedCard.override.type === 'online'
+                        ? 'Online Class'
+                        : (expandedCard.override.type?.toUpperCase() || 'EVENT')}
+                    </span>
+                  ) : (
+                    <span
+                      className={`px-2 py-0.5 rounded-md font-mono text-xs font-bold shrink-0 ${
+                        isLab
+                          ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300/60 dark:border-amber-700/60'
+                          : 'bg-sky-100 text-sky-900 dark:bg-sky-950/80 dark:text-sky-300 border border-sky-300/60 dark:border-sky-700/60'
+                      }`}
+                    >
+                      {isLab ? 'Lab' : 'Theory'}
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setExpandedCard(null)}
+                  aria-label="Close card details"
+                  className="flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Course Title & Code */}
+              <div className="space-y-1">
+                <h3 id="expanded-card-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
+                  {item.courseTitle || cleanCode}
+                </h3>
+                <div className="flex items-center gap-2 text-xs font-mono text-slate-500 dark:text-slate-400">
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">{item.courseCode}</span>
+                  {item.subSection && (
+                    <>
+                      <span>•</span>
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">Lab Group {item.subSection}</span>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Schedule Info Grid (Time, Day, Room) */}
+              <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                {/* Time & Duration */}
+                <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/50 p-2.5 space-y-1">
+                  <div className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
+                    <Clock className="h-3 w-3" /> Time & Day
+                  </div>
+                  <div className="font-bold text-slate-900 dark:text-slate-100">
+                    {formatTime12(item.startTime)} – {formatTime12(item.endTime)}
+                  </div>
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                    <span>{expandedCard.dayLabel}</span>
+                    <span>•</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">{durationStr}</span>
+                  </div>
+                </div>
+
+                {/* Room */}
+                <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/50 p-2.5 space-y-1">
+                  <div className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
+                    <MapPin className="h-3 w-3" /> Class Room
+                  </div>
+                  <div className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                    {item.room}
+                  </div>
+                  <div className="text-[11px] text-slate-400">
+                    Daffodil Campus
+                  </div>
+                </div>
+              </div>
+
+              {/* Event Override Notice / Syllabus details */}
+              {expandedCard.override?.description && (
+                <div className="rounded-xl border border-sky-200/90 dark:border-sky-800/80 bg-sky-50/70 dark:bg-sky-950/40 p-3 space-y-1">
+                  <div className="text-[10px] font-mono uppercase font-bold text-sky-700 dark:text-sky-300">
+                    Notice / Syllabus Details
+                  </div>
+                  <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
+                    {expandedCard.override.description}
+                  </div>
+                </div>
+              )}
+
+              {/* Teacher Information Card */}
+              {item.teacherCode && (
+                <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/50 p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="text-[10px] font-mono uppercase font-bold text-slate-400 flex items-center gap-1">
+                      <User className="h-3 w-3" /> Teacher Details
+                    </div>
+                    <span className="px-1.5 py-0.2 rounded font-mono font-bold text-xs bg-emerald-100 text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-700/60">
+                      {item.teacherCode}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
+                        {fac?.name || item.teacherName || item.teacherCode}
+                      </div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 font-mono truncate">
+                        {fac?.designation ? `${fac.designation} • ` : ''}{fac?.department || 'CSE'}
+                      </div>
+                    </div>
+                    {onOpenFacultyInfo && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setExpandedCard(null);
+                          onOpenFacultyInfo(item.teacherCode);
+                        }}
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 dark:hover:border-emerald-500/60 text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors shadow-2xs shrink-0 cursor-pointer"
+                      >
+                        <span>Profile</span>
+                        <ArrowUpRight className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Teacher's Assigned Office Room (always shown with live status) */}
+                  <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between text-xs font-mono">
+                    <span className="text-slate-400 text-[11px]">Teacher Office Room:</span>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                      {fac?.room || (isLoadingFacultyDetails ? 'Loading...' : 'Not specified')}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Section Information Card (if applicable) */}
+              {secId && (
+                <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/50 p-2.5 flex items-center justify-between">
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-mono uppercase font-bold text-slate-400">
+                      Academic Section
+                    </div>
+                    <div className="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
+                      {secId} {item.subSection ? `(Lab ${item.subSection})` : ''}
+                    </div>
+                  </div>
+                  {onOpenSectionInfo && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setExpandedCard(null);
+                        onOpenSectionInfo(secId);
+                      }}
+                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 dark:hover:border-emerald-500/60 text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors shadow-2xs shrink-0 cursor-pointer"
+                    >
+                      <span>Routine</span>
+                      <ArrowUpRight className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
     </section>
   );
 }

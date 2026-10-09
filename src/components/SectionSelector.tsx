@@ -7,6 +7,7 @@ import { BATCH_DEFINITIONS } from '@/data/sections';
 import { parseShorthandSectionQuery, ParsedSectionQuery } from '@/lib/section-parser';
 import { searchAndRankFaculty } from '@/data/faculty';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { isSameEntity } from '@/lib/compare-utils';
 
 interface SectionSelectorProps {
   sections: SectionMeta[];
@@ -186,9 +187,29 @@ export function SectionSelector({
   }, [isOpen, onClose]);
 
   // Filter & rank sections using fuzzy/smart matcher
-  const { results: filteredSections, shorthandMatch } = useMemo(() => {
+  const { results: rawFilteredSections, shorthandMatch: rawShorthandMatch } = useMemo(() => {
     return searchAndRankSections(sections, searchQuery);
   }, [sections, searchQuery]);
+
+  // Exclude active section when comparing so an entity can NEVER compare with itself
+  const filteredSections = useMemo(() => {
+    if (!isComparing || !activeTarget || activeTarget.type !== 'section') {
+      return rawFilteredSections;
+    }
+    const currentSecId = activeTarget.section.id.toLowerCase();
+    return rawFilteredSections.filter((s) => s.id.toLowerCase() !== currentSecId);
+  }, [rawFilteredSections, isComparing, activeTarget]);
+
+  // Exclude shorthand match if it points to the active section when comparing
+  const shorthandMatch = useMemo(() => {
+    if (!rawShorthandMatch) return null;
+    if (isComparing && activeTarget && activeTarget.type === 'section') {
+      if (rawShorthandMatch.section.id.toLowerCase() === activeTarget.section.id.toLowerCase()) {
+        return null;
+      }
+    }
+    return rawShorthandMatch;
+  }, [rawShorthandMatch, isComparing, activeTarget]);
 
   const [liveFacultyResults, setLiveFacultyResults] = useState<FacultyMeta[]>([]);
 
@@ -269,12 +290,21 @@ export function SectionSelector({
     return list;
   }, [searchQuery, facultyResults, liveFacultyResults]);
 
+  // Exclude active faculty when comparing so faculty can NEVER compare with themselves
+  const filteredFacultyResults = useMemo(() => {
+    if (!isComparing || !activeTarget || activeTarget.type !== 'faculty') {
+      return combinedFacultyResults;
+    }
+    const currentFacCode = activeTarget.faculty.code.toUpperCase();
+    return combinedFacultyResults.filter((r) => r.faculty.code.toUpperCase() !== currentFacCode);
+  }, [combinedFacultyResults, isComparing, activeTarget]);
+
   const isFacultyTop = useMemo(() => {
-    if (combinedFacultyResults.length === 0) return false;
+    if (filteredFacultyResults.length === 0) return false;
     if (shorthandMatch) return false;
     if (filteredSections.length === 0) return true;
-    return combinedFacultyResults[0].score >= 60 && !/\d/.test(searchQuery);
-  }, [combinedFacultyResults, shorthandMatch, filteredSections, searchQuery]);
+    return filteredFacultyResults[0].score >= 60 && !/\d/.test(searchQuery);
+  }, [filteredFacultyResults, shorthandMatch, filteredSections, searchQuery]);
 
   // Detect if query looks like a classroom search (e.g. "201", "KT-502", "ANX1")
   const roomMatch = useMemo(() => {
@@ -291,20 +321,30 @@ export function SectionSelector({
   }, [searchQuery]);
 
   const handleApplySelection = (sec: SectionMeta, sub?: '1' | '2' | 'all') => {
-    if (isComparing && onSelectCompareTarget) {
-      onSelectCompareTarget({ type: 'section', section: sec, subSection: sub || 'all' });
-      if (onClose) onClose();
-      return;
+    if (isComparing) {
+      if (activeTarget && isSameEntity(activeTarget, { type: 'section', section: sec })) {
+        return; // Prevent comparing section with itself!
+      }
+      if (onSelectCompareTarget) {
+        onSelectCompareTarget({ type: 'section', section: sec, subSection: sub || 'all' });
+        if (onClose) onClose();
+        return;
+      }
     }
     onSelectSection(sec, sub || 'all');
     if (onClose) onClose();
   };
 
   const handleApplyFaculty = (fac: FacultyMeta) => {
-    if (isComparing && onSelectCompareTarget) {
-      onSelectCompareTarget({ type: 'faculty', faculty: fac });
-      if (onClose) onClose();
-      return;
+    if (isComparing) {
+      if (activeTarget && isSameEntity(activeTarget, { type: 'faculty', faculty: fac })) {
+        return; // Prevent comparing faculty with itself!
+      }
+      if (onSelectCompareTarget) {
+        onSelectCompareTarget({ type: 'faculty', faculty: fac });
+        if (onClose) onClose();
+        return;
+      }
     }
     if (onSelectFaculty) {
       onSelectFaculty(fac);
@@ -317,12 +357,12 @@ export function SectionSelector({
       e.preventDefault();
       if (shorthandMatch) {
         handleApplySelection(shorthandMatch.section, shorthandMatch.parsed.subSection);
-      } else if (isFacultyTop && combinedFacultyResults.length > 0) {
-        handleApplyFaculty(combinedFacultyResults[0].faculty);
+      } else if (isFacultyTop && filteredFacultyResults.length > 0) {
+        handleApplyFaculty(filteredFacultyResults[0].faculty);
       } else if (filteredSections.length > 0) {
         handleApplySelection(filteredSections[0]);
-      } else if (combinedFacultyResults.length > 0) {
-        handleApplyFaculty(combinedFacultyResults[0].faculty);
+      } else if (filteredFacultyResults.length > 0) {
+        handleApplyFaculty(filteredFacultyResults[0].faculty);
       } else if (roomMatch && onOpenRoomFinder) {
         onOpenRoomFinder(roomMatch);
         if (onClose) onClose();
@@ -466,17 +506,35 @@ export function SectionSelector({
                     {b.letters.map((letter) => {
                       const secId = `${b.batchNumber}_${letter}`;
                       const isSelected = activeTarget && activeTarget.type !== 'faculty' && selectedSection?.id === secId;
+                      const isCurrentActiveInCompare =
+                        isComparing &&
+                        activeTarget?.type === 'section' &&
+                        activeTarget.section.id.toLowerCase() === secId.toLowerCase();
 
                       return (
-                        <Tooltip key={secId} content={`Select section ${secId}`} side="top">
+                        <Tooltip
+                          key={secId}
+                          content={
+                            isCurrentActiveInCompare
+                              ? `Active routine: ${secId} (Cannot compare with itself)`
+                              : isComparing
+                              ? `Compare with section ${secId}`
+                              : `Select section ${secId}`
+                          }
+                          side="top"
+                        >
                           <button
                             type="button"
+                            disabled={isCurrentActiveInCompare}
                             onClick={() => {
+                              if (isCurrentActiveInCompare) return;
                               const sec = sections.find((s) => s.id === secId);
                               if (sec) handleApplySelection(sec);
                             }}
                             className={`h-7 min-w-[1.85rem] px-1 rounded-lg text-xs font-mono font-bold transition-all text-center cursor-pointer ${
-                              isSelected
+                              isCurrentActiveInCompare
+                                ? 'bg-slate-100 text-slate-400 border border-slate-200/60 dark:bg-slate-800/40 dark:text-slate-600 dark:border-slate-800/60 opacity-40 cursor-not-allowed line-through'
+                                : isSelected
                                 ? 'bg-emerald-500 text-emerald-950 border border-emerald-400 shadow-xs dark:bg-emerald-500 dark:text-emerald-950'
                                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900 border border-slate-200/80 dark:bg-slate-800/80 dark:text-slate-300 dark:border-slate-700/60 dark:hover:bg-slate-700 dark:hover:text-white'
                             }`}
@@ -601,13 +659,13 @@ export function SectionSelector({
           )}
 
           {/* Faculty Results */}
-          {combinedFacultyResults.length > 0 && (
+          {filteredFacultyResults.length > 0 && (
             <div className={`space-y-1 ${isFacultyTop ? 'order-first' : 'order-last'}`}>
               <div className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-0.5">
-                Faculty ({combinedFacultyResults.length})
+                Faculty ({filteredFacultyResults.length})
               </div>
               <div className="space-y-1">
-                {combinedFacultyResults.slice(0, 10).map(({ faculty: f }) => (
+                {filteredFacultyResults.slice(0, 10).map(({ faculty: f }) => (
                   <button
                     key={f.code}
                     type="button"
@@ -669,7 +727,7 @@ export function SectionSelector({
           )}
 
           {/* Empty Search State */}
-          {combinedFacultyResults.length === 0 && filteredSections.length === 0 && !roomMatch && (
+          {filteredFacultyResults.length === 0 && filteredSections.length === 0 && !roomMatch && (
             <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500 space-y-2">
               <p>No sections or teachers found matching &quot;{searchQuery}&quot;.</p>
               {searchQuery.trim().length >= 2 && !/\d/.test(searchQuery.trim()) && (

@@ -8,22 +8,32 @@ function formatShortVersion(v?: string): string {
   return match ? `v${match[1]}` : (v.toLowerCase().startsWith('v') ? v : `v${v}`);
 }
 
-async function handleCheckUpdate() {
+async function handleCheckUpdate(req?: Request) {
   try {
-    const result = await checkLiveUpstreamUpdate(true);
+    const url = req ? new URL(req.url) : null;
+    const syncParam = url?.searchParams.get('sync');
+    // If explicitly specified ?sync=false, don't trigger sync; default to true for automatic update sync
+    const triggerSync = syncParam !== 'false';
+
+    const result = await checkLiveUpstreamUpdate(triggerSync);
     const cleanVersion = formatShortVersion(result.currentVersion || officialRoutine.version || '4.1');
 
     return NextResponse.json(
       {
         success: result.success,
+        source: result.source || 'official_diu_noticeboard',
+        update_available: result.updateAvailable,
         updateAvailable: result.updateAvailable,
+        status: result.statusMessage,
+        message: result.statusMessage,
         version: cleanVersion,
         rawVersion: result.currentVersion,
         upstreamVersion: result.upstreamVersion,
         updatedAt: result.updatedAt || '2026-10-02 09:28:00',
         syncedAt: result.syncedAt,
-        message: result.statusMessage,
         syncedNow: Boolean(result.syncedNow),
+        latest_official_release: result.latestOfficialRelease || null,
+        latestOfficialRelease: result.latestOfficialRelease || null,
         timestamp: Date.now(),
       },
       {
@@ -39,9 +49,11 @@ async function handleCheckUpdate() {
     return NextResponse.json(
       {
         success: false,
+        update_available: false,
         updateAvailable: false,
         version: fallbackVersion,
         message: msg,
+        status: msg,
         timestamp: Date.now(),
       },
       {
@@ -54,10 +66,10 @@ async function handleCheckUpdate() {
   }
 }
 
-export async function GET() {
-  return handleCheckUpdate();
+export async function GET(req: Request) {
+  return handleCheckUpdate(req);
 }
 
-export async function POST() {
-  return handleCheckUpdate();
+export async function POST(req: Request) {
+  return handleCheckUpdate(req);
 }

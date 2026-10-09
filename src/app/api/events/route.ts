@@ -23,9 +23,9 @@ export async function GET(request: NextRequest) {
       count: allEvents.length,
       events: allEvents,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json(
-      { success: false, error: err?.message || 'Failed to fetch events' },
+      { success: false, error: err instanceof Error ? err.message : 'Failed to fetch events' },
       { status: 500 }
     );
   }
@@ -73,9 +73,9 @@ export async function POST(request: NextRequest) {
       message: 'Event override created successfully',
       event: newEvent,
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json(
-      { success: false, error: err?.message || 'Invalid payload' },
+      { success: false, error: err instanceof Error ? err.message : 'Invalid payload' },
       { status: 400 }
     );
   }

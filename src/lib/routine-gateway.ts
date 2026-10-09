@@ -124,6 +124,16 @@ export async function getUpstreamVersionMeta(force = false): Promise<VersionMeta
   };
 }
 
+export interface UpstreamOfficialRelease {
+  version: string;
+  title?: string;
+  published_at?: string;
+  pdf_url?: string;
+  pdf_title?: string;
+  notice_id?: number;
+  noticeboard_url?: string;
+}
+
 export interface UpstreamUpdateCheckResult {
   success: boolean;
   updateAvailable: boolean;
@@ -133,6 +143,8 @@ export interface UpstreamUpdateCheckResult {
   syncedAt?: string;
   statusMessage?: string;
   syncedNow?: boolean;
+  source?: string;
+  latestOfficialRelease?: UpstreamOfficialRelease;
 }
 
 /**
@@ -153,17 +165,20 @@ export async function checkLiveUpstreamUpdate(triggerSyncIfAvailable = true): Pr
   try {
     const res = await robustFetch<{
       success?: boolean;
+      source?: string;
       update_available?: boolean;
       status?: string;
-      current?: { version?: string; updated_at?: string; synced_at?: string; total_classes?: number };
+      current?: { version?: string; updated_at?: string; synced_at?: string; total_classes?: number; total_sections?: number };
+      latest_official_release?: UpstreamOfficialRelease;
       upstream?: { version?: string; updated_at?: string };
     }>(`${gateway}/api/check-update?t=${Date.now()}`, { timeout: 6000 });
 
     if (res.ok) {
       const data = await res.json();
       const currentVer = data.current?.version || lastKnownVersion;
-      const upstreamVer = data.upstream?.version || currentVer;
-      const updatedAt = data.current?.updated_at || data.upstream?.updated_at || lastKnownUpdatedAt;
+      const latestRelease = data.latest_official_release;
+      const upstreamVer = latestRelease?.version || data.upstream?.version || currentVer;
+      const updatedAt = data.current?.updated_at || latestRelease?.published_at || data.upstream?.updated_at || lastKnownUpdatedAt;
       const syncedAt = data.current?.synced_at || lastKnownSyncedAt;
       const hasUpdate = Boolean(data.update_available || (upstreamVer && upstreamVer !== currentVer));
 
@@ -178,6 +193,7 @@ export async function checkLiveUpstreamUpdate(triggerSyncIfAvailable = true): Pr
             success?: boolean;
             version?: string;
             current?: { version?: string; updated_at?: string; synced_at?: string };
+            latest_official_release?: UpstreamOfficialRelease;
           }>(
             `${gateway}/api/check-update?sync=true&key=${encodeURIComponent(syncKey)}&t=${Date.now()}`,
             { timeout: 15000 }
@@ -198,6 +214,8 @@ export async function checkLiveUpstreamUpdate(triggerSyncIfAvailable = true): Pr
               syncedAt: syncData.current?.synced_at || new Date().toISOString(),
               statusMessage: `Routine upgraded to v${newVersion}!`,
               syncedNow: true,
+              source: data.source,
+              latestOfficialRelease: syncData.latest_official_release || latestRelease,
             };
           }
         } catch (syncErr) {
@@ -214,6 +232,8 @@ export async function checkLiveUpstreamUpdate(triggerSyncIfAvailable = true): Pr
         syncedAt,
         statusMessage: data.status || (hasUpdate ? `New version v${upstreamVer} available!` : `Routine is up to date (Version ${currentVer}).`),
         syncedNow: false,
+        source: data.source,
+        latestOfficialRelease: latestRelease,
       };
     }
   } catch (err) {

@@ -1,4 +1,4 @@
-import { DayOfWeek, RoutineClass, ActiveRoutineTarget, FreeTimeSlot } from '@/types/schedule';
+import { DayOfWeek, RoutineClass, ActiveRoutineTarget, FreeTimeSlot, SectionMeta, FacultyMeta } from '@/types/schedule';
 import { timeToMinutes, formatTime12 } from './time-utils';
 import { TIMELINE_START_HOUR, TIMELINE_TOTAL_MINUTES } from './timeline-layout';
 import { getFacultyByCode } from '@/data/faculty';
@@ -52,6 +52,29 @@ export function getTargetLabel(target: ActiveRoutineTarget | null | undefined): 
   };
 }
 
+export type RoutineEntityRef =
+  | ActiveRoutineTarget
+  | { type: 'section'; section: SectionMeta; subSection?: '1' | '2' | 'all' }
+  | { type: 'faculty'; faculty: FacultyMeta };
+
+/**
+ * Checks if two routine targets represent the same base entity (same section ID or same faculty code)
+ */
+export function isSameEntity(
+  a: RoutineEntityRef | null | undefined,
+  b: RoutineEntityRef | null | undefined
+): boolean {
+  if (!a || !b) return false;
+  if (a.type !== b.type) return false;
+  if (a.type === 'faculty' && b.type === 'faculty') {
+    return a.faculty.code.trim().toUpperCase() === b.faculty.code.trim().toUpperCase();
+  }
+  if (a.type === 'section' && b.type === 'section') {
+    return a.section.id.trim().toLowerCase() === b.section.id.trim().toLowerCase();
+  }
+  return false;
+}
+
 /**
  * Checks if two routine targets are identical
  */
@@ -62,10 +85,13 @@ export function areTargetsEqual(
   if (!a || !b) return false;
   if (a.type !== b.type) return false;
   if (a.type === 'faculty' && b.type === 'faculty') {
-    return a.faculty.code.toUpperCase() === b.faculty.code.toUpperCase();
+    return a.faculty.code.trim().toUpperCase() === b.faculty.code.trim().toUpperCase();
   }
   if (a.type === 'section' && b.type === 'section') {
-    return a.section.id === b.section.id && a.subSection === b.subSection;
+    return (
+      a.section.id.trim().toLowerCase() === b.section.id.trim().toLowerCase() &&
+      (a.subSection || 'all') === (b.subSection || 'all')
+    );
   }
   return false;
 }

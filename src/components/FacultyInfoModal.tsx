@@ -13,7 +13,7 @@ import {
   ArrowLeft,
   User,
 } from 'lucide-react';
-import { FacultyMeta } from '@/types/schedule';
+import { FacultyMeta, ActiveRoutineTarget, CompareState } from '@/types/schedule';
 import { getFacultyByCode } from '@/data/faculty';
 
 interface FacultyInfoModalProps {
@@ -21,6 +21,8 @@ interface FacultyInfoModalProps {
   onClose: () => void;
   facultyCode: string | null;
   initialFaculty?: FacultyMeta | null;
+  activeTarget?: ActiveRoutineTarget | null;
+  compareState?: CompareState;
   returnSectionId?: string | null;
   onBackToSection?: (sectionId: string) => void;
   onCompareWithFaculty?: (faculty: FacultyMeta) => void;
@@ -34,6 +36,8 @@ export function FacultyInfoModal({
   onClose,
   facultyCode,
   initialFaculty,
+  activeTarget,
+  compareState,
   returnSectionId,
   onBackToSection,
   onCompareWithFaculty,
@@ -332,18 +336,64 @@ export function FacultyInfoModal({
           {/* Action Row: Exactly the 3 requested buttons: Compare, Add Compare, and View */}
           <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-3 gap-2">
             {/* 1. Compare */}
-            <button
-              type="button"
-              onClick={() => {
-                onClose();
-                onCompareWithFaculty?.(currentFac);
-              }}
-              title={`Compare ${currentFac.name} with current routine`}
-              className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 rounded-xl text-xs font-mono font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer shadow-xs truncate"
-            >
-              <ArrowLeftRight className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">Compare</span>
-            </button>
+            {(() => {
+              const isCurrentActive =
+                activeTarget?.type === 'faculty' &&
+                activeTarget.faculty.code.trim().toUpperCase() === currentFac.code.trim().toUpperCase();
+              const isCurrentSecondary =
+                compareState?.active &&
+                compareState.secondaryTarget?.type === 'faculty' &&
+                compareState.secondaryTarget.faculty.code.trim().toUpperCase() === currentFac.code.trim().toUpperCase();
+
+              if (isCurrentActive) {
+                return (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenComparePicker?.();
+                    }}
+                    title={`Compare ${currentFac.name} with another routine`}
+                    className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 rounded-xl text-xs font-mono font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer shadow-xs truncate"
+                  >
+                    <ArrowLeftRight className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">Compare...</span>
+                  </button>
+                );
+              }
+
+              if (isCurrentSecondary) {
+                return (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenComparePicker?.();
+                    }}
+                    title="Already comparing with this faculty. Click to change compare target."
+                    className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 rounded-xl text-xs font-mono font-bold bg-emerald-700/80 hover:bg-emerald-600 text-white transition-colors cursor-pointer shadow-xs truncate"
+                  >
+                    <ArrowLeftRight className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">Comparing</span>
+                  </button>
+                );
+              }
+
+              return (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onCompareWithFaculty?.(currentFac);
+                  }}
+                  title={`Compare ${currentFac.name} with current routine`}
+                  className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 rounded-xl text-xs font-mono font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer shadow-xs truncate"
+                >
+                  <ArrowLeftRight className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">Compare</span>
+                </button>
+              );
+            })()}
 
             {/* 2. Add Compare */}
             <button

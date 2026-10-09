@@ -11,7 +11,7 @@ import {
   ChevronRight,
   User,
 } from 'lucide-react';
-import { SectionMeta, RoutineClass, FacultyMeta } from '@/types/schedule';
+import { SectionMeta, RoutineClass, FacultyMeta, ActiveRoutineTarget, CompareState } from '@/types/schedule';
 import { getSectionById } from '@/data/sections';
 import { CURATED_ROUTINES } from '@/data/routines';
 import { getFacultyByCode } from '@/data/faculty';
@@ -21,6 +21,8 @@ interface SectionInfoModalProps {
   onClose: () => void;
   sectionId: string | null;
   initialClasses?: RoutineClass[] | null;
+  activeTarget?: ActiveRoutineTarget | null;
+  compareState?: CompareState;
   onCompareWithSection?: (section: SectionMeta) => void;
   onOpenComparePicker?: () => void;
   onNavigateToSection?: (section: SectionMeta) => void;
@@ -66,6 +68,8 @@ export function SectionInfoModal({
   onClose,
   sectionId,
   initialClasses,
+  activeTarget,
+  compareState,
   onCompareWithSection,
   onOpenComparePicker,
   onNavigateToSection,
@@ -358,18 +362,64 @@ export function SectionInfoModal({
         {/* Bottom Action Row: Exactly 3 balanced buttons (No double plus!) */}
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-3 gap-2 shrink-0">
           {/* 1. Compare */}
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              onCompareWithSection?.(section);
-            }}
-            title={`Compare ${section.id} with current routine`}
-            className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 rounded-xl text-xs font-mono font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer shadow-xs truncate"
-          >
-            <ArrowLeftRight className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">Compare</span>
-          </button>
+          {(() => {
+            const isCurrentActive =
+              activeTarget?.type === 'section' &&
+              activeTarget.section.id.toLowerCase() === section.id.toLowerCase();
+            const isCurrentSecondary =
+              compareState?.active &&
+              compareState.secondaryTarget?.type === 'section' &&
+              compareState.secondaryTarget.section.id.toLowerCase() === section.id.toLowerCase();
+
+            if (isCurrentActive) {
+              return (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenComparePicker?.();
+                  }}
+                  title={`Compare ${section.id} with another routine`}
+                  className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 rounded-xl text-xs font-mono font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer shadow-xs truncate"
+                >
+                  <ArrowLeftRight className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">Compare...</span>
+                </button>
+              );
+            }
+
+            if (isCurrentSecondary) {
+              return (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onOpenComparePicker?.();
+                  }}
+                  title="Already comparing with this section. Click to change compare target."
+                  className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 rounded-xl text-xs font-mono font-bold bg-emerald-700/80 hover:bg-emerald-600 text-white transition-colors cursor-pointer shadow-xs truncate"
+                >
+                  <ArrowLeftRight className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">Comparing</span>
+                </button>
+              );
+            }
+
+            return (
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onCompareWithSection?.(section);
+                }}
+                title={`Compare ${section.id} with current routine`}
+                className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 rounded-xl text-xs font-mono font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer shadow-xs truncate"
+              >
+                <ArrowLeftRight className="h-3.5 w-3.5 shrink-0" />
+                <span className="truncate">Compare</span>
+              </button>
+            );
+          })()}
 
           {/* 2. Add Compare: Single Plus icon + Add text */}
           <button

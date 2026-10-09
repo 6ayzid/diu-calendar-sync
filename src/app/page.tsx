@@ -29,6 +29,7 @@ import {
   getTotalSharedFreeHours,
   parseTargetParam,
   targetToParamString,
+  isSameEntity,
 } from '@/lib/compare-utils';
 import { Search, Sparkles, CalendarDays, WifiOff, RefreshCw } from 'lucide-react';
 
@@ -259,7 +260,7 @@ export default function Home() {
       // Check if compare target was passed in URL
       if (compareParamToUse) {
         const parsedCompare = parseTargetParam(compareParamToUse);
-        if (parsedCompare) {
+        if (parsedCompare && resolvedTarget && !isSameEntity(resolvedTarget, parsedCompare)) {
           setCompareSettings((prev) => ({
             ...prev,
             active: true,
@@ -313,9 +314,27 @@ export default function Home() {
   // Save selected section to state, localStorage & URL
   const handleSelectSection = (newSec: SectionMeta, subSection?: '1' | '2' | 'all') => {
     const finalSub = subSection || 'all';
-    setActiveTarget({ type: 'section', section: newSec, subSection: finalSub });
+    const newTarget: ActiveRoutineTarget = { type: 'section', section: newSec, subSection: finalSub };
+    setActiveTarget(newTarget);
     setLiveSchedule(null);
     setHasSavedPreference(true);
+
+    const isConflictWithCompare =
+      compareState.active &&
+      compareState.secondaryTarget &&
+      isSameEntity(compareState.secondaryTarget, newTarget);
+
+    if (isConflictWithCompare) {
+      setCompareSettings({
+        active: false,
+        secondaryTarget: null,
+        priority: 'secondary',
+        secondaryVisibility: 'block',
+        showFreeTimeHighlight: true,
+      });
+      setSecondaryLiveSchedule(null);
+    }
+
     try {
       localStorage.setItem('diu_routine_selected_type', 'section');
       localStorage.setItem('diu_routine_selected_section', newSec.id);
@@ -330,8 +349,11 @@ export default function Home() {
           newUrl.searchParams.delete('sub');
         }
         newUrl.searchParams.set('section', newSec.id);
-        if (compareState.active && compareState.secondaryTarget) {
+        if (compareState.active && compareState.secondaryTarget && !isConflictWithCompare) {
           newUrl.searchParams.set('compare', targetToParamString(compareState.secondaryTarget));
+        } else {
+          newUrl.searchParams.delete('compare');
+          newUrl.searchParams.delete('c');
         }
         window.history.replaceState({}, '', newUrl.toString());
       }
@@ -370,9 +392,27 @@ export default function Home() {
 
   // Save selected faculty to state, localStorage & URL
   const handleSelectFaculty = (newFaculty: FacultyMeta) => {
-    setActiveTarget({ type: 'faculty', faculty: newFaculty });
+    const newTarget: ActiveRoutineTarget = { type: 'faculty', faculty: newFaculty };
+    setActiveTarget(newTarget);
     setLiveSchedule(null);
     setHasSavedPreference(true);
+
+    const isConflictWithCompare =
+      compareState.active &&
+      compareState.secondaryTarget &&
+      isSameEntity(compareState.secondaryTarget, newTarget);
+
+    if (isConflictWithCompare) {
+      setCompareSettings({
+        active: false,
+        secondaryTarget: null,
+        priority: 'secondary',
+        secondaryVisibility: 'block',
+        showFreeTimeHighlight: true,
+      });
+      setSecondaryLiveSchedule(null);
+    }
+
     try {
       localStorage.setItem('diu_routine_selected_type', 'faculty');
       localStorage.setItem('diu_routine_selected_faculty', newFaculty.code);
@@ -382,8 +422,11 @@ export default function Home() {
         newUrl.searchParams.delete('s');
         newUrl.searchParams.delete('sub');
         newUrl.searchParams.set('teacher', newFaculty.code);
-        if (compareState.active && compareState.secondaryTarget) {
+        if (compareState.active && compareState.secondaryTarget && !isConflictWithCompare) {
           newUrl.searchParams.set('compare', targetToParamString(compareState.secondaryTarget));
+        } else {
+          newUrl.searchParams.delete('compare');
+          newUrl.searchParams.delete('c');
         }
         window.history.replaceState({}, '', newUrl.toString());
       }
@@ -801,6 +844,11 @@ export default function Home() {
 
   // Add target to compare
   const handleSelectCompareTarget = (target: ActiveRoutineTarget) => {
+    if (activeTarget && isSameEntity(activeTarget, target)) {
+      console.warn('[Compare] Cannot compare entity with itself');
+      return;
+    }
+
     setCompareSettings({
       active: true,
       secondaryTarget: target,
@@ -1099,6 +1147,8 @@ export default function Home() {
             ? activeTarget.faculty
             : null)
         }
+        activeTarget={activeTarget}
+        compareState={compareState}
         onClose={() => {
           setIsFacultyInfoOpen(false);
           setFacultyInfoCode(null);
@@ -1133,6 +1183,8 @@ export default function Home() {
             ? currentSchedule
             : null
         }
+        activeTarget={activeTarget}
+        compareState={compareState}
         onClose={() => {
           setIsSectionInfoOpen(false);
           setSectionInfoTargetId(null);

@@ -132,29 +132,22 @@ export function VersionBadge({
   const formatDisplayTime = (raw: string) => {
     try {
       if (!raw) return 'Morning, Oct 2';
-      // Normalize raw string e.g. "2026-10-02 09:28:00"
-      const parts = raw.trim().split(' ');
-      let hour = 9;
-      let monthStr = 'Oct';
-      let day = 2;
-
-      if (parts.length >= 2) {
-        const [year, m, d] = parts[0].split('-').map(Number);
-        const [h] = parts[1].split(':').map(Number);
-        hour = h;
-        day = d;
-        const dateObj = new Date(year, m - 1, d);
-        if (!isNaN(dateObj.getTime())) {
-          monthStr = dateObj.toLocaleDateString('en-US', { month: 'short' });
-        }
-      } else {
-        const dObj = new Date(raw);
-        if (!isNaN(dObj.getTime())) {
-          hour = dObj.getHours();
-          monthStr = dObj.toLocaleDateString('en-US', { month: 'short' });
-          day = dObj.getDate();
+      let dObj = new Date(raw);
+      if (isNaN(dObj.getTime())) {
+        const parts = raw.trim().split(' ');
+        if (parts.length >= 2 && parts[0].includes('-')) {
+          const [year, m, d] = parts[0].split('-').map(Number);
+          const [h] = (parts[1] || '').split(':').map(Number);
+          dObj = new Date(year, m - 1, d, h || 0);
         }
       }
+      if (isNaN(dObj.getTime())) {
+        return 'Morning, Oct 2';
+      }
+
+      const hour = dObj.getHours();
+      const monthStr = dObj.toLocaleDateString('en-US', { month: 'short' });
+      const day = dObj.getDate();
 
       let period = 'morning';
       if (hour >= 12 && hour < 17) period = 'afternoon';
