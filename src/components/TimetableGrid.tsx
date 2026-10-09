@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { getFacultyByCode, registerDynamicFaculty } from '@/data/faculty';
 import { getCourseShortTitle } from '@/lib/course-utils';
+import { COURSE_CATALOG } from '@/lib/courses';
 import { formatTime12, getDhakaClock, DhakaClockState, getUpcomingDays, getCurrentWeekScheduleDays, WeekScheduleDay, ContinuousScheduleDay, getContinuousScheduleDays, timeToMinutes } from '@/lib/time-utils';
 import { HOURLY_MARKS, layoutDayEvents, getCurrentTimeTopPercent, PositionedEvent, TIMELINE_START_HOUR, TIMELINE_END_HOUR } from '@/lib/timeline-layout';
 import { getTimelinePercentForInterval, getTargetLabel } from '@/lib/compare-utils';
@@ -157,16 +158,23 @@ export function TimetableGrid({
   const velocityXRef = useRef(0);
   const hasDraggedRef = useRef(false);
   const dragJustEndedRef = useRef(false);
-  const settleTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Tap-to-Grow Expanded Card state (reveals unabbreviated course title, room, teacher & office details)
+  // In-place expanding card state (blooms in-place in every direction from center, reveals full details)
   const [expandedCard, setExpandedCard] = useState<{
+    cardKey: string;
     classItem: RoutineClass;
     isBlockMode?: boolean;
     targetBadge?: string;
     isPrimaryTarget?: boolean;
     dayLabel: string;
     override?: ClassEventOverride;
+    alignRight?: boolean;
+    style?: {
+      top: number;
+      left: number;
+      width: number;
+      height: number;
+    };
   } | null>(null);
 
   const [expandedFacultyDetails, setExpandedFacultyDetails] = useState<FacultyMeta | null>(null);
@@ -211,6 +219,20 @@ export function TimetableGrid({
     return () => {
       isCancelled = true;
     };
+  }, [expandedCard]);
+
+  // Outside click to collapse expanded card
+  useEffect(() => {
+    if (!expandedCard) return;
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target) return;
+      if (!target.closest('[data-expanded-card="true"]')) {
+        setExpandedCard(null);
+      }
+    };
+    document.addEventListener('pointerdown', handleClickOutside);
+    return () => document.removeEventListener('pointerdown', handleClickOutside);
   }, [expandedCard]);
 
   useEffect(() => {
@@ -261,6 +283,111 @@ export function TimetableGrid({
   const getTimeColWidth = useCallback(() => {
     return timeColWidthRef.current;
   }, []);
+
+  const ensureCardVisible = useCallback(
+    (cardElement: HTMLElement) => {
+      const container = matrixScrollRef.current;
+      if (!container) return;
+      const timeWidth = getTimeColWidth();
+      requestAnimationFrame(() => {
+        const containerRect = container.getBoundingClientRect();
+        const cardRect = cardElement.getBoundingClientRect();
+        const visibleLeft = containerRect.left + timeWidth + 12;
+        const visibleRight = containerRect.right - 12;
+
+        if (cardRect.left < visibleLeft) {
+          const scrollDiff = cardRect.left - visibleLeft;
+          container.scrollBy({ left: scrollDiff, behavior: 'smooth' });
+        } else if (cardRect.right > visibleRight) {
+          const scrollDiff = cardRect.right - visibleRight;
+          container.scrollBy({ left: scrollDiff, behavior: 'smooth' });
+        }
+      });
+    },
+    [getTimeColWidth]
+  );
+
+  const getCardExpansionStyle = useCallback(
+    (cardElement: HTMLElement, hasNotice?: boolean) => {
+      const container = matrixScrollRef.current;
+      const parentElement = (cardElement.offsetParent as HTMLElement) || cardElement.parentElement;
+      if (!parentElement) return undefined;
+
+      const parentRect = parentElement.getBoundingClientRect();
+      const cardRect = cardElement.getBoundingClientRect();
+
+      // Determine visible matrix boundaries
+      const timeWidth = getTimeColWidth();
+      let visibleLeft = 12;
+      let visibleRight = typeof window !== 'undefined' ? window.innerWidth - 12 : 1200;
+
+      if (container) {
+        const containerRect = container.getBoundingClientRect();
+        // Visible viewport area: strictly to the right of sticky time column and within container / screen
+        visibleLeft = Math.max(12, containerRect.left + timeWidth + 6);
+        visibleRight = Math.min(
+          typeof window !== 'undefined' ? window.innerWidth - 12 : containerRect.right - 12,
+          containerRect.right - 6
+        );
+      }
+
+      // Target size for expanded card:
+      // Width: comfortably fits information without exceeding visible frame
+      const maxAllowedWidth = Math.max(180, Math.min(270, visibleRight - visibleLeft - 8));
+      const targetWidth = Math.round(maxAllowedWidth);
+      // Height: based on content (whether description/override notice is present)
+      const targetHeight = hasNotice ? 285 : 215;
+
+      // Visual center of the unexpanded card in screen coordinates
+      const cardCenterX = cardRect.left + cardRect.width / 2;
+      const cardCenterY = cardRect.top + cardRect.height / 2;
+
+      // Ideal bounds expanding simultaneously in all directions from center
+      let idealLeft = cardCenterX - targetWidth / 2;
+      let idealRight = cardCenterX + targetWidth / 2;
+      let idealTop = cardCenterY - targetHeight / 2;
+      let idealBottom = cardCenterY + targetHeight / 2;
+
+      // Horizontal boundary clamping: keep card completely within visible area
+      if (idealRight > visibleRight) {
+        const shiftX = visibleRight - idealRight;
+        idealLeft += shiftX;
+        idealRight += shiftX;
+      }
+      if (idealLeft < visibleLeft) {
+        const shiftX = visibleLeft - idealLeft;
+        idealLeft += shiftX;
+        idealRight += shiftX;
+      }
+
+      // Vertical boundary clamping: keep card within day column boundaries (parentRect)
+      const colTop = parentRect.top + 4;
+      const colBottom = parentRect.bottom - 4;
+
+      if (idealBottom > colBottom) {
+        const shiftY = colBottom - idealBottom;
+        idealTop += shiftY;
+        idealBottom += shiftY;
+      }
+      if (idealTop < colTop) {
+        const shiftY = colTop - idealTop;
+        idealTop += shiftY;
+        idealBottom += shiftY;
+      }
+
+      // Convert to local coordinates relative to the day column parent
+      const localLeft = Math.round(idealLeft - parentRect.left);
+      const localTop = Math.round(idealTop - parentRect.top);
+
+      return {
+        top: localTop,
+        left: localLeft,
+        width: targetWidth,
+        height: targetHeight,
+      };
+    },
+    [getTimeColWidth]
+  );
 
   useEffect(() => {
     measureTimeColWidth();
@@ -474,6 +601,7 @@ export function TimetableGrid({
   // Handle window resize compression bounds
   useEffect(() => {
     const handleResize = () => {
+      setExpandedCard(null);
       measureTimeColWidth();
       const limit = getCompressionLimit();
       if (zoomDaysRef.current > limit) {
@@ -658,26 +786,12 @@ export function TimetableGrid({
   }, [getCompressionLimit, getTimeColWidth, triggerSpringBounce]);
 
   const [isDragging, setIsDragging] = useState(false);
-  const [isSettling, setIsSettling] = useState(false);
-  const [isInitialPositioned, setIsInitialPositioned] = useState(false);
-
-  useEffect(() => {
-    return () => {
-      if (settleTimeoutRef.current) clearTimeout(settleTimeoutRef.current);
-    };
-  }, []);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     // Only handle primary left click (button === 0) for mouse/pen input.
     // Native touch scrolling and multi-touch pinch-to-zoom handle touch devices.
     if (e.button !== 0 || e.pointerType === 'touch') return;
     if (!matrixScrollRef.current) return;
-
-    if (settleTimeoutRef.current) {
-      clearTimeout(settleTimeoutRef.current);
-      settleTimeoutRef.current = null;
-    }
-    setIsSettling(false);
 
     isPointerDownRef.current = true;
     hasDraggedRef.current = false;
@@ -708,6 +822,7 @@ export function TimetableGrid({
       }
       hasDraggedRef.current = true;
       setIsDragging(true);
+      setExpandedCard(null);
     }
 
     e.preventDefault();
@@ -744,43 +859,22 @@ export function TimetableGrid({
     if (hasDraggedRef.current && matrixScrollRef.current) {
       dragJustEndedRef.current = true;
       const container = matrixScrollRef.current;
-      const timeWidth = getTimeColWidth();
-      const dayAreaWidth = Math.max(1, container.clientWidth - timeWidth);
-      const dayWidth = dayAreaWidth / zoomDaysRef.current;
       const v = velocityXRef.current;
 
-      // Notion Calendar smooth snapping:
-      // If user flicked with velocity (|v| > 0.35 px/ms), advance 1 day in flick direction
-      let targetLeft: number;
-      if (Math.abs(v) > 0.35) {
-        // v > 0: dragged rightwards -> scroll leftwards (flickDir = -1)
-        // v < 0: dragged leftwards -> scroll rightwards (flickDir = +1)
-        const flickDir = v > 0 ? -1 : 1;
-        const currentGrid = Math.round(container.scrollLeft / dayWidth);
-        const targetGrid = Math.max(0, currentGrid + flickDir);
-        targetLeft = targetGrid * dayWidth;
-      } else {
-        // Gentle release: snap to nearest day boundary
-        const nearestGrid = Math.round(container.scrollLeft / dayWidth);
-        targetLeft = Math.max(0, nearestGrid * dayWidth);
+      // Natural momentum coasting without artificial snapping (Industry standard):
+      // If user flicked with noticeable velocity, glide smoothly with momentum decay
+      if (Math.abs(v) > 0.15) {
+        const momentumDistance = v * 140;
+        const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+        const targetLeft = Math.max(0, Math.min(maxScroll, container.scrollLeft - momentumDistance));
+
+        container.scrollTo({
+          left: targetLeft,
+          behavior: 'smooth',
+        });
       }
 
-      const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
-      const clampedTarget = Math.max(0, Math.min(maxScroll, targetLeft));
-
-      container.scrollTo({
-        left: clampedTarget,
-        behavior: 'smooth',
-      });
-
       setIsDragging(false);
-      setIsSettling(true);
-
-      if (settleTimeoutRef.current) clearTimeout(settleTimeoutRef.current);
-      settleTimeoutRef.current = setTimeout(() => {
-        setIsSettling(false);
-        settleTimeoutRef.current = null;
-      }, 400);
 
       setTimeout(() => {
         dragJustEndedRef.current = false;
@@ -813,24 +907,6 @@ export function TimetableGrid({
     if (visibleWeekOffset > 1) return `+${visibleWeekOffset} wks`;
     return `${visibleWeekOffset} wks`;
   }, [visibleWeekOffset]);
-
-  const scrollToWeek = useCallback((targetOffset: number, smooth = true) => {
-    if (!matrixScrollRef.current) return;
-    const container = matrixScrollRef.current;
-    const targetDayIdx = continuousDays.findIndex(
-      (d) => d.weekOffset === targetOffset && d.dayIndexInWeek === 0
-    );
-    if (targetDayIdx >= 0) {
-      const timeWidth = getTimeColWidth();
-      const dayAreaWidth = Math.max(1, container.clientWidth - timeWidth);
-      const dayWidth = dayAreaWidth / zoomDaysRef.current;
-      container.scrollTo({
-        left: targetDayIdx * dayWidth,
-        behavior: smooth ? 'smooth' : 'auto',
-      });
-      setVisibleWeekOffset(targetOffset);
-    }
-  }, [continuousDays, getTimeColWidth]);
 
   const scrollToToday = useCallback((smooth = true) => {
     if (!matrixScrollRef.current) return;
@@ -878,13 +954,6 @@ export function TimetableGrid({
     });
   }, [getTimeColWidth]);
 
-  const handlePrevWeek = handlePrev;
-  const handleNextWeek = handleNext;
-
-  const handleResetWeek = useCallback(() => {
-    scrollToToday(true);
-  }, [scrollToToday]);
-
   // Initial jump directly to Today's grid on mount - 0px gap, starts from Today
   const initialScrollDoneRef = useRef(false);
   useEffect(() => {
@@ -906,7 +975,6 @@ export function TimetableGrid({
       container.scrollLeft = targetLeft;
       setVisibleWeekOffset(continuousDays[targetIdx]?.weekOffset ?? 0);
       initialScrollDoneRef.current = true;
-      setIsInitialPositioned(true);
 
       const startDayIdx = targetIdx;
       const endDayIdx = Math.min(
@@ -1190,6 +1258,163 @@ export function TimetableGrid({
     return getCurrentTimeTopPercent(currentDhakaTime.totalMinutes);
   }, [currentDhakaTime.totalMinutes]);
 
+  // In-place expanded card content renderer (shows full unabbreviated course title, room, teacher & office details)
+  const renderExpandedCardBody = ({
+    item,
+    targetBadge,
+    isPrimaryTarget: _isPrimaryTarget,
+    isBlockMode: _isBlockMode,
+    override,
+    dayLabel,
+    isLiveNow,
+  }: {
+    item: RoutineClass;
+    targetBadge?: string;
+    isPrimaryTarget?: boolean;
+    isBlockMode?: boolean;
+    override?: ClassEventOverride;
+    dayLabel: string;
+    isLiveNow?: boolean;
+  }) => {
+    const isLab = item.type === 'Lab';
+    const cleanCode = item.courseCode.split('(')[0].trim().toUpperCase();
+    const fac = expandedFacultyDetails || (item.teacherCode ? getFacultyByCode(item.teacherCode) : null);
+
+    const rawItemTitle = (item.courseTitle || '').trim();
+    const cleanItemTitleCode = rawItemTitle.replace(/\s*lab\s*/i, '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    const isItemTitleJustCode = !rawItemTitle ||
+      rawItemTitle.toLowerCase() === 'unknown' ||
+      cleanItemTitleCode === cleanCode.replace(/[^A-Za-z0-9]/g, '');
+    const displayCourseTitle = isItemTitleJustCode
+      ? (COURSE_CATALOG[cleanCode]?.name || item.courseTitle || cleanCode)
+      : item.courseTitle;
+
+    return (
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="flex flex-col space-y-2 text-left select-text"
+      >
+        {/* Top Header: Badge, Type & Close Button */}
+        <div className="flex items-center justify-between gap-1 pb-1 border-b border-slate-200/70 dark:border-slate-800">
+          <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+            {targetBadge && isComparing && (
+              <span className="px-1.5 py-0.2 rounded font-mono text-[9.5px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200">
+                {targetBadge}
+              </span>
+            )}
+            {override ? (
+              <span className="px-1.5 py-0.2 rounded font-mono text-[9.5px] font-bold uppercase bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300 border border-amber-300/60 dark:border-amber-700/60">
+                {override.type === 'ct' ? 'CT' : override.type === 'quiz' ? 'Quiz' : override.type === 'online' ? 'Online' : (override.type?.toUpperCase() || 'Event')}
+              </span>
+            ) : (
+              <span className={`px-1.5 py-0.2 rounded font-mono text-[9.5px] font-bold ${
+                isLab
+                  ? 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-300'
+                  : 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-300'
+              }`}>
+                {isLab ? 'Lab' : 'Theory'}
+              </span>
+            )}
+            {item.subSection && (
+              <span className="px-1.5 py-0.2 rounded font-mono text-[9.5px] font-bold bg-black/10 dark:bg-white/10 text-slate-700 dark:text-slate-300">
+                Sec {item.subSection}
+              </span>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              setExpandedCard(null);
+            }}
+            aria-label="Close"
+            className="flex items-center justify-center h-5 w-5 rounded text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        {/* Course Title & Code */}
+        <div>
+          <h3 className="font-bold text-xs sm:text-[13px] text-slate-900 dark:text-white leading-snug">
+            {displayCourseTitle}
+          </h3>
+          <div className="font-mono text-[10.5px] text-emerald-700 dark:text-emerald-400 font-semibold">
+            {cleanCode}
+          </div>
+        </div>
+
+        {/* Schedule & Room Info: Clean, concise 2 lines */}
+        <div className="space-y-1 font-mono text-[10.5px] text-slate-700 dark:text-slate-300 bg-slate-100/75 dark:bg-slate-800/60 rounded-lg p-2">
+          <div className="flex items-center gap-1.5">
+            <Clock className="h-3 w-3 text-slate-400 shrink-0" />
+            <span className="font-bold text-slate-900 dark:text-slate-100">
+              {formatTime12(item.startTime)} – {formatTime12(item.endTime)}
+            </span>
+            <span className="text-slate-400">•</span>
+            <span className="truncate text-slate-500 dark:text-slate-400">{dayLabel}</span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <MapPin className="h-3 w-3 text-slate-400 shrink-0" />
+            <span className="font-bold text-slate-900 dark:text-slate-100">
+              {item.room ? (/^room\b/i.test(item.room.trim()) ? item.room.trim() : `Room ${item.room.trim()}`) : 'TBA'}
+            </span>
+          </div>
+        </div>
+
+        {/* Live indicator if active right now */}
+        {isLiveNow && (
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-[10px] font-mono font-medium">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
+            <span>Class in session now</span>
+          </div>
+        )}
+
+        {/* Override Notice if present */}
+        {override?.description && (
+          <div className="rounded-lg border border-sky-200 dark:border-sky-800 bg-sky-50/70 dark:bg-sky-950/40 p-2 text-[10.5px] text-slate-700 dark:text-slate-300 font-sans leading-snug">
+            {override.description}
+          </div>
+        )}
+
+        {/* Minimal Teacher Row */}
+        {item.teacherCode && (
+          <div className="flex items-center justify-between gap-1.5 pt-1.5 border-t border-slate-200/80 dark:border-slate-800 text-[10.5px] font-mono">
+            <div className="min-w-0 flex items-center gap-1 truncate">
+              <User className="h-3 w-3 text-slate-400 shrink-0" />
+              <span className="font-bold text-slate-900 dark:text-slate-100 truncate">
+                {fac?.name || item.teacherName || item.teacherCode}
+              </span>
+              <span className="text-slate-400 shrink-0">({item.teacherCode})</span>
+              {fac?.room && (
+                <span className="text-emerald-700 dark:text-emerald-400 font-semibold truncate">
+                  • {fac.room}
+                </span>
+              )}
+            </div>
+
+            {onOpenFacultyInfo && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setExpandedCard(null);
+                  onOpenFacultyInfo(item.teacherCode);
+                }}
+                className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px] font-semibold text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors shrink-0 cursor-pointer"
+              >
+                <span>Profile</span>
+                <ArrowUpRight className="h-2.5 w-2.5" />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <section
       aria-labelledby="timetable-heading"
@@ -1425,10 +1650,6 @@ export function TimetableGrid({
           className={`calendar-matrix-scroll mt-1 sm:mt-2 pb-2 print:overflow-visible print:pb-0 ${
             isDragging
               ? 'is-dragging cursor-grabbing select-none'
-              : isSettling
-              ? 'cursor-grab select-none'
-              : isInitialPositioned
-              ? 'cursor-grab snap-x snap-proximity'
               : 'cursor-grab'
           }`}
           style={{
@@ -1547,10 +1768,12 @@ export function TimetableGrid({
               const positionedEvents = dayData.positionedEvents;
               const dayOffGridOverrides = dayData.offGridOverrides;
 
+              const isAnyCardExpandedInDay = !!expandedCard && expandedCard.cardKey.includes(`-${d.globalDayIndex}-`);
+
               return (
                 <div
                   key={`timeline-${d.globalDayIndex}-${d.dayKey}-${d.formattedDate}`}
-                  className={`relative h-[600px] ${
+                  className={`relative h-[600px] ${isAnyCardExpandedInDay ? 'z-40' : 'z-10'} ${
                     isWeekStart
                       ? 'border-l-2 border-l-slate-300 dark:border-l-slate-700'
                       : 'border-l border-slate-200 dark:border-slate-800/80'
@@ -1560,16 +1783,14 @@ export function TimetableGrid({
                   style={{
                     gridColumn: vIdx + 2,
                     gridRow: 2,
-                    scrollSnapAlign: d.isWeekStart ? 'start' : 'none',
-                    scrollSnapStop: 'normal',
                   }}
                 >
-                  {/* Background Hourly Dashed Grid Lines (Google Calendar with dashed guides) */}
+                  {/* Background Hourly Grid Lines (Clean subtle solid calendar guidelines) */}
                   <div className="absolute inset-0 grid grid-rows-10 pointer-events-none">
                     {Array.from({ length: 10 }).map((_, hIdx) => (
                       <div
                         key={`hour-grid-${d.globalDayIndex}-${hIdx}`}
-                        className="border-b border-dashed border-slate-200/85 dark:border-slate-800/75 w-full h-full"
+                        className="border-b border-slate-200/90 dark:border-slate-800/85 w-full h-full"
                       />
                     ))}
                   </div>
@@ -1630,52 +1851,94 @@ export function TimetableGrid({
                           <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
                           <span>Evening / Online</span>
                         </div>
-                        {dayOffGridOverrides.map((ev) => (
-                          <div
-                            key={ev.id}
-                            title={ev.description || ev.title}
-                            onClick={(e) => {
-                              if (hasDraggedRef.current || dragJustEndedRef.current) return;
-                              e.stopPropagation();
-                              setExpandedCard({
-                                classItem: {
-                                  id: ev.id,
-                                  batch: '',
-                                  section: '',
-                                  sectionId: '',
-                                  courseCode: ev.courseCode,
-                                  courseTitle: ev.title ? `${ev.courseCode} - ${ev.title}` : ev.courseCode,
-                                  teacherCode: '',
-                                  room: ev.room || 'Online',
-                                  dayOfWeek: d.dayKey as DayOfWeek,
-                                  startTime: ev.startTime || '19:00',
-                                  endTime: ev.endTime || '20:00',
-                                  type: 'Theory',
-                                },
-                                isBlockMode: false,
-                                dayLabel: `${d.dayLabel || d.dayShort}, ${d.monthShort} ${d.dayNumber}`,
-                                override: ev,
-                              });
-                            }}
-                            className="rounded-xl border border-sky-300/80 bg-sky-50/95 dark:border-sky-800/80 dark:bg-sky-950/90 backdrop-blur-xs p-2 shadow-xs space-y-1 transition-all hover:scale-[1.01] cursor-pointer"
-                          >
-                            <div className="flex items-center justify-between gap-1">
-                              <span className="font-mono font-bold text-[11px] text-sky-950 dark:text-sky-100 truncate">
-                                {ev.courseCode}
-                              </span>
-                              <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-sky-400 text-sky-950">
-                                {ev.type === 'ct' ? 'CT' : ev.type === 'online' ? 'ONLINE' : (ev.type?.toUpperCase() || 'EVENT')}
-                              </span>
+                        {dayOffGridOverrides.map((ev) => {
+                          const cardKey = `offgrid-${d.globalDayIndex}-${ev.id}`;
+                          const isCardExpanded = expandedCard?.cardKey === cardKey;
+                          const classItem: RoutineClass = {
+                            id: ev.id,
+                            batch: '',
+                            section: '',
+                            sectionId: '',
+                            courseCode: ev.courseCode,
+                            courseTitle: ev.title ? `${ev.courseCode} - ${ev.title}` : ev.courseCode,
+                            teacherCode: '',
+                            room: ev.room || 'Online',
+                            dayOfWeek: d.dayKey as DayOfWeek,
+                            startTime: ev.startTime || '19:00',
+                            endTime: ev.endTime || '20:00',
+                            type: 'Theory',
+                          };
+                          const dayLabel = `${d.dayLabel || d.dayShort}, ${d.monthShort} ${d.dayNumber}`;
+
+                          return (
+                            <div
+                              key={cardKey}
+                              data-expanded-card={isCardExpanded ? 'true' : undefined}
+                              title={!isCardExpanded ? (ev.description || ev.title) : undefined}
+                              onClick={(e) => {
+                                if (hasDraggedRef.current || dragJustEndedRef.current) return;
+                                e.stopPropagation();
+                                if (isCardExpanded) {
+                                  setExpandedCard(null);
+                                } else {
+                                  const expansionStyle = getCardExpansionStyle(e.currentTarget, !!ev.description);
+                                  setExpandedCard({
+                                    cardKey,
+                                    classItem,
+                                    isBlockMode: false,
+                                    dayLabel,
+                                    override: ev,
+                                    style: expansionStyle,
+                                  });
+                                }
+                              }}
+                              className={`transition-all duration-300 ease-out select-none border ${
+                                isCardExpanded
+                                  ? 'absolute z-[60] rounded-xl shadow-xl p-2.5 sm:p-3 ring-1 ring-sky-500/40 bg-white/98 dark:bg-slate-900/98 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800 overflow-y-auto cursor-default'
+                                  : 'rounded-xl border-sky-300/80 bg-sky-50/95 dark:border-sky-800/80 dark:bg-sky-950/90 backdrop-blur-xs p-2 shadow-xs space-y-1 hover:scale-[1.01] cursor-pointer'
+                              }`}
+                              style={
+                                isCardExpanded && expandedCard?.style
+                                  ? {
+                                      top: `${expandedCard.style.top}px`,
+                                      left: `${expandedCard.style.left}px`,
+                                      width: `${expandedCard.style.width}px`,
+                                      height: `${expandedCard.style.height}px`,
+                                      maxHeight: '360px',
+                                    }
+                                  : undefined
+                              }
+                            >
+                              {isCardExpanded ? (
+                                renderExpandedCardBody({
+                                  item: classItem,
+                                  override: ev,
+                                  dayLabel,
+                                })
+                              ) : (
+                                <>
+                                  <div className="flex items-center justify-between gap-1">
+                                    <span className="font-mono font-bold text-[11px] text-sky-950 dark:text-sky-100 truncate">
+                                      {ev.courseCode}
+                                    </span>
+                                    <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-sky-400 text-sky-950">
+                                      {ev.type === 'ct' ? 'CT' : ev.type === 'online' ? 'ONLINE' : (ev.type?.toUpperCase() || 'EVENT')}
+                                    </span>
+                                  </div>
+                                  <div className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-snug truncate">
+                                    {ev.title}
+                                  </div>
+                                  <div className="text-[10px] font-mono text-slate-600 dark:text-slate-300 flex items-center justify-between pt-0.5 border-t border-sky-200/60 dark:border-sky-800/60">
+                                    <span className="text-sky-700 dark:text-sky-300 font-medium truncate flex items-center gap-1">
+                                      <MapPin className="h-2.5 w-2.5 shrink-0 opacity-80" />
+                                      <span>{ev.room || 'Online'}</span>
+                                    </span>
+                                  </div>
+                                </>
+                              )}
                             </div>
-                            <div className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-snug truncate">
-                              {ev.title}
-                            </div>
-                            <div className="text-[10px] font-mono text-slate-600 dark:text-slate-300 flex items-center justify-between pt-0.5 border-t border-sky-200/60 dark:border-sky-800/60">
-                              <span>{formatTime12(ev.startTime || '19:00')}</span>
-                              <span className="text-sky-700 dark:text-sky-300 font-medium truncate">{ev.room || 'Online'}</span>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
 
@@ -1701,17 +1964,16 @@ export function TimetableGrid({
                       const c = pe.event;
                       const cleanCode = c.courseCode.split('(')[0].trim();
                       const durationMins = pe.endMinutes - pe.startMinutes;
-                      const compactTime = pe.formattedRange.replace(/\s*–\s*/, '–');
 
                       // 1. Render Block Mode (Low-Priority Background Routine in Compare Mode)
                       if (pe.isBlockMode) {
                         const blockStyle = pe.isPrimaryTarget
                           ? 'border border-slate-300 bg-slate-200/70 text-slate-700 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:border-slate-600'
-                          : 'border border-dashed border-emerald-400/60 bg-emerald-100/50 text-emerald-900 hover:border-emerald-500 dark:border-emerald-800/70 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:border-emerald-700';
+                          : 'border border-emerald-400/60 bg-emerald-100/50 text-emerald-900 hover:border-emerald-500 dark:border-emerald-800/70 dark:bg-emerald-950/50 dark:text-emerald-300 dark:hover:border-emerald-700';
 
                         const badgeStyle = pe.isPrimaryTarget
                           ? 'bg-slate-300 text-slate-800 dark:bg-slate-700 dark:text-slate-200'
-                          : 'border border-dashed border-emerald-400 bg-emerald-200/70 dark:bg-emerald-900/60 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200';
+                          : 'border border-emerald-400 bg-emerald-200/70 dark:bg-emerald-900/60 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200';
 
                         const isBlockLiveNow =
                           isToday &&
@@ -1731,51 +1993,93 @@ export function TimetableGrid({
                           : 0;
 
                         const blockLineTopOffsetPx = (2 - 4 * (blockLineTopPercent / 100)).toFixed(1);
-
+                        const cardKey = `block-${d.globalDayIndex}-${c.id}`;
+                        const isCardExpanded = expandedCard?.cardKey === cardKey;
+                        const dayLabel = `${d.dayLabel || d.dayShort}, ${d.monthShort} ${d.dayNumber}`;
                         return (
                           <div
-                            key={`block-${d.globalDayIndex}-${c.id}`}
-                            title={`Tap to view full info: ${pe.targetBadge} - ${c.courseCode} (${pe.formattedRange}) in ${c.room}`}
+                            key={cardKey}
+                            data-expanded-card={isCardExpanded ? 'true' : undefined}
+                            title={!isCardExpanded ? `Tap to view full info: ${pe.targetBadge} - ${c.courseCode} (${pe.formattedRange}) in ${c.room}` : undefined}
                             onClick={(e) => {
                               if (hasDraggedRef.current || dragJustEndedRef.current) return;
                               e.stopPropagation();
-                              setExpandedCard({
-                                classItem: c,
-                                isBlockMode: true,
+                              if (isCardExpanded) {
+                                setExpandedCard(null);
+                              } else {
+                                const expansionStyle = getCardExpansionStyle(e.currentTarget);
+                                setExpandedCard({
+                                  cardKey,
+                                  classItem: c,
+                                  isBlockMode: true,
+                                  targetBadge: pe.targetBadge,
+                                  isPrimaryTarget: pe.isPrimaryTarget,
+                                  dayLabel,
+                                  style: expansionStyle,
+                                });
+                              }
+                            }}
+                            className={`absolute transition-all duration-300 ease-out select-none ${
+                              isCardExpanded
+                                ? 'z-[60] rounded-xl shadow-xl p-2.5 sm:p-3 ring-1 ring-emerald-500/30 backdrop-blur-md cursor-default bg-white/98 text-slate-900 border border-slate-200/90 dark:bg-slate-900/98 dark:text-slate-100 dark:border-slate-800/90 overflow-y-auto'
+                                : `rounded-lg overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 z-20 shadow-2xs opacity-85 hover:opacity-100 cursor-pointer hover:shadow-md hover:scale-[1.01] ${blockStyle}`
+                            }`}
+                            style={
+                              isCardExpanded && expandedCard?.style
+                                ? {
+                                    top: `${expandedCard.style.top}px`,
+                                    left: `${expandedCard.style.left}px`,
+                                    width: `${expandedCard.style.width}px`,
+                                    height: `${expandedCard.style.height}px`,
+                                    maxHeight: '360px',
+                                  }
+                                : {
+                                    top: `calc(${pe.topPercent}% + 2px)`,
+                                    height: `calc(${pe.heightPercent}% - 4px)`,
+                                    left: `calc(${pe.leftPercent}% + 2px)`,
+                                    width: `calc(${pe.widthPercent}% - 4px)`,
+                                  }
+                            }
+                          >
+                            {isCardExpanded ? (
+                              renderExpandedCardBody({
+                                item: c,
                                 targetBadge: pe.targetBadge,
                                 isPrimaryTarget: pe.isPrimaryTarget,
-                                dayLabel: `${d.dayLabel || d.dayShort}, ${d.monthShort} ${d.dayNumber}`,
-                              });
-                            }}
-                            className={`absolute rounded-lg overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 select-none z-20 transition-all shadow-2xs opacity-85 hover:opacity-100 cursor-pointer hover:shadow-md hover:scale-[1.01] ${blockStyle}`}
-                            style={{
-                              top: `calc(${pe.topPercent}% + 2px)`,
-                              height: `calc(${pe.heightPercent}% - 4px)`,
-                              left: `calc(${pe.leftPercent}% + 2px)`,
-                              width: `calc(${pe.widthPercent}% - 4px)`,
-                            }}
-                          >
-                            {/* Current Time Indicator line inside block mode card (above card bg, below text) */}
-                            {isBlockLiveNow && (
-                              <div
-                                className="absolute left-0 right-0 h-[2px] bg-red-500 dark:bg-red-500 pointer-events-none z-0 -translate-y-1/2 shadow-xs"
-                                style={{
-                                  top: `calc(${blockLineTopPercent}% - ${blockLineTopOffsetPx}px)`,
-                                }}
-                              />
+                                isBlockMode: true,
+                                dayLabel,
+                                isLiveNow: isBlockLiveNow,
+                              })
+                            ) : (
+                              <>
+                                {/* Current Time Indicator line inside block mode card (above card bg, below text) */}
+                                {isBlockLiveNow && (
+                                  <div
+                                    className="absolute left-0 right-0 h-[2px] bg-red-500 dark:bg-red-500 pointer-events-none z-0 -translate-y-1/2 shadow-xs"
+                                    style={{
+                                      top: `calc(${blockLineTopPercent}% - ${blockLineTopOffsetPx}px)`,
+                                    }}
+                                  />
+                                )}
+                                <div className="flex items-center justify-between gap-1 min-w-0 relative z-10">
+                                  <span className={`font-mono font-bold text-[9px] px-1 py-0.2 rounded shrink-0 ${badgeStyle}`}>
+                                    {pe.targetBadge}
+                                  </span>
+                                  <span className="font-bold text-[10px] sm:text-[11px] truncate opacity-90">
+                                    {getCourseShortTitle(cleanCode, c.courseTitle, c.type === 'Lab')}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-between text-[9px] sm:text-[9.5px] font-mono opacity-75 truncate pt-0.5 border-t border-black/10 dark:border-white/10 relative z-10">
+                                  <span className="truncate font-semibold flex items-center gap-0.5">
+                                    <MapPin className="h-2 w-2 shrink-0 opacity-70" />
+                                    <span>{c.room.split('(')[0].trim()}</span>
+                                  </span>
+                                  {c.teacherCode && (
+                                    <span className="truncate font-semibold">{c.teacherCode}</span>
+                                  )}
+                                </div>
+                              </>
                             )}
-                            <div className="flex items-center justify-between gap-1 min-w-0 relative z-10">
-                              <span className={`font-mono font-bold text-[9px] px-1 py-0.2 rounded shrink-0 ${badgeStyle}`}>
-                                {pe.targetBadge}
-                              </span>
-                              <span className="font-mono font-bold text-[10px] sm:text-[11px] truncate opacity-90">
-                                {cleanCode}
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between text-[9px] sm:text-[9.5px] font-mono opacity-75 truncate pt-0.5 border-t border-black/10 dark:border-white/10 relative z-10">
-                              <span className="truncate">{compactTime}</span>
-                              <span className="truncate font-semibold">{c.room.split('(')[0].trim()}</span>
-                            </div>
                           </div>
                         );
                       }
@@ -1818,65 +2122,104 @@ export function TimetableGrid({
                           ? 'bg-indigo-400 text-indigo-950'
                           : 'bg-amber-400 text-amber-950';
 
+                        const cardKey = `override-${d.globalDayIndex}-${ev.id}`;
+                        const isCardExpanded = expandedCard?.cardKey === cardKey;
+                        const dayLabel = `${d.dayLabel || d.dayShort}, ${d.monthShort} ${d.dayNumber}`;
                         return (
                           <div
-                            key={`override-${d.globalDayIndex}-${ev.id}`}
+                            key={cardKey}
+                            data-expanded-card={isCardExpanded ? 'true' : undefined}
                             onClick={(e) => {
                               if (hasDraggedRef.current || dragJustEndedRef.current) return;
                               e.stopPropagation();
-                              setExpandedCard({
-                                classItem: {
+                              if (isCardExpanded) {
+                                setExpandedCard(null);
+                              } else {
+                                const expansionStyle = getCardExpansionStyle(e.currentTarget, !!ev.description);
+                                setExpandedCard({
+                                  cardKey,
+                                  classItem: {
+                                    ...c,
+                                    courseTitle: ev.title ? `${ev.courseCode} - ${ev.title}` : c.courseTitle,
+                                    room: ev.room || c.room,
+                                  },
+                                  isBlockMode: false,
+                                  targetBadge: pe.targetBadge,
+                                  isPrimaryTarget: pe.isPrimaryTarget,
+                                  dayLabel,
+                                  override: ev,
+                                  style: expansionStyle,
+                                });
+                              }
+                            }}
+                            className={`absolute transition-all duration-300 ease-out select-none ${
+                              isCardExpanded
+                                ? 'z-[60] rounded-xl shadow-xl p-2.5 sm:p-3 ring-1 ring-sky-500/40 backdrop-blur-md cursor-default bg-white/98 text-slate-900 border border-slate-200/90 dark:bg-slate-900/98 dark:text-slate-100 dark:border-slate-800/90 overflow-y-auto'
+                                : `rounded-xl overflow-hidden flex flex-col justify-between p-1.5 sm:p-2 cursor-pointer group z-20 hover:z-25 ${overrideCardTheme}`
+                            }`}
+                            style={
+                              isCardExpanded && expandedCard?.style
+                                ? {
+                                    top: `${expandedCard.style.top}px`,
+                                    left: `${expandedCard.style.left}px`,
+                                    width: `${expandedCard.style.width}px`,
+                                    height: `${expandedCard.style.height}px`,
+                                    maxHeight: '360px',
+                                  }
+                                : {
+                                    top: `calc(${pe.topPercent}% + 2px)`,
+                                    height: `calc(${pe.heightPercent}% - 4px)`,
+                                    left: `calc(${pe.leftPercent}% + 2px)`,
+                                    width: `calc(${pe.widthPercent}% - 4px)`,
+                                  }
+                            }
+                          >
+                            {isCardExpanded ? (
+                              renderExpandedCardBody({
+                                item: {
                                   ...c,
                                   courseTitle: ev.title ? `${ev.courseCode} - ${ev.title}` : c.courseTitle,
                                   room: ev.room || c.room,
                                 },
-                                isBlockMode: false,
+                                override: ev,
                                 targetBadge: pe.targetBadge,
                                 isPrimaryTarget: pe.isPrimaryTarget,
-                                dayLabel: `${d.dayLabel || d.dayShort}, ${d.monthShort} ${d.dayNumber}`,
-                                override: ev,
-                              });
-                            }}
-                            className={`absolute rounded-xl transition-all overflow-hidden flex flex-col justify-between p-1.5 sm:p-2 cursor-pointer select-none group z-20 hover:z-25 ${overrideCardTheme}`}
-                            style={{
-                              top: `calc(${pe.topPercent}% + 2px)`,
-                              height: `calc(${pe.heightPercent}% - 4px)`,
-                              left: `calc(${pe.leftPercent}% + 2px)`,
-                              width: `calc(${pe.widthPercent}% - 4px)`,
-                            }}
-                          >
-                            {/* Live progress indicator line */}
-                            {isOverrideLiveNow && (
-                              <div
-                                className="absolute left-0 right-0 h-[2px] bg-red-500 dark:bg-red-500 pointer-events-none z-0 -translate-y-1/2 shadow-xs"
-                                style={{
-                                  top: `calc(${overrideLineTopPercent}% - ${overrideLineTopOffsetPx}px)`,
-                                }}
-                              />
-                            )}
+                                dayLabel,
+                                isLiveNow: isOverrideLiveNow,
+                              })
+                            ) : (
+                              <>
+                                {/* Live progress indicator line */}
+                                {isOverrideLiveNow && (
+                                  <div
+                                    className="absolute left-0 right-0 h-[2px] bg-red-500 dark:bg-red-500 pointer-events-none z-0 -translate-y-1/2 shadow-xs"
+                                    style={{
+                                      top: `calc(${overrideLineTopPercent}% - ${overrideLineTopOffsetPx}px)`,
+                                    }}
+                                  />
+                                )}
 
-                            <div className="space-y-0.5 overflow-hidden min-w-0 relative z-10">
-                              <div className="flex items-center justify-between gap-1 min-w-0">
-                                <span className="font-mono font-bold text-[11px] truncate">
-                                  {ev.courseCode}
-                                </span>
-                                <span className={`text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${badgeClass}`}>
-                                  {badgeLabel}
-                                </span>
-                              </div>
-                              <div className="text-xs font-semibold leading-snug truncate">
-                                {ev.title}
-                              </div>
-                              <div className="text-[10px] font-mono opacity-90 truncate whitespace-nowrap">
-                                {compactTime}
-                              </div>
-                            </div>
-                            <div className="pt-0.5 border-t border-black/10 dark:border-white/10 flex items-center justify-between text-[10px] font-mono leading-tight min-w-0 relative z-10">
-                              <span className="flex items-center gap-0.5 font-bold truncate">
-                                <MapPin className="h-2.5 w-2.5 shrink-0 opacity-80" />
-                                <span className="truncate">{ev.room || 'TBD'}</span>
-                              </span>
-                            </div>
+                                <div className="space-y-0.5 overflow-hidden min-w-0 relative z-10">
+                                  <div className="flex items-center justify-between gap-1 min-w-0">
+                                    <span className="font-mono font-bold text-[11px] truncate">
+                                      {ev.courseCode}
+                                    </span>
+                                    <span className={`text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${badgeClass}`}>
+                                      {badgeLabel}
+                                    </span>
+                                  </div>
+                                  <div className="text-xs font-semibold leading-snug truncate">
+                                    {ev.title}
+                                  </div>
+                                </div>
+                                <div className="pt-0.5 border-t border-black/10 dark:border-white/10 flex items-center justify-between text-[10px] font-mono leading-tight min-w-0 relative z-10">
+                                  <span className="flex items-center gap-0.5 font-bold truncate">
+                                    <MapPin className="h-2.5 w-2.5 shrink-0 opacity-80" />
+                                    <span className="truncate">{ev.room || 'TBD'}</span>
+                                  </span>
+                                </div>
+                              </>
+                            )}
                           </div>
                         );
                       }
@@ -1911,9 +2254,9 @@ export function TimetableGrid({
                           subsectionBadgeClass =
                             'bg-black/10 dark:bg-black/35 text-current border-black/15 dark:border-white/15';
                         } else {
-                          // Entity 2: Washed out light green card with dashed border style (dark muted green in dark mode!)
+                          // Entity 2: Clean washed out light green card with solid border (dark muted green in dark mode!)
                           cardTheme =
-                            'bg-emerald-100 hover:bg-emerald-200 text-emerald-950 dark:bg-emerald-950 dark:hover:bg-emerald-900 dark:text-emerald-200 border-2 border-dashed border-emerald-400/70 dark:border-emerald-700/80 shadow-2xs';
+                            'bg-emerald-100 hover:bg-emerald-200 text-emerald-950 dark:bg-emerald-950 dark:hover:bg-emerald-900 dark:text-emerald-200 border border-emerald-400/70 dark:border-emerald-700/80 shadow-2xs';
                           buttonBadgeClass =
                             'bg-emerald-200/70 hover:bg-emerald-300/70 text-emerald-950 border-emerald-300/60 dark:bg-emerald-900/70 dark:hover:bg-emerald-800/70 dark:text-emerald-200 dark:border-emerald-700/80 shadow-2xs';
                           subsectionBadgeClass =
@@ -1940,182 +2283,213 @@ export function TimetableGrid({
 
                       const cardLineTopOffsetPx = (2 - 4 * (cardLineTopPercent / 100)).toFixed(1);
 
+                      const cardKey = `class-${d.globalDayIndex}-${c.id}`;
+                      const isCardExpanded = expandedCard?.cardKey === cardKey;
+                      const dayLabel = `${d.dayLabel || d.dayShort}, ${d.monthShort} ${d.dayNumber}`;
+
+                      const cardOverride = eventOverrides.find((ev) => {
+                        if (ev.status === 'CANCELLED') return false;
+                        if (ev.date) {
+                          const matchesIso = d.isoDate && ev.date.trim() === d.isoDate.trim();
+                          const dayNum = String(parseInt(ev.date.split('-')[2] || '0', 10));
+                          const matchesDayNum = d.dayNumber === dayNum && (!ev.dayOfWeek || d.dayKey === ev.dayOfWeek);
+                          if (!matchesIso && !matchesDayNum) return false;
+                        } else if (ev.dayOfWeek && ev.dayOfWeek !== d.dayKey) {
+                          return false;
+                        }
+                        const cClean = (cleanCode || c.courseCode || '').split('(')[0].trim().toUpperCase();
+                        const evClean = (ev.courseCode || '').split('(')[0].trim().toUpperCase();
+                        if (cClean !== evClean) return false;
+                        if (ev.startTime && c.startTime && ev.startTime !== c.startTime) return false;
+                        return true;
+                      });
+
                       return (
                         <div
-                          key={`class-${d.globalDayIndex}-${c.id}`}
+                          key={cardKey}
+                          data-expanded-card={isCardExpanded ? 'true' : undefined}
                           onClick={(e) => {
                             if (hasDraggedRef.current || dragJustEndedRef.current) return;
                             if ((e.target as HTMLElement).closest('button')) return;
                             e.stopPropagation();
-                            setExpandedCard({
-                              classItem: c,
-                              isBlockMode: false,
+                            if (isCardExpanded) {
+                              setExpandedCard(null);
+                            } else {
+                              const expansionStyle = getCardExpansionStyle(e.currentTarget, !!cardOverride?.description);
+                              setExpandedCard({
+                                cardKey,
+                                classItem: c,
+                                isBlockMode: false,
+                                targetBadge: pe.targetBadge,
+                                isPrimaryTarget: pe.isPrimaryTarget,
+                                dayLabel,
+                                override: cardOverride,
+                                style: expansionStyle,
+                              });
+                            }
+                          }}
+                          className={`absolute transition-all duration-300 ease-out select-none ${
+                            isCardExpanded
+                              ? 'z-[60] rounded-xl shadow-xl p-2.5 sm:p-3 ring-1 ring-emerald-500/30 backdrop-blur-md cursor-default bg-white/98 text-slate-900 border border-slate-200/90 dark:bg-slate-900/98 dark:text-slate-100 dark:border-slate-800/90 overflow-y-auto'
+                              : `rounded-lg overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 cursor-pointer group z-20 hover:z-25 hover:shadow-md ${cardTheme}`
+                          }`}
+                          style={
+                            isCardExpanded && expandedCard?.style
+                              ? {
+                                  top: `${expandedCard.style.top}px`,
+                                  left: `${expandedCard.style.left}px`,
+                                  width: `${expandedCard.style.width}px`,
+                                  height: `${expandedCard.style.height}px`,
+                                  maxHeight: '360px',
+                                }
+                              : {
+                                  top: `calc(${pe.topPercent}% + 2px)`,
+                                  height: `calc(${pe.heightPercent}% - 4px)`,
+                                  left: `calc(${pe.leftPercent}% + 2px)`,
+                                  width: `calc(${pe.widthPercent}% - 4px)`,
+                                }
+                          }
+                        >
+                          {isCardExpanded ? (
+                            renderExpandedCardBody({
+                              item: c,
                               targetBadge: pe.targetBadge,
                               isPrimaryTarget: pe.isPrimaryTarget,
-                              dayLabel: `${d.dayLabel || d.dayShort}, ${d.monthShort} ${d.dayNumber}`,
-                            });
-                          }}
-                          className={`absolute rounded-lg transition-all overflow-hidden flex flex-col justify-between p-1 sm:p-1.5 cursor-pointer select-none group z-20 hover:z-25 hover:shadow-md ${cardTheme}`}
-                          style={{
-                            top: `calc(${pe.topPercent}% + 2px)`,
-                            height: `calc(${pe.heightPercent}% - 4px)`,
-                            left: `calc(${pe.leftPercent}% + 2px)`,
-                            width: `calc(${pe.widthPercent}% - 4px)`,
-                          }}
-                        >
-                          {/* Current Time Indicator line inside live card (above card bg, below text) */}
-                          {isLiveNow && (
-                            <div
-                              className="absolute left-0 right-0 h-[2px] bg-red-500 dark:bg-red-500 pointer-events-none z-0 -translate-y-1/2 shadow-xs"
-                              style={{
-                                top: `calc(${cardLineTopPercent}% - ${cardLineTopOffsetPx}px)`,
-                              }}
-                            />
-                          )}
+                              override: cardOverride,
+                              dayLabel,
+                              isLiveNow,
+                            })
+                          ) : (
+                            <>
+                              {/* Current Time Indicator line inside live card (above card bg, below text) */}
+                              {isLiveNow && (
+                                <div
+                                  className="absolute left-0 right-0 h-[2px] bg-red-500 dark:bg-red-500 pointer-events-none z-0 -translate-y-1/2 shadow-xs"
+                                  style={{
+                                    top: `calc(${cardLineTopPercent}% - ${cardLineTopOffsetPx}px)`,
+                                  }}
+                                />
+                              )}
 
-                          <div className="space-y-0.5 overflow-hidden min-w-0 relative z-10">
-                            {/* Line 1: Target Badge (in compare) + Course Title + Optional Code + Subsection Badge */}
-                            <div className="flex items-center justify-between gap-1 min-w-0">
-                              <div className="flex items-center gap-1 min-w-0 truncate">
-                                {isComparing && pe.targetBadge && (
-                                  <span
-                                    className={`shrink-0 rounded px-1 py-0.2 text-[9px] font-mono font-bold ${
-                                      pe.isPrimaryTarget
-                                        ? 'bg-slate-300 text-slate-800 dark:bg-slate-700 dark:text-slate-200'
-                                        : 'bg-emerald-200/70 text-emerald-950 dark:bg-emerald-900/70 dark:text-emerald-200 border border-dashed border-emerald-400 dark:border-emerald-700'
-                                    }`}
-                                  >
-                                    {pe.targetBadge}
-                                  </span>
-                                )}
-                                {isLab && (
-                                  <FlaskConical className={`h-3 w-3 shrink-0 ${
-                                    isComparing
-                                      ? pe.isPrimaryTarget
-                                        ? 'text-slate-500 dark:text-slate-400'
-                                        : 'text-emerald-600 dark:text-emerald-400'
-                                      : 'text-emerald-200 dark:text-emerald-900'
-                                  }`} />
-                                )}
-                                <span className="font-bold tracking-tight text-xs truncate leading-tight">
-                                  {shortTitle}
-                                </span>
-                                {showSeparateCode && zoomDays <= 3.5 && (
-                                  <span className="text-[10px] font-mono opacity-80 shrink-0 leading-tight">
-                                    {cleanCode}
-                                  </span>
-                                )}
+                              <div className="space-y-0.5 overflow-hidden min-w-0 relative z-10">
+                                {/* Line 1: Target Badge (in compare) + Course Title + Optional Code + Subsection Badge */}
+                                <div className="flex items-center justify-between gap-1 min-w-0">
+                                  <div className="flex items-center gap-1 min-w-0 truncate">
+                                    {isComparing && pe.targetBadge && (
+                                      <span
+                                        className={`shrink-0 rounded px-1 py-0.2 text-[9px] font-mono font-bold ${
+                                          pe.isPrimaryTarget
+                                            ? 'bg-slate-300 text-slate-800 dark:bg-slate-700 dark:text-slate-200'
+                                            : 'bg-emerald-200/70 text-emerald-950 dark:bg-emerald-900/70 dark:text-emerald-200 border border-emerald-400 dark:border-emerald-700'
+                                        }`}
+                                      >
+                                        {pe.targetBadge}
+                                      </span>
+                                    )}
+                                    {isLab && (
+                                      <FlaskConical className={`h-3 w-3 shrink-0 ${
+                                        isComparing
+                                          ? pe.isPrimaryTarget
+                                            ? 'text-slate-500 dark:text-slate-400'
+                                            : 'text-emerald-600 dark:text-emerald-400'
+                                          : 'text-emerald-200 dark:text-emerald-900'
+                                      }`} />
+                                    )}
+                                    <span className="font-bold tracking-tight text-xs truncate leading-tight">
+                                      {shortTitle}
+                                    </span>
+                                    {showSeparateCode && zoomDays <= 3.5 && (
+                                      <span className="text-[10px] font-mono opacity-80 shrink-0 leading-tight">
+                                        {cleanCode}
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  {/* Subsection badge & Event Override Pill (e.g. Quiz) */}
+                                  <div className="flex items-center gap-1 shrink-0 relative z-10">
+                                    {cardOverride && (
+                                      <span
+                                        title={`${cardOverride.title}${cardOverride.description ? `: ${cardOverride.description}` : ''}`}
+                                        className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold font-mono uppercase shadow-2xs relative z-10 ${
+                                          cardOverride.type === 'online'
+                                            ? 'bg-sky-400 text-sky-950 border border-sky-500/60'
+                                            : 'bg-amber-400 text-amber-950 border border-amber-500/60'
+                                        }`}
+                                      >
+                                        {cardOverride.type === 'ct'
+                                          ? 'CT'
+                                          : cardOverride.type === 'online'
+                                          ? 'ONLINE'
+                                          : (cardOverride.type?.toUpperCase() || 'QUIZ')}
+                                      </span>
+                                    )}
+                                    {!isFaculty && (
+                                      c.subSection ? (
+                                        <span className={`shrink-0 rounded px-1.5 py-0.2 text-[9px] font-bold font-mono border relative z-10 ${subsectionBadgeClass}`}>
+                                          {section ? section.sectionLetter : ''}{c.subSection}
+                                        </span>
+                                      ) : durationMins >= 150 && zoomDays <= 3.5 ? (
+                                        <span className={`shrink-0 rounded px-1.5 py-0.2 text-[9px] font-mono font-bold border relative z-10 ${subsectionBadgeClass}`}>
+                                          3h
+                                        </span>
+                                      ) : null
+                                    )}
+                                  </div>
+                                </div>
                               </div>
 
-                              {/* Subsection badge & Event Override Pill (e.g. Quiz) */}
-                              <div className="flex items-center gap-1 shrink-0 relative z-10">
+                              {/* Line 3: Room & Teacher/Section Bottom Row */}
+                              <div className={`pt-1 border-t flex items-center justify-between text-[10px] sm:text-[10.5px] font-mono leading-tight gap-1 min-w-0 relative z-10 ${
+                                isComparing
+                                  ? pe.isPrimaryTarget
+                                    ? 'border-slate-300/70 dark:border-slate-700/70 text-slate-600 dark:text-slate-300'
+                                    : 'border-emerald-300/70 dark:border-emerald-800/70 text-emerald-800 dark:text-emerald-300'
+                                  : 'border-black/15 dark:border-black/20'
+                              }`}>
+                                <span className="flex items-center gap-0.5 font-bold truncate min-w-0">
+                                  <MapPin className="h-2.5 w-2.5 shrink-0 opacity-80" />
+                                  <span className="truncate">{c.room.split('(')[0].trim()}</span>
+                                </span>
                                 {(() => {
-                                  const cardOverride = eventOverrides.find((ev) => {
-                                    if (ev.status === 'CANCELLED') return false;
-                                    if (ev.date) {
-                                      const matchesIso = d.isoDate && ev.date.trim() === d.isoDate.trim();
-                                      const dayNum = String(parseInt(ev.date.split('-')[2] || '0', 10));
-                                      const matchesDayNum = d.dayNumber === dayNum && (!ev.dayOfWeek || d.dayKey === ev.dayOfWeek);
-                                      if (!matchesIso && !matchesDayNum) return false;
-                                    } else if (ev.dayOfWeek && ev.dayOfWeek !== d.dayKey) {
-                                      return false;
-                                    }
-                                    const cClean = (cleanCode || c.courseCode || '').split('(')[0].trim().toUpperCase();
-                                    const evClean = (ev.courseCode || '').split('(')[0].trim().toUpperCase();
-                                    if (cClean !== evClean) return false;
-                                    if (ev.startTime && c.startTime && ev.startTime !== c.startTime) return false;
-                                    return true;
-                                  });
+                                  const cardTarget = isComparing
+                                    ? (pe.isPrimaryTarget ? compareState?.primaryTarget : compareState?.secondaryTarget)
+                                    : activeTarget;
+                                  const isCardFromFaculty = cardTarget?.type === 'faculty';
 
-                                  if (!cardOverride) return null;
+                                  if (isCardFromFaculty) {
+                                    return (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const sId = c.sectionId || (c.batch && c.section ? `${c.batch}_${c.section}` : null);
+                                          if (sId) onOpenSectionInfo?.(sId);
+                                        }}
+                                        title={`Click to view info for ${c.sectionId || 'section'}`}
+                                        className={`shrink-0 rounded px-1 py-0.2 font-bold text-[9.5px] border transition-all cursor-pointer relative z-10 ${buttonBadgeClass}`}
+                                      >
+                                        {c.sectionId ? (c.subSection ? `${c.sectionId}${c.subSection}` : c.sectionId) : (c.batch && c.section ? `${c.batch}_${c.section}` : 'Sec')}
+                                      </button>
+                                    );
+                                  }
 
                                   return (
-                                    <span
-                                      title={`${cardOverride.title}${cardOverride.description ? `: ${cardOverride.description}` : ''}`}
-                                      className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold font-mono uppercase shadow-2xs relative z-10 ${
-                                        cardOverride.type === 'online'
-                                          ? 'bg-sky-400 text-sky-950 border border-sky-500/60'
-                                          : 'bg-amber-400 text-amber-950 border border-amber-500/60'
-                                      }`}
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onOpenFacultyInfo?.(c.teacherCode);
+                                      }}
+                                      title={`Click to view info for ${c.teacherCode}`}
+                                      className={`shrink-0 rounded px-1 py-0.2 font-bold text-[9.5px] border transition-all cursor-pointer relative z-10 ${buttonBadgeClass}`}
                                     >
-                                      {cardOverride.type === 'ct'
-                                        ? 'CT'
-                                        : cardOverride.type === 'online'
-                                        ? 'ONLINE'
-                                        : (cardOverride.type?.toUpperCase() || 'QUIZ')}
-                                    </span>
+                                      {c.teacherCode}
+                                    </button>
                                   );
                                 })()}
-                                {!isFaculty && (
-                                  c.subSection ? (
-                                    <span className={`shrink-0 rounded px-1.5 py-0.2 text-[9px] font-bold font-mono border relative z-10 ${subsectionBadgeClass}`}>
-                                      {section ? section.sectionLetter : ''}{c.subSection}
-                                    </span>
-                                  ) : durationMins >= 150 && zoomDays <= 3.5 ? (
-                                    <span className={`shrink-0 rounded px-1.5 py-0.2 text-[9px] font-mono font-bold border relative z-10 ${subsectionBadgeClass}`}>
-                                      3h
-                                    </span>
-                                  ) : null
-                                )}
                               </div>
-                            </div>
-
-                            {/* Line 2: Time Range (Single Line, Never Wraps, Clean Descenders) */}
-                            <div className="text-[10px] sm:text-[10.5px] font-mono font-medium leading-normal opacity-95 truncate whitespace-nowrap">
-                              {compactTime}
-                            </div>
-                          </div>
-
-                          {/* Line 3: Room & Teacher/Section Bottom Row */}
-                          <div className={`pt-1 border-t flex items-center justify-between text-[10px] sm:text-[10.5px] font-mono leading-tight gap-1 min-w-0 relative z-10 ${
-                            isComparing
-                              ? pe.isPrimaryTarget
-                                ? 'border-slate-300/70 dark:border-slate-700/70 text-slate-600 dark:text-slate-300'
-                                : 'border-emerald-300/70 dark:border-emerald-800/70 text-emerald-800 dark:text-emerald-300'
-                              : 'border-black/15 dark:border-black/20'
-                          }`}>
-                            <span className="flex items-center gap-0.5 font-bold truncate min-w-0">
-                              <MapPin className="h-2.5 w-2.5 shrink-0 opacity-80" />
-                              <span className="truncate">{c.room.split('(')[0].trim()}</span>
-                            </span>
-                            {(() => {
-                              const cardTarget = isComparing
-                                ? (pe.isPrimaryTarget ? compareState?.primaryTarget : compareState?.secondaryTarget)
-                                : activeTarget;
-                              const isCardFromFaculty = cardTarget?.type === 'faculty';
-
-                              if (isCardFromFaculty) {
-                                return (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const sId = c.sectionId || (c.batch && c.section ? `${c.batch}_${c.section}` : null);
-                                      if (sId) onOpenSectionInfo?.(sId);
-                                    }}
-                                    title={`Click to view info for ${c.sectionId || 'section'}`}
-                                    className={`shrink-0 rounded px-1 py-0.2 font-bold text-[9.5px] border transition-all cursor-pointer relative z-10 ${buttonBadgeClass}`}
-                                  >
-                                    {c.sectionId ? (c.subSection ? `${c.sectionId}${c.subSection}` : c.sectionId) : (c.batch && c.section ? `${c.batch}_${c.section}` : 'Sec')}
-                                  </button>
-                                );
-                              }
-
-                              return (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    onOpenFacultyInfo?.(c.teacherCode);
-                                  }}
-                                  title={`Click to view info for ${c.teacherCode}`}
-                                  className={`shrink-0 rounded px-1 py-0.2 font-bold text-[9.5px] border transition-all cursor-pointer relative z-10 ${buttonBadgeClass}`}
-                                >
-                                  {c.teacherCode}
-                                </button>
-                              );
-                            })()}
-                          </div>
+                            </>
+                          )}
                         </div>
                       );
                     })}
@@ -2329,143 +2703,168 @@ export function TimetableGrid({
                         // Solid Google Calendar styling adapting across light (emerald-600) and dark (emerald-500)
                         const cardThemeClass = 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-emerald-950 border border-emerald-700/25 dark:border-emerald-400/40 shadow-xs';
 
+                        const cardKey = `agenda-class-${classItem.id}`;
+                        const isAgendaExpanded = expandedCard?.cardKey === cardKey;
+                        const dayLabel = `${d.dayLabel}, ${d.monthLong} ${d.dayNumber}`;
+
                         return (
-                          <React.Fragment key={`agenda-class-${classItem.id}`}>
+                          <React.Fragment key={cardKey}>
                             <div
+                              data-expanded-card={isAgendaExpanded ? 'true' : undefined}
                               aria-label={`${shortTitle} in Room ${classItem.room}, ${formatTime12(classItem.startTime)} to ${formatTime12(classItem.endTime)}`}
                               onClick={(e) => {
                                 if ((e.target as HTMLElement).closest('button')) return;
-                                setExpandedCard({
-                                  classItem: classItem,
-                                  isBlockMode: false,
-                                  targetBadge: targetBadge,
-                                  dayLabel: `${d.dayLabel}, ${d.monthLong} ${d.dayNumber}`,
-                                });
+                                if (isAgendaExpanded) {
+                                  setExpandedCard(null);
+                                } else {
+                                  setExpandedCard({
+                                    cardKey,
+                                    classItem: classItem,
+                                    isBlockMode: false,
+                                    targetBadge: targetBadge,
+                                    dayLabel,
+                                  });
+                                }
                               }}
-                              className={`relative overflow-hidden rounded-xl p-2.5 sm:p-3 transition-all flex flex-col justify-center gap-1.5 cursor-pointer hover:shadow-md hover:scale-[1.005] ${cardThemeClass} ${
-                                isLiveNow ? 'pb-4 sm:pb-4.5' : ''
+                              className={`transition-all duration-300 ease-out flex flex-col justify-center cursor-pointer ${
+                                isAgendaExpanded
+                                  ? 'relative rounded-2xl p-3.5 sm:p-4 z-30 shadow-xl ring-2 ring-emerald-500/40 bg-white/98 dark:bg-slate-900/98 text-slate-900 dark:text-slate-100 border border-slate-300 dark:border-slate-700 cursor-default space-y-2'
+                                  : `relative overflow-hidden rounded-xl p-2.5 sm:p-3 hover:shadow-md hover:scale-[1.005] ${cardThemeClass} gap-1.5 ${
+                                      isLiveNow ? 'pb-4 sm:pb-4.5' : ''
+                                    }`
                               }`}
                             >
-                              {/* Class progress bar along bottom edge - inset to prevent clipping on rounded corners */}
-                              {isLiveNow && classProgress !== null && (
-                                <div className="absolute bottom-2 left-4 right-4 h-1 bg-black/25 dark:bg-black/35 rounded-full overflow-hidden">
-                                  <div
-                                    className="h-full bg-white dark:bg-emerald-950 transition-all duration-500 rounded-full"
-                                    style={{ width: `${classProgress}%` }}
-                                  />
-                                </div>
-                              )}
-
-                              {/* Line 1: Course Title (Once!), Code & Badges */}
-                              <div className="flex items-center justify-between gap-2 min-w-0">
-                                <div className="flex items-center gap-2 min-w-0">
-                                  {isLab && (
-                                    <FlaskConical className="h-3.5 w-3.5 text-emerald-200 dark:text-emerald-900 shrink-0" />
+                              {isAgendaExpanded ? (
+                                renderExpandedCardBody({
+                                  item: classItem,
+                                  targetBadge,
+                                  dayLabel,
+                                  isLiveNow,
+                                })
+                              ) : (
+                                <>
+                                  {/* Class progress bar along bottom edge - inset to prevent clipping on rounded corners */}
+                                  {isLiveNow && classProgress !== null && (
+                                    <div className="absolute bottom-2 left-4 right-4 h-1 bg-black/25 dark:bg-black/35 rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full bg-white dark:bg-emerald-950 transition-all duration-500 rounded-full"
+                                        style={{ width: `${classProgress}%` }}
+                                      />
+                                    </div>
                                   )}
-                                  <span className="font-bold text-sm tracking-tight truncate">
-                                    {shortTitle}
-                                  </span>
-                                  <span className="text-xs font-mono font-semibold opacity-80 shrink-0">
-                                    {cleanCourseCode}
-                                  </span>
-                                </div>
 
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                  {(() => {
-                                    const cardOverride = (eventOverrides || []).find((ev) => {
-                                      if (ev.status === 'CANCELLED') return false;
-                                      if (ev.date) {
-                                        const matchesIso = d.isoDate && ev.date.trim() === d.isoDate.trim();
-                                        const dayNum = String(parseInt(ev.date.split('-')[2] || '0', 10));
-                                        const matchesDayNum = d.dayNumber === dayNum && (!ev.dayOfWeek || d.dayKey === ev.dayOfWeek);
-                                        if (!matchesIso && !matchesDayNum) return false;
-                                      } else if (ev.dayOfWeek && ev.dayOfWeek !== d.dayKey) {
-                                        return false;
-                                      }
-                                      const cClean = (cleanCourseCode || classItem.courseCode || '').split('(')[0].trim().toUpperCase();
-                                      const evClean = (ev.courseCode || '').split('(')[0].trim().toUpperCase();
-                                      if (cClean !== evClean) return false;
-                                      if (ev.startTime && classItem.startTime && ev.startTime !== classItem.startTime) return false;
-                                      return true;
-                                    });
-
-                                    if (!cardOverride) return null;
-
-                                    return (
-                                      <span
-                                        title={`${cardOverride.title}${cardOverride.description ? `: ${cardOverride.description}` : ''}`}
-                                        className={`shrink-0 rounded px-1.5 py-0.5 text-[9.5px] font-bold font-mono uppercase shadow-2xs ${
-                                          cardOverride.type === 'online'
-                                            ? 'bg-sky-400 text-sky-950 border border-sky-500/60'
-                                            : 'bg-amber-400 text-amber-950 border border-amber-500/60'
-                                        }`}
-                                      >
-                                        {cardOverride.type === 'ct'
-                                          ? 'CT'
-                                          : cardOverride.type === 'online'
-                                          ? 'ONLINE'
-                                          : (cardOverride.type?.toUpperCase() || 'QUIZ')}
+                                  {/* Line 1: Course Title (Once!), Code & Badges */}
+                                  <div className="flex items-center justify-between gap-2 min-w-0">
+                                    <div className="flex items-center gap-2 min-w-0">
+                                      {isLab && (
+                                        <FlaskConical className="h-3.5 w-3.5 text-emerald-200 dark:text-emerald-900 shrink-0" />
+                                      )}
+                                      <span className="font-bold text-sm tracking-tight truncate">
+                                        {shortTitle}
                                       </span>
-                                    );
-                                  })()}
-                                  {isDoubleSlot && (
-                                    <span className="text-[10px] font-mono font-semibold bg-black/25 text-white border border-white/20 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20 px-1.5 py-0.5 rounded">
-                                      3h Lab
-                                    </span>
-                                  )}
-                                  {!isFaculty && classItem.subSection && (
-                                    <span className="text-[10px] font-mono font-bold bg-white/20 text-white border border-white/25 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20 px-1.5 py-0.5 rounded">
-                                      Sec {section ? section.sectionLetter : ''}{classItem.subSection}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
+                                      <span className="text-xs font-mono font-semibold opacity-80 shrink-0">
+                                        {cleanCourseCode}
+                                      </span>
+                                    </div>
 
-                              {/* Line 2: Single Compact Meta Row: Time • Room • Faculty/Section */}
-                              <div className="flex items-center gap-2 text-xs font-mono">
-                                <div className="flex items-center gap-1 shrink-0 font-medium opacity-95">
-                                  <Clock className="h-3 w-3 opacity-75" />
-                                  <span>
-                                    {formatTime12(classItem.startTime)} – {formatTime12(classItem.endTime)}
-                                  </span>
-                                </div>
-                                <span className="opacity-40">•</span>
-                                <div className="flex items-center gap-1 shrink-0 opacity-90">
-                                  <MapPin className="h-3 w-3 opacity-75" />
-                                  <span>{classItem.room.split('(')[0].trim()}</span>
-                                </div>
-                                <span className="opacity-40">•</span>
-                                {isFaculty ? (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const secId =
-                                        classItem.sectionId ||
-                                        (classItem.batch && classItem.section
-                                          ? `${classItem.batch}_${classItem.section}`
-                                          : null);
-                                      if (secId) onOpenSectionInfo?.(secId);
-                                    }}
-                                    title={`Click to view info for ${classItem.sectionId || 'section'}`}
-                                    className="opacity-95 font-bold shrink-0 hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer"
-                                  >
-                                    {classItem.sectionId ? (classItem.subSection ? `${classItem.sectionId}${classItem.subSection}` : classItem.sectionId) : (classItem.batch && classItem.section ? `${classItem.batch}_${classItem.section}` : 'Sec')}
-                                  </button>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onOpenFacultyInfo?.(classItem.teacherCode);
-                                    }}
-                                    title={`Click to view info for ${classItem.teacherCode}`}
-                                    className="opacity-95 font-bold shrink-0 hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer"
-                                  >
-                                    {classItem.teacherCode}
-                                  </button>
-                                )}
-                              </div>
+                                    <div className="flex items-center gap-1.5 shrink-0">
+                                      {(() => {
+                                        const cardOverride = (eventOverrides || []).find((ev) => {
+                                          if (ev.status === 'CANCELLED') return false;
+                                          if (ev.date) {
+                                            const matchesIso = d.isoDate && ev.date.trim() === d.isoDate.trim();
+                                            const dayNum = String(parseInt(ev.date.split('-')[2] || '0', 10));
+                                            const matchesDayNum = d.dayNumber === dayNum && (!ev.dayOfWeek || d.dayKey === ev.dayOfWeek);
+                                            if (!matchesIso && !matchesDayNum) return false;
+                                          } else if (ev.dayOfWeek && ev.dayOfWeek !== d.dayKey) {
+                                            return false;
+                                          }
+                                          const cClean = (cleanCourseCode || classItem.courseCode || '').split('(')[0].trim().toUpperCase();
+                                          const evClean = (ev.courseCode || '').split('(')[0].trim().toUpperCase();
+                                          if (cClean !== evClean) return false;
+                                          if (ev.startTime && classItem.startTime && ev.startTime !== classItem.startTime) return false;
+                                          return true;
+                                        });
+
+                                        if (!cardOverride) return null;
+
+                                        return (
+                                          <span
+                                            title={`${cardOverride.title}${cardOverride.description ? `: ${cardOverride.description}` : ''}`}
+                                            className={`shrink-0 rounded px-1.5 py-0.5 text-[9.5px] font-bold font-mono uppercase shadow-2xs ${
+                                              cardOverride.type === 'online'
+                                                ? 'bg-sky-400 text-sky-950 border border-sky-500/60'
+                                                : 'bg-amber-400 text-amber-950 border border-amber-500/60'
+                                            }`}
+                                          >
+                                            {cardOverride.type === 'ct'
+                                              ? 'CT'
+                                              : cardOverride.type === 'online'
+                                              ? 'ONLINE'
+                                              : (cardOverride.type?.toUpperCase() || 'QUIZ')}
+                                          </span>
+                                        );
+                                      })()}
+                                      {isDoubleSlot && (
+                                        <span className="text-[10px] font-mono font-semibold bg-black/25 text-white border border-white/20 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20 px-1.5 py-0.5 rounded">
+                                          3h Lab
+                                        </span>
+                                      )}
+                                      {!isFaculty && classItem.subSection && (
+                                        <span className="text-[10px] font-mono font-bold bg-white/20 text-white border border-white/25 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20 px-1.5 py-0.5 rounded">
+                                          Sec {section ? section.sectionLetter : ''}{classItem.subSection}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* Line 2: Single Compact Meta Row: Time • Room • Faculty/Section */}
+                                  <div className="flex items-center gap-2 text-xs font-mono">
+                                    <div className="flex items-center gap-1 shrink-0 font-medium opacity-95">
+                                      <Clock className="h-3 w-3 opacity-75" />
+                                      <span>
+                                        {formatTime12(classItem.startTime)} – {formatTime12(classItem.endTime)}
+                                      </span>
+                                    </div>
+                                    <span className="opacity-40">•</span>
+                                    <div className="flex items-center gap-1 shrink-0 opacity-90">
+                                      <MapPin className="h-3 w-3 opacity-75" />
+                                      <span>{classItem.room.split('(')[0].trim()}</span>
+                                    </div>
+                                    <span className="opacity-40">•</span>
+                                    {isFaculty ? (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          const secId =
+                                            classItem.sectionId ||
+                                            (classItem.batch && classItem.section
+                                              ? `${classItem.batch}_${classItem.section}`
+                                              : null);
+                                          if (secId) onOpenSectionInfo?.(secId);
+                                        }}
+                                        title={`Click to view info for ${classItem.sectionId || 'section'}`}
+                                        className="opacity-95 font-bold shrink-0 hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer"
+                                      >
+                                        {classItem.sectionId ? (classItem.subSection ? `${classItem.sectionId}${classItem.subSection}` : classItem.sectionId) : (classItem.batch && classItem.section ? `${classItem.batch}_${classItem.section}` : 'Sec')}
+                                      </button>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onOpenFacultyInfo?.(classItem.teacherCode);
+                                        }}
+                                        title={`Click to view info for ${classItem.teacherCode}`}
+                                        className="opacity-95 font-bold shrink-0 hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer"
+                                      >
+                                        {classItem.teacherCode}
+                                      </button>
+                                    )}
+                                  </div>
+                                </>
+                              )}
                             </div>
 
                             {/* Standalone Current Time Indicator between classes */}
@@ -2488,236 +2887,6 @@ export function TimetableGrid({
           })}
         </div>
       </div>
-
-      {/* Tap-to-Grow Full Info Card Modal */}
-      {expandedCard && (() => {
-        const item = expandedCard.classItem;
-        const fac = expandedFacultyDetails || (item.teacherCode ? getFacultyByCode(item.teacherCode) : null);
-        const isLab = item.type === 'Lab';
-        const startMins = timeToMinutes(item.startTime);
-        const endMins = timeToMinutes(item.endTime);
-        const durationMins = Math.max(0, endMins - startMins);
-        const durationHours = Math.floor(durationMins / 60);
-        const durationRemainderMins = durationMins % 60;
-        const durationStr = durationHours > 0
-          ? `${durationHours}h${durationRemainderMins > 0 ? ` ${durationRemainderMins}m` : ''}`
-          : `${durationRemainderMins}m`;
-
-        const secId = item.sectionId || (item.batch && item.section ? `${item.batch}_${item.section}` : null);
-        const cleanCode = item.courseCode.split('(')[0].trim();
-
-        return (
-          <div
-            className="fixed inset-0 z-[120] flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-xs p-4 overflow-y-auto print:hidden"
-            onClick={() => setExpandedCard(null)}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="expanded-card-title"
-          >
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-md rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-4 sm:p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150"
-            >
-              {/* Header: Routine source badge + Type Badge + Close Button */}
-              <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-2 min-w-0">
-                  {expandedCard.targetBadge && (
-                    <span
-                      className={`px-2 py-0.5 rounded-md font-mono text-xs font-bold shrink-0 ${
-                        expandedCard.isPrimaryTarget
-                          ? 'bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600'
-                          : 'bg-emerald-100 text-emerald-950 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/80 dark:border-emerald-700/80'
-                      }`}
-                    >
-                      {expandedCard.targetBadge}
-                    </span>
-                  )}
-                  {isComparing && (
-                    <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500">
-                      {expandedCard.isPrimaryTarget ? 'Primary Routine' : 'Comparing Routine'}
-                    </span>
-                  )}
-                  {expandedCard.isBlockMode && (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                      Background Block
-                    </span>
-                  )}
-                  {expandedCard.override ? (
-                    <span
-                      className={`px-2 py-0.5 rounded-md font-mono text-xs font-bold shrink-0 ${
-                        expandedCard.override.type === 'quiz' || expandedCard.override.type === 'ct'
-                          ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300/60 dark:border-amber-700/60'
-                          : expandedCard.override.type === 'online'
-                          ? 'bg-sky-100 text-sky-900 dark:bg-sky-950/80 dark:text-sky-300 border border-sky-300/60 dark:border-sky-700/60'
-                          : 'bg-emerald-100 text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-700/60'
-                      }`}
-                    >
-                      {expandedCard.override.type === 'ct'
-                        ? 'Class Test'
-                        : expandedCard.override.type === 'quiz'
-                        ? 'Quiz'
-                        : expandedCard.override.type === 'online'
-                        ? 'Online Class'
-                        : (expandedCard.override.type?.toUpperCase() || 'EVENT')}
-                    </span>
-                  ) : (
-                    <span
-                      className={`px-2 py-0.5 rounded-md font-mono text-xs font-bold shrink-0 ${
-                        isLab
-                          ? 'bg-amber-100 text-amber-900 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300/60 dark:border-amber-700/60'
-                          : 'bg-sky-100 text-sky-900 dark:bg-sky-950/80 dark:text-sky-300 border border-sky-300/60 dark:border-sky-700/60'
-                      }`}
-                    >
-                      {isLab ? 'Lab' : 'Theory'}
-                    </span>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setExpandedCard(null)}
-                  aria-label="Close card details"
-                  className="flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              {/* Course Title & Code */}
-              <div className="space-y-1">
-                <h3 id="expanded-card-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-snug">
-                  {item.courseTitle || cleanCode}
-                </h3>
-                <div className="flex items-center gap-2 text-xs font-mono text-slate-500 dark:text-slate-400">
-                  <span className="font-semibold text-slate-700 dark:text-slate-300">{item.courseCode}</span>
-                  {item.subSection && (
-                    <>
-                      <span>•</span>
-                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">Lab Group {item.subSection}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Schedule Info Grid (Time, Day, Room) */}
-              <div className="grid grid-cols-2 gap-2 text-xs font-mono">
-                {/* Time & Duration */}
-                <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/50 p-2.5 space-y-1">
-                  <div className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
-                    <Clock className="h-3 w-3" /> Time & Day
-                  </div>
-                  <div className="font-bold text-slate-900 dark:text-slate-100">
-                    {formatTime12(item.startTime)} – {formatTime12(item.endTime)}
-                  </div>
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1">
-                    <span>{expandedCard.dayLabel}</span>
-                    <span>•</span>
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold">{durationStr}</span>
-                  </div>
-                </div>
-
-                {/* Room */}
-                <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/50 p-2.5 space-y-1">
-                  <div className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
-                    <MapPin className="h-3 w-3" /> Class Room
-                  </div>
-                  <div className="font-bold text-slate-900 dark:text-slate-100 text-sm">
-                    {item.room}
-                  </div>
-                  <div className="text-[11px] text-slate-400">
-                    Daffodil Campus
-                  </div>
-                </div>
-              </div>
-
-              {/* Event Override Notice / Syllabus details */}
-              {expandedCard.override?.description && (
-                <div className="rounded-xl border border-sky-200/90 dark:border-sky-800/80 bg-sky-50/70 dark:bg-sky-950/40 p-3 space-y-1">
-                  <div className="text-[10px] font-mono uppercase font-bold text-sky-700 dark:text-sky-300">
-                    Notice / Syllabus Details
-                  </div>
-                  <div className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-sans">
-                    {expandedCard.override.description}
-                  </div>
-                </div>
-              )}
-
-              {/* Teacher Information Card */}
-              {item.teacherCode && (
-                <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/50 p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="text-[10px] font-mono uppercase font-bold text-slate-400 flex items-center gap-1">
-                      <User className="h-3 w-3" /> Teacher Details
-                    </div>
-                    <span className="px-1.5 py-0.2 rounded font-mono font-bold text-xs bg-emerald-100 text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-700/60">
-                      {item.teacherCode}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 truncate">
-                        {fac?.name || item.teacherName || item.teacherCode}
-                      </div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 font-mono truncate">
-                        {fac?.designation ? `${fac.designation} • ` : ''}{fac?.department || 'CSE'}
-                      </div>
-                    </div>
-                    {onOpenFacultyInfo && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setExpandedCard(null);
-                          onOpenFacultyInfo(item.teacherCode);
-                        }}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 dark:hover:border-emerald-500/60 text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors shadow-2xs shrink-0 cursor-pointer"
-                      >
-                        <span>Profile</span>
-                        <ArrowUpRight className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Teacher's Assigned Office Room (always shown with live status) */}
-                  <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between text-xs font-mono">
-                    <span className="text-slate-400 text-[11px]">Teacher Office Room:</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">
-                      {fac?.room || (isLoadingFacultyDetails ? 'Loading...' : 'Not specified')}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {/* Section Information Card (if applicable) */}
-              {secId && (
-                <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/50 p-2.5 flex items-center justify-between">
-                  <div className="min-w-0">
-                    <div className="text-[10px] font-mono uppercase font-bold text-slate-400">
-                      Academic Section
-                    </div>
-                    <div className="font-mono font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
-                      {secId} {item.subSection ? `(Lab ${item.subSection})` : ''}
-                    </div>
-                  </div>
-                  {onOpenSectionInfo && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setExpandedCard(null);
-                        onOpenSectionInfo(secId);
-                      }}
-                      className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 dark:hover:border-emerald-500/60 text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors shadow-2xs shrink-0 cursor-pointer"
-                    >
-                      <span>Routine</span>
-                      <ArrowUpRight className="h-3.5 w-3.5" />
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        );
-      })()}
     </section>
   );
 }

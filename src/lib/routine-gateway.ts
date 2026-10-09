@@ -2,6 +2,7 @@ import { RoutineClass, FacultyMeta } from '@/types/schedule';
 import { robustFetch } from './robust-fetch';
 import { getFacultyByCode, registerDynamicFaculty } from '@/data/faculty';
 import { getRoutineGatewayUrl, getRoutineSyncKey } from './gateway-config';
+import { COURSE_CATALOG, getCourseName } from '@/lib/courses';
 
 interface UpstreamClassItem {
   course_code: string;
@@ -53,6 +54,45 @@ interface RoutineVersionResponse {
   updated_at?: string;
   synced_at?: string;
   cache_invalidation_timestamp?: number;
+}
+
+interface TeacherSearchApiResponse {
+  success?: boolean;
+  total_teachers?: number;
+  teachers?: Array<{
+    initial?: string;
+    name?: string;
+    name_with_initial?: string;
+    designation?: string;
+    email?: string;
+    cell?: string;
+    room?: string;
+    employee_id?: string;
+    image?: string;
+  }>;
+}
+
+interface SingleTeacherProfile {
+  initial?: string;
+  name?: string;
+  name_with_initial?: string;
+  designation?: string;
+  email?: string;
+  cell?: string;
+  room?: string;
+  employee_id?: string;
+  image?: string;
+}
+
+interface SingleTeacherApiResponse {
+  success?: boolean;
+  teacher?: string | SingleTeacherProfile;
+  details?: UpstreamTeacherDetails;
+  department?: string;
+  version?: string;
+  schedule?: unknown[];
+  days?: string[];
+  error?: string;
 }
 
 export interface UpstreamScheduleResult {
@@ -334,6 +374,18 @@ export async function fetchLiveScheduleFromUpstream(
       const subId = subSection ? `sub${subSection}` : 'common';
       const slotId = `${normalizedSection}-${courseCode}-${subId}-${dayOfWeek}-${startTime.replace(':', '')}-${index}`;
 
+      const rawTitle = item.course_title ? item.course_title.trim() : '';
+      const cleanTitleCode = rawTitle.replace(/\s*lab\s*/i, '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      const cleanCourseCode = courseCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+      const isTitleJustCode = !rawTitle ||
+        rawTitle.toLowerCase() === 'unknown' ||
+        cleanTitleCode === cleanCourseCode ||
+        /^[A-Z]{2,4}\d{3}[A-Z]?$/i.test(cleanTitleCode);
+
+      const resolvedTitle = isTitleJustCode
+        ? (COURSE_CATALOG[courseCode.toUpperCase()]?.name || getCourseName(courseCode) || rawTitle || courseCode)
+        : rawTitle;
+
       return {
         id: slotId,
         batch: batchNum || '68',
@@ -341,7 +393,7 @@ export async function fetchLiveScheduleFromUpstream(
         sectionId: normalizedSection,
         subSection,
         courseCode: subSection ? `${courseCode}(${normalizedSection}${subSection})` : courseCode,
-        courseTitle: item.course_title,
+        courseTitle: resolvedTitle,
         teacherCode: item.teacher || 'TBA',
         room: item.room,
         dayOfWeek,
@@ -390,10 +442,48 @@ export async function fetchLiveTeacherAutocomplete(
 ): Promise<Array<{ name: string; code: string; designation?: string }>> {
   const cleanQuery = query.trim();
   if (!cleanQuery) return [];
-
   try {
     const gateway = getRoutineGatewayUrl();
     if (!gateway) return [];
+
+    // 1. Try dedicated live teacher directory search: /api/teachers?q=...
+    try {
+      const teacherSearchRes = await robustFetch<TeacherSearchApiResponse>(
+        `${gateway}/api/teachers?q=${encodeURIComponent(cleanQuery)}`,
+        { timeout: 4000 }
+      );
+      if (teacherSearchRes.ok) {
+        const teacherData = await teacherSearchRes.json();
+        if (teacherData.teachers && Array.isArray(teacherData.teachers) && teacherData.teachers.length > 0) {
+          const results: Array<{ name: string; code: string; designation?: string }> = [];
+          for (const t of teacherData.teachers) {
+            const code = (t.initial || '').trim().toUpperCase();
+            if (!code) continue;
+            const registered = registerDynamicFaculty({
+              code,
+              name: t.name || code,
+              designation: t.designation || 'Faculty Member',
+              department: 'CSE',
+              email: t.email,
+              phone: t.cell && t.cell !== '0' ? t.cell : undefined,
+              room: t.room,
+              employeeId: t.employee_id,
+              image: t.image,
+            });
+            results.push({
+              name: registered.name,
+              code: registered.code,
+              designation: registered.designation,
+            });
+          }
+          if (results.length > 0) return results;
+        }
+      }
+    } catch {
+      // fallback to legacy autocomplete below
+    }
+
+    // 2. Fallback to legacy /api/search_autocomplete
     const res = await robustFetch<AutocompleteResponse>(
       `${gateway}/api/search_autocomplete?query=${encodeURIComponent(cleanQuery)}&view_mode=teacher&department=cse`,
       { timeout: 6000 }
@@ -612,6 +702,18 @@ function mapUpstreamTeacherSchedule(
     const cleanRoom = item.room.replace(/\r?\n/g, ' ').replace(/\s+/g, ' ').trim();
     const slotId = `faculty-${teacherCode}-${courseCode}-${sectionId}-${dayOfWeek}-${startTime.replace(':', '')}-${index}`;
 
+    const rawTitle = item.course_title ? item.course_title.trim() : '';
+    const cleanTitleCode = rawTitle.replace(/\s*lab\s*/i, '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    const cleanCourseCode = courseCode.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+    const isTitleJustCode = !rawTitle ||
+      rawTitle.toLowerCase() === 'unknown' ||
+      cleanTitleCode === cleanCourseCode ||
+      /^[A-Z]{2,4}\d{3}[A-Z]?$/i.test(cleanTitleCode);
+
+    const resolvedTitle = isTitleJustCode
+      ? (COURSE_CATALOG[courseCode.toUpperCase()]?.name || getCourseName(courseCode) || rawTitle || courseCode)
+      : rawTitle;
+
     return {
       id: slotId,
       batch: batchNum,
@@ -619,7 +721,7 @@ function mapUpstreamTeacherSchedule(
       sectionId,
       subSection,
       courseCode: subSection ? `${courseCode}(${sectionId}${subSection})` : (secLetter ? `${courseCode}(${sectionId})` : courseCode),
-      courseTitle: item.course_title,
+      courseTitle: resolvedTitle,
       teacherCode,
       teacherName: teacherName || teacherCode,
       room: cleanRoom,
@@ -639,8 +741,8 @@ export async function fetchTeacherDetails(teacherCode: string): Promise<FacultyM
   const cleanCode = teacherCode.trim().toUpperCase();
   const existing = getFacultyByCode(cleanCode);
 
-  // If existing already has phone or room, return it immediately
-  if (existing && existing.phone && existing.room) {
+  // If existing already has phone, room, and image, return it immediately
+  if (existing && existing.phone && existing.room && existing.image) {
     return existing;
   }
 
@@ -658,30 +760,48 @@ export async function fetchTeacherDetails(teacherCode: string): Promise<FacultyM
 
   for (const targetCode of codesToTry) {
     try {
-      const res = await robustFetch<TeacherScheduleResponse>(
-        `${gateway}/api/teacher-schedule?teacher=${encodeURIComponent(targetCode)}&department=cse`,
-        { timeout: 6000 }
+      // 1. Try dedicated teacher profile endpoint: /api/teachers/:initial
+      let res = await robustFetch<SingleTeacherApiResponse>(
+        `${gateway}/api/teachers/${encodeURIComponent(targetCode)}`,
+        { timeout: 5000 }
       );
+
+      // 2. Fallback to /api/teacher-schedule
+      if (!res.ok) {
+        res = await robustFetch<SingleTeacherApiResponse>(
+          `${gateway}/api/teacher-schedule?teacher=${encodeURIComponent(targetCode)}&department=cse`,
+          { timeout: 6000 }
+        );
+      }
 
       if (res.ok) {
         const data = await res.json();
-        if (data.details) {
-          const rawName = data.details.Name_Initial || existing?.name || cleanCode;
+        const teacherObj: SingleTeacherProfile = typeof data.teacher === 'object' && data.teacher ? data.teacher : {};
+        const detailsObj = data.details || {};
+
+        if (data.teacher || data.details) {
+          const rawName = teacherObj.name || detailsObj.Name_Initial || existing?.name || cleanCode;
           const cleanName = rawName.replace(/\s*\([^)]+\)\s*$/, '').trim();
 
-          const rawCell = data.details.Cell?.trim();
+          const rawCell = (teacherObj.cell || detailsObj.Cell)?.trim();
           const validPhone = rawCell && rawCell !== '0' && rawCell.length > 5 ? rawCell : existing?.phone;
+
+          const image = teacherObj.image || detailsObj.Image || existing?.image;
+          const room = teacherObj.room || detailsObj['Assigned Room Number'] || existing?.room;
+          const email = teacherObj.email || detailsObj.Email || existing?.email;
+          const designation = teacherObj.designation || detailsObj.Designation || existing?.designation || 'Faculty Member';
+          const employeeId = teacherObj.employee_id || detailsObj['Employee ID'] || existing?.employeeId;
 
           const registered = registerDynamicFaculty({
             code: cleanCode,
             name: cleanName,
-            designation: data.details.Designation || existing?.designation || 'Faculty Member',
+            designation,
             department: data.department?.toUpperCase() || existing?.department || 'CSE',
-            email: data.details.Email || existing?.email,
+            email,
             phone: validPhone,
-            room: data.details['Assigned Room Number'] || existing?.room,
-            employeeId: data.details['Employee ID'] || existing?.employeeId,
-            image: data.details.Image || existing?.image,
+            room,
+            employeeId,
+            image,
           });
           return registered;
         }

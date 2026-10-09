@@ -72,7 +72,7 @@ export function CompareBar({
           <ArrowLeftRight className="h-3 w-3" />
         </button>
 
-        {/* Section B (Secondary - Light Green / Dashed) */}
+        {/* Section B (Secondary - Light Green / Solid) */}
         <button
           type="button"
           onClick={onSwapPriority}
@@ -83,7 +83,7 @@ export function CompareBar({
               : 'text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 dark:hover:text-emerald-200'
           }`}
         >
-          <span className="border-b border-dashed border-current pb-0.5">{secondaryLabel.badge}</span>
+          <span>{secondaryLabel.badge}</span>
           <span className="text-[9px] font-medium opacity-75">({secondaryTypeTag})</span>
         </button>
       </div>

@@ -27,11 +27,12 @@ export async function GET(request: NextRequest) {
           designation: 'Faculty Member',
         };
 
-    // If contact details are missing, fetch from live upstream with fast timeout
+    // If contact details or image are missing, fetch from live upstream with fast timeout
     const hasValidPhone = enrichedFaculty.phone && enrichedFaculty.phone.trim() !== '0' && enrichedFaculty.phone.trim().length > 4;
     const hasValidRoom = !!enrichedFaculty.room;
+    const hasValidImage = !!enrichedFaculty.image;
 
-    if (!hasValidPhone || !hasValidRoom) {
+    if (!hasValidPhone || !hasValidRoom || !hasValidImage) {
       try {
         const details = await fetchTeacherDetails(cleanCode);
         if (details) {
@@ -43,6 +44,7 @@ export async function GET(request: NextRequest) {
             ...details,
             phone: validDetailPhone || enrichedFaculty.phone,
             room: details.room || enrichedFaculty.room,
+            image: details.image || enrichedFaculty.image,
           };
         }
       } catch (err) {

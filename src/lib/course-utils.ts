@@ -18,10 +18,23 @@ import { COURSE_CATALOG } from './courses';
 export function getCourseShortTitle(code: string, rawTitle?: string, isLab?: boolean): string {
   const cleanCode = code.split('(')[0].trim().toUpperCase();
 
-  // Prefer provided rawTitle; fallback to catalog name if not unknown/generic
+  // Prefer provided rawTitle; fallback to catalog name if rawTitle is empty, unknown, generic, or just repeats the course code
   let title = (rawTitle || '').trim();
-  if (!title || title.toLowerCase() === 'unknown' || title.toLowerCase().endsWith('course')) {
-    title = COURSE_CATALOG[cleanCode]?.name || '';
+  const cleanTitleCode = title.replace(/\s*lab\s*/i, '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  const normalizedCleanCode = cleanCode.replace(/[^A-Za-z0-9]/g, '');
+
+  const isTitleJustCode =
+    !title ||
+    title.toLowerCase() === 'unknown' ||
+    title.toLowerCase().endsWith('course') ||
+    cleanTitleCode === normalizedCleanCode ||
+    /^[A-Z]{2,4}\d{3}[A-Z]?$/i.test(cleanTitleCode);
+
+  if (isTitleJustCode) {
+    const catalogName = COURSE_CATALOG[cleanCode]?.name;
+    if (catalogName) {
+      title = catalogName;
+    }
   }
 
   // If still completely unknown, fall back to clean code
@@ -45,6 +58,7 @@ export function getCourseShortTitle(code: string, rawTitle?: string, isLab?: boo
   if (lower.includes('social and professional') || lower.includes('cyber ethics')) return 'Social & Ethics';
   if (lower.includes('computer network')) return (hasLabInTitle ? 'Networks Lab' : 'Networks' + labSuffix);
   if (lower.includes('software engineering')) return (hasLabInTitle ? 'Software Eng Lab' : 'Software Eng' + labSuffix);
+  if (lower.includes('software architecture') || lower.includes('design pattern')) return (hasLabInTitle ? 'Software Arch Lab' : 'Software Arch' + labSuffix);
   if (lower.includes('microprocessor') || lower.includes('microcontroller')) return (hasLabInTitle ? 'Microprocessor Lab' : 'Microprocessor' + labSuffix);
   if (lower.includes('object oriented programming') || lower.includes('oop')) return (hasLabInTitle ? 'OOP Lab' : 'OOP' + labSuffix);
   if (lower.includes('data structure')) return (hasLabInTitle ? 'DS Lab' : 'Data Structures' + labSuffix);
@@ -64,6 +78,7 @@ export function getCourseShortTitle(code: string, rawTitle?: string, isLab?: boo
   if (lower.includes('internet of things') || lower.includes('iot')) return (hasLabInTitle ? 'IoT Lab' : 'IoT' + labSuffix);
   if (lower.includes('big data')) return 'Big Data';
   if (lower.includes('cloud computing')) return 'Cloud Computing';
+  if (lower.includes('optical fiber')) return 'Optical Fiber';
   if (lower.includes('project') || lower.includes('thesis') || lower.includes('capstone')) return 'Project/Thesis';
 
   // 2. Hardware / Circuits

@@ -46,8 +46,18 @@ export async function getScheduleWithMeta(
   try {
     const liveResult = await fetchLiveScheduleFromUpstream(normalizedId);
     if (liveResult && liveResult.classes.length > 0) {
+      const enriched = liveResult.classes.map((c) => {
+        const cleanC = c.courseCode.split('(')[0].trim().toUpperCase();
+        const rawT = (c.courseTitle || '').trim();
+        const cleanT = rawT.replace(/\s*lab\s*/i, '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+        const isJustCode = !rawT || rawT.toLowerCase() === 'unknown' || cleanT === cleanC.replace(/[^A-Za-z0-9]/g, '');
+        return {
+          ...c,
+          courseTitle: isJustCode ? (getCourseName(cleanC) || c.courseTitle) : c.courseTitle,
+        };
+      });
       return {
-        classes: filterBySubSection(liveResult.classes, subSection),
+        classes: filterBySubSection(enriched, subSection),
         version: liveResult.version || officialRoutine.version || '4.1',
       };
     }
@@ -163,8 +173,18 @@ export async function getScheduleForFacultyWithMeta(
     const liveResult = await fetchLiveTeacherScheduleFromUpstream(cleanCode);
     if (liveResult !== null && liveResult.classes.length > 0) {
       const refreshedFaculty = getFacultyByCode(cleanCode) || faculty;
+      const enriched = liveResult.classes.map((c) => {
+        const cleanC = c.courseCode.split('(')[0].trim().toUpperCase();
+        const rawT = (c.courseTitle || '').trim();
+        const cleanT = rawT.replace(/\s*lab\s*/i, '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+        const isJustCode = !rawT || rawT.toLowerCase() === 'unknown' || cleanT === cleanC.replace(/[^A-Za-z0-9]/g, '');
+        return {
+          ...c,
+          courseTitle: isJustCode ? (getCourseName(cleanC) || c.courseTitle) : c.courseTitle,
+        };
+      });
       return {
-        classes: deduplicateAndSortClasses(liveResult.classes),
+        classes: deduplicateAndSortClasses(enriched),
         version: liveResult.version || officialRoutine.version || '4.1',
         faculty: refreshedFaculty,
       };
