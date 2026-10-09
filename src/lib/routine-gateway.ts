@@ -11,6 +11,8 @@ interface UpstreamClassItem {
   room: string;
   teacher: string;
   time_slot: string;
+  batch?: string;
+  section?: string;
 }
 
 interface UpstreamApiResponse {
@@ -672,15 +674,54 @@ function mapUpstreamTeacherSchedule(
   const validDays = ['SATURDAY', 'SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY'] as const;
 
   return items.map((item, index) => {
-    // Parse course code and section information:
-    // e.g. "CSE114(72_C)" -> course: CSE114, batch: 72, section: C, subSection: null
-    // e.g. "CSE224(68_D1)" -> course: CSE224, batch: 68, section: D, subSection: 1
-    const match = item.course_code.match(/^([A-Z0-9]+)(?:\(([0-9]+)_([A-Za-z]+)([12])?\))?/);
-    const courseCode = match ? match[1] : item.course_code.split('(')[0].trim();
-    const batchNum = match && match[2] ? match[2] : 'Batch';
-    const secLetter = match && match[3] ? match[3].toUpperCase() : '';
-    const subSection = match && match[4] ? (match[4] as '1' | '2') : null;
-    const sectionId = secLetter ? `${batchNum}_${secLetter}` : (match && match[2] ? match[2] : 'Common');
+    // 1. Try parsing from course_code parentheses e.g. "CSE114(72_U1)" or "CSE114(72_U)"
+    const courseMatch = item.course_code.match(/^([A-Za-z0-9]+)(?:\(([0-9]+)[_-]([A-Za-z]+)([12])?\))?/);
+    const courseCode = courseMatch ? courseMatch[1] : item.course_code.split('(')[0].trim();
+
+    let batchNum = courseMatch && courseMatch[2] ? courseMatch[2] : '';
+    let secLetter = courseMatch && courseMatch[3] ? courseMatch[3].toUpperCase() : '';
+    let subSection = courseMatch && courseMatch[4] ? (courseMatch[4] as '1' | '2') : null;
+
+    // 2. If not found in course_code, parse from item.batch (e.g. "72_U", "72_U1", "66_O", "66-O", "66_M2")
+    if (!batchNum || !secLetter) {
+      const rawBatch = (item.batch || '').trim().replace(/\s*\([^)]*$/, '').trim();
+      const rawSec = (item.section || '').trim();
+
+      // Check format like "72_U", "72_U1", "66-O", or "RE_A2" in item.batch
+      const batchCombinedMatch = rawBatch.match(/^([A-Za-z0-9]+)[_-]([A-Za-z]+)([12])?$/i);
+      if (batchCombinedMatch) {
+        batchNum = batchCombinedMatch[1];
+        secLetter = batchCombinedMatch[2].toUpperCase();
+        if (!subSection && batchCombinedMatch[3]) {
+          subSection = batchCombinedMatch[3] as '1' | '2';
+        }
+      } else {
+        // Check compact format without underscore like "72U" or "72U1"
+        const compactMatch = rawBatch.match(/^([0-9]+)([A-Za-z]+)([12])?$/i);
+        if (compactMatch) {
+          batchNum = compactMatch[1];
+          secLetter = compactMatch[2].toUpperCase();
+          if (!subSection && compactMatch[3]) {
+            subSection = compactMatch[3] as '1' | '2';
+          }
+        } else {
+          // Check separate batch and section fields e.g. batch: "72", section: "U1"
+          const numMatch = rawBatch.match(/^[0-9]+$/);
+          const secMatch = rawSec.match(/^([A-Za-z]+)([12])?$/i);
+          if (numMatch && secMatch) {
+            batchNum = numMatch[0];
+            secLetter = secMatch[1].toUpperCase();
+            if (!subSection && secMatch[2]) {
+              subSection = secMatch[2] as '1' | '2';
+            }
+          } else if (rawBatch && !/^batch$/i.test(rawBatch)) {
+            batchNum = rawBatch;
+          }
+        }
+      }
+    }
+
+    const sectionId = secLetter ? `${batchNum || 'Batch'}_${secLetter}` : (batchNum || 'Common');
 
     const [startRaw, endRaw] = (item.time_slot || '08:30-10:00').split('-');
     const startTime = parse12HourTime(startRaw || '08:30');

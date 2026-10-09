@@ -16,6 +16,7 @@ import {
   X,
   User,
   ArrowUpRight,
+  GraduationCap,
 } from 'lucide-react';
 import { getFacultyByCode, registerDynamicFaculty } from '@/data/faculty';
 import { getCourseShortTitle } from '@/lib/course-utils';
@@ -1315,11 +1316,36 @@ export function TimetableGrid({
                 {isLab ? 'Lab' : 'Theory'}
               </span>
             )}
-            {item.subSection && (
+            {isFaculty ? (
+              (() => {
+                const secBadge = item.sectionId && item.sectionId !== 'Common'
+                  ? (item.subSection && !item.sectionId.endsWith(item.subSection) ? `${item.sectionId}${item.subSection}` : item.sectionId)
+                  : (item.batch && item.section ? `${item.batch}_${item.section}` : (item.batch && item.batch !== 'Batch' ? item.batch : null));
+                if (!secBadge) return null;
+                const targetSec = item.sectionId && item.sectionId !== 'Common'
+                  ? item.sectionId
+                  : (item.batch && item.section ? `${item.batch}_${item.section}` : item.batch?.replace(/([A-Za-z]+)[12]$/, '$1'));
+                return (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExpandedCard(null);
+                      if (targetSec) onOpenSectionInfo?.(targetSec);
+                    }}
+                    title={`Click to view routine for ${secBadge}`}
+                    className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded font-mono text-[9.5px] font-bold bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-700/60 hover:underline cursor-pointer"
+                  >
+                    <GraduationCap className="h-2.5 w-2.5 shrink-0 opacity-80" />
+                    <span>Section {secBadge}</span>
+                  </button>
+                );
+              })()
+            ) : item.subSection ? (
               <span className="px-1.5 py-0.2 rounded font-mono text-[9.5px] font-bold bg-black/10 dark:bg-white/10 text-slate-700 dark:text-slate-300">
                 Sec {item.subSection}
               </span>
-            )}
+            ) : null}
           </div>
 
           <button
@@ -1379,8 +1405,44 @@ export function TimetableGrid({
           </div>
         )}
 
-        {/* Minimal Teacher Row */}
-        {item.teacherCode && (
+        {/* Footer info: For faculty view show student Section with View Routine button; for student view show faculty info with Profile button */}
+        {isFaculty ? (
+          (() => {
+            const secBadge = item.sectionId && item.sectionId !== 'Common'
+              ? (item.subSection && !item.sectionId.endsWith(item.subSection) ? `${item.sectionId}${item.subSection}` : item.sectionId)
+              : (item.batch && item.section ? `${item.batch}_${item.section}` : (item.batch && item.batch !== 'Batch' ? item.batch : null));
+            if (!secBadge) return null;
+            const targetSec = item.sectionId && item.sectionId !== 'Common'
+              ? item.sectionId
+              : (item.batch && item.section ? `${item.batch}_${item.section}` : item.batch?.replace(/([A-Za-z]+)[12]$/, '$1'));
+            return (
+              <div className="flex items-center justify-between gap-1.5 pt-1.5 border-t border-slate-200/80 dark:border-slate-800 text-[10.5px] font-mono">
+                <div className="min-w-0 flex items-center gap-1.5 truncate">
+                  <GraduationCap className="h-3 w-3 text-slate-400 shrink-0" />
+                  <span className="text-slate-500 dark:text-slate-400 shrink-0">Section:</span>
+                  <span className="font-bold text-slate-900 dark:text-slate-100 truncate">
+                    {secBadge}
+                  </span>
+                </div>
+
+                {onOpenSectionInfo && targetSec && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setExpandedCard(null);
+                      onOpenSectionInfo(targetSec);
+                    }}
+                    className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px] font-semibold text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors shrink-0 cursor-pointer"
+                  >
+                    <span>View Routine</span>
+                    <ArrowUpRight className="h-2.5 w-2.5" />
+                  </button>
+                )}
+              </div>
+            );
+          })()
+        ) : item.teacherCode && (
           <div className="flex items-center justify-between gap-1.5 pt-1.5 border-t border-slate-200/80 dark:border-slate-800 text-[10.5px] font-mono">
             <div className="min-w-0 flex items-center gap-1 truncate">
               <User className="h-3 w-3 text-slate-400 shrink-0" />
@@ -2457,18 +2519,33 @@ export function TimetableGrid({
                                   const isCardFromFaculty = cardTarget?.type === 'faculty';
 
                                   if (isCardFromFaculty) {
+                                    const sectionBadge = (() => {
+                                      const sec = c.sectionId && c.sectionId !== 'Common'
+                                        ? (c.subSection && !c.sectionId.endsWith(c.subSection) ? `${c.sectionId}${c.subSection}` : c.sectionId)
+                                        : (c.batch && c.section ? `${c.batch}_${c.section}` : (c.batch && c.batch !== 'Batch' ? c.batch : null));
+                                      return sec || null;
+                                    })();
+
+                                    const sectionTargetId = (() => {
+                                      if (c.sectionId && c.sectionId !== 'Common') return c.sectionId;
+                                      if (c.batch && c.section) return `${c.batch}_${c.section}`;
+                                      if (c.batch && c.batch !== 'Batch') return c.batch.replace(/([A-Za-z]+)[12]$/, '$1');
+                                      return null;
+                                    })();
+
+                                    if (!sectionBadge) return null;
+
                                     return (
                                       <button
                                         type="button"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          const sId = c.sectionId || (c.batch && c.section ? `${c.batch}_${c.section}` : null);
-                                          if (sId) onOpenSectionInfo?.(sId);
+                                          if (sectionTargetId) onOpenSectionInfo?.(sectionTargetId);
                                         }}
-                                        title={`Click to view info for ${c.sectionId || 'section'}`}
+                                        title={`Click to view info for ${sectionBadge}`}
                                         className={`shrink-0 rounded px-1 py-0.2 font-bold text-[9.5px] border transition-all cursor-pointer relative z-10 ${buttonBadgeClass}`}
                                       >
-                                        {c.sectionId ? (c.subSection ? `${c.sectionId}${c.subSection}` : c.sectionId) : (c.batch && c.section ? `${c.batch}_${c.section}` : 'Sec')}
+                                        {sectionBadge}
                                       </button>
                                     );
                                   }
@@ -2833,22 +2910,31 @@ export function TimetableGrid({
                                     </div>
                                     <span className="opacity-40">•</span>
                                     {isFaculty ? (
-                                      <button
-                                        type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          const secId =
-                                            classItem.sectionId ||
-                                            (classItem.batch && classItem.section
-                                              ? `${classItem.batch}_${classItem.section}`
-                                              : null);
-                                          if (secId) onOpenSectionInfo?.(secId);
-                                        }}
-                                        title={`Click to view info for ${classItem.sectionId || 'section'}`}
-                                        className="opacity-95 font-bold shrink-0 hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer"
-                                      >
-                                        {classItem.sectionId ? (classItem.subSection ? `${classItem.sectionId}${classItem.subSection}` : classItem.sectionId) : (classItem.batch && classItem.section ? `${classItem.batch}_${classItem.section}` : 'Sec')}
-                                      </button>
+                                      (() => {
+                                        const sectionBadge = classItem.sectionId && classItem.sectionId !== 'Common'
+                                          ? (classItem.subSection && !classItem.sectionId.endsWith(classItem.subSection) ? `${classItem.sectionId}${classItem.subSection}` : classItem.sectionId)
+                                          : (classItem.batch && classItem.section ? `${classItem.batch}_${classItem.section}` : (classItem.batch && classItem.batch !== 'Batch' ? classItem.batch : null));
+
+                                        const sectionTargetId = classItem.sectionId && classItem.sectionId !== 'Common'
+                                          ? classItem.sectionId
+                                          : (classItem.batch && classItem.section ? `${classItem.batch}_${classItem.section}` : classItem.batch?.replace(/([A-Za-z]+)[12]$/, '$1'));
+
+                                        if (!sectionBadge) return null;
+
+                                        return (
+                                          <button
+                                            type="button"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              if (sectionTargetId) onOpenSectionInfo?.(sectionTargetId);
+                                            }}
+                                            title={`Click to view info for ${sectionBadge}`}
+                                            className="opacity-95 font-bold shrink-0 hover:underline hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer"
+                                          >
+                                            {sectionBadge}
+                                          </button>
+                                        );
+                                      })()
                                     ) : (
                                       <button
                                         type="button"

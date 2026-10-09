@@ -603,10 +603,17 @@ export default function Home() {
         if (raw) {
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed.classes) && parsed.classes.length > 0) {
-            cachedData = {
-              classes: parsed.classes,
-              version: parsed.version || currentVersion,
-            };
+            // Invalidate legacy cached faculty routine if it had the 'Common' section bug
+            const hasLegacyCommonSection =
+              currentTarget.type === 'faculty' &&
+              parsed.classes.some((c: RoutineClass) => c.sectionId === 'Common');
+
+            if (!hasLegacyCommonSection) {
+              cachedData = {
+                classes: parsed.classes,
+                version: parsed.version || currentVersion,
+              };
+            }
           }
         }
       }
@@ -750,10 +757,16 @@ export default function Home() {
         if (raw) {
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed.classes) && parsed.classes.length > 0) {
-            cachedSecondary = {
-              classes: parsed.classes,
-              version: parsed.version || routineVersion,
-            };
+            const hasLegacyCommonSection =
+              target.type === 'faculty' &&
+              parsed.classes.some((c: RoutineClass) => c.sectionId === 'Common');
+
+            if (!hasLegacyCommonSection) {
+              cachedSecondary = {
+                classes: parsed.classes,
+                version: parsed.version || routineVersion,
+              };
+            }
           }
         }
       }
