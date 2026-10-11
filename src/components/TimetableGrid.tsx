@@ -26,6 +26,7 @@ import { HOURLY_MARKS, layoutDayEvents, getCurrentTimeTopPercent, PositionedEven
 import { getTimelinePercentForInterval, getTargetLabel } from '@/lib/compare-utils';
 import { VersionBadge } from './VersionBadge';
 import { ClassEventOverride } from '@/types/events';
+import { getDepartmentHoliday } from '@/data/holidays';
 
 interface TimetableGridProps {
   section?: SectionMeta | null;
@@ -897,7 +898,7 @@ export function TimetableGrid({
 
   const upcomingDays = useMemo(() => {
     void currentDhakaTime.minuteInt;
-    return getUpcomingDays(7);
+    return getUpcomingDays(14);
   }, [currentDhakaTime.minuteInt]);
 
 
@@ -1113,7 +1114,7 @@ export function TimetableGrid({
     > = {};
 
     for (const d of continuousDays) {
-      if (d.isFriday) {
+      if (d.isFriday || getDepartmentHoliday(d.isoDate)) {
         map[d.globalDayIndex] = { positionedEvents: [], offGridOverrides: [] };
         continue;
       }
@@ -1741,6 +1742,7 @@ export function TimetableGrid({
               const isToday = d.isToday;
               const isFriday = d.isFriday;
               const isWeekStart = d.isWeekStart;
+              const holiday = getDepartmentHoliday(d.isoDate);
 
               return (
                 <div
@@ -1749,6 +1751,8 @@ export function TimetableGrid({
                   className={`sticky top-0 z-26 flex flex-col items-center justify-center py-2 px-1 text-center border-b transition-colors ${
                     isToday
                       ? 'bg-emerald-500/[0.04] dark:bg-emerald-500/[0.07] border-b-emerald-500/40 dark:border-b-emerald-500/40'
+                      : holiday
+                      ? 'bg-amber-500/[0.03] dark:bg-amber-500/[0.05] border-b-amber-500/30 dark:border-b-amber-500/30'
                       : 'bg-slate-50 dark:bg-[#080d1a] border-b-slate-200 dark:border-b-slate-800'
                   } ${
                     isWeekStart
@@ -1765,6 +1769,8 @@ export function TimetableGrid({
                       className={`text-[11px] font-semibold uppercase tracking-wider ${
                         isToday
                           ? 'text-emerald-600 dark:text-emerald-400 font-bold'
+                          : holiday
+                          ? 'text-amber-600 dark:text-amber-400 font-bold'
                           : isFriday
                           ? 'text-slate-400 dark:text-slate-500'
                           : 'text-slate-500 dark:text-slate-400'
@@ -1782,6 +1788,8 @@ export function TimetableGrid({
                     className={`mt-0.5 inline-flex items-center justify-center font-bold text-xs sm:text-sm h-7 w-7 rounded-full transition-all ${
                       isToday
                         ? 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-white shadow-xs ring-2 ring-emerald-500/25 dark:ring-emerald-400/30'
+                        : holiday
+                        ? 'bg-amber-100 text-amber-850 dark:bg-amber-950/60 dark:text-amber-300 ring-1 ring-amber-500/40 font-bold'
                         : isFriday
                         ? 'text-slate-400 dark:text-slate-500 hover:bg-slate-200/50 dark:hover:bg-slate-800/40'
                         : 'text-slate-800 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-800/60'
@@ -1823,6 +1831,7 @@ export function TimetableGrid({
               const isToday = d.isToday;
               const isFriday = d.isFriday;
               const isWeekStart = d.isWeekStart;
+              const holiday = getDepartmentHoliday(d.isoDate);
               const dayData = continuousDayEventsMap[d.globalDayIndex] || {
                 positionedEvents: [],
                 offGridOverrides: [],
@@ -1841,7 +1850,7 @@ export function TimetableGrid({
                       : 'border-l border-slate-200 dark:border-slate-800/80'
                   } ${isToday ? 'bg-emerald-500/[0.015] dark:bg-emerald-500/[0.025]' : ''} ${
                     isFriday ? 'bg-slate-100/30 dark:bg-slate-900/20' : ''
-                  }`}
+                  } ${holiday ? 'bg-amber-500/[0.015] dark:bg-amber-500/[0.025]' : ''}`}
                   style={{
                     gridColumn: vIdx + 2,
                     gridRow: 2,
@@ -1866,6 +1875,21 @@ export function TimetableGrid({
                         </span>
                         <span className="text-[9.5px] font-mono text-slate-400/80 dark:text-slate-500/80">
                           No classes
+                        </span>
+                      </div>
+                    </div>
+                  ) : holiday ? (
+                    /* Department Holiday Column Content */
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-3 pointer-events-none select-none">
+                      <div className="inline-flex flex-col items-center gap-1.5 rounded-2xl border border-amber-300/60 bg-amber-50/80 dark:border-amber-500/30 dark:bg-amber-950/30 px-3.5 py-3 text-center shadow-xs backdrop-blur-xs max-w-[92%]">
+                        <span className="text-[10px] font-mono font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider">
+                          Holiday
+                        </span>
+                        <span className="text-xs font-bold text-amber-900 dark:text-amber-100 leading-snug">
+                          {holiday.name}
+                        </span>
+                        <span className="text-[9.5px] font-mono font-medium text-amber-700/80 dark:text-amber-300/80">
+                          University Closed
                         </span>
                       </div>
                     </div>
@@ -2610,12 +2634,14 @@ export function TimetableGrid({
             // Compare mode is ONLY for week view, not on agenda mode.
             const targetBadge = activeTarget ? getTargetLabel(activeTarget).badge : (section?.id || 'Class');
 
-            const regularClasses = d.isFriday
+            const holiday = getDepartmentHoliday(d.isoDate);
+
+            const regularClasses = (d.isFriday || holiday)
               ? []
               : classes.filter((c) => c.dayOfWeek === d.dayKey);
 
             // Standalone overrides (e.g. online/makeup classes not matching a regular routine slot)
-            const standaloneOverrides = (eventOverrides || []).filter((ev) => {
+            const standaloneOverrides = (holiday ? [] : (eventOverrides || [])).filter((ev) => {
               if (ev.status === 'CANCELLED') return false;
               if (ev.date) {
                 const matchesIso = d.isoDate && ev.date.trim() === d.isoDate.trim();
@@ -2707,6 +2733,11 @@ export function TimetableGrid({
                       OFF
                     </span>
                   )}
+                  {holiday && (
+                    <span className="mt-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300/60 dark:border-amber-700/60 px-1 py-0.2 text-[8px] font-mono font-bold tracking-tight">
+                      HOLIDAY
+                    </span>
+                  )}
                 </div>
 
                 {/* Right Content Column: Stack of Events / Empty Day */}
@@ -2721,7 +2752,24 @@ export function TimetableGrid({
                     </div>
                   )}
 
-                  {d.isFriday ? (
+                  {holiday ? (
+                    <div className="py-2">
+                      <div className="flex flex-col gap-1.5 rounded-xl border border-amber-300/60 bg-amber-50/70 dark:border-amber-500/30 dark:bg-amber-950/20 px-3.5 py-2.5 shadow-2xs">
+                        <div className="flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
+                          <span className="font-bold text-xs text-amber-900 dark:text-amber-100">
+                            {holiday.name} Vacation
+                          </span>
+                          <span className="text-[10px] font-mono font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wide ml-auto">
+                            University Closed
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-amber-800/80 dark:text-amber-200/80 leading-relaxed pl-4">
+                          All classes remain closed per DIU official notice.
+                        </p>
+                      </div>
+                    </div>
+                  ) : d.isFriday ? (
                     <div className="py-1.5 flex items-center">
                       <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-100/70 px-2.5 py-1 text-[11px] font-mono font-medium text-slate-500 dark:border-slate-800/80 dark:bg-slate-900/60 dark:text-slate-400">
                         <span className="h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />

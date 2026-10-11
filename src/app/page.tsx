@@ -554,15 +554,10 @@ export default function Home() {
     activeTargetRef.current = activeTarget;
   }, [activeTarget]);
 
-  // Dedicated effect to fetch active event overrides for the selected section
+  // Dedicated effect to fetch active event overrides for the selected section or department
   useEffect(() => {
-    if (!activeTarget || activeTarget.type !== 'section') {
-      setEventOverrides([]);
-      return;
-    }
-
     let isCancelled = false;
-    const secId = activeTarget.section.id;
+    const secId = activeTarget && activeTarget.type === 'section' ? activeTarget.section.id : 'ALL';
 
     fetch(`/api/events?section=${secId}&t=${Date.now()}`)
       .then((res) => res.json())

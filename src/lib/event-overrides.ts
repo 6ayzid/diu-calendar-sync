@@ -35,9 +35,10 @@ export async function getEventOverridesForSection(
   }
 
   // 2. Fallback to local stored overrides
-  const localList = (staticOverrides as ClassEventOverride[]).filter(
-    (ev) => ev.sectionId.toUpperCase().replace('-', '_') === normalizedSection
-  );
+  const localList = (staticOverrides as ClassEventOverride[]).filter((ev) => {
+    const s = ev.sectionId.toUpperCase().replace('-', '_');
+    return s === normalizedSection || s === 'ALL' || s === 'DEPARTMENT';
+  });
 
   return localList;
 }

@@ -133,5 +133,53 @@
     "room": "KT-306",
     "status": "CONFIRMED",
     "createdAt": "2026-10-07T15:20:00Z"
+  },
+  {
+    "id": "override-ALL-holiday-20261019",
+    "sectionId": "ALL",
+    "date": "2026-10-19",
+    "dayOfWeek": "MONDAY",
+    "courseCode": "ALL",
+    "type": "cancelled",
+    "title": "Durga Puja Vacation (University Closed)",
+    "description": "All classes of Daffodil International University (DIU) will remain closed from 19 October to 22 October on the occasion of Durga Puja. Official notice issued by Dr. Mohammed Nadir Bin Ali, Registrar, DIU.",
+    "status": "CONFIRMED",
+    "createdAt": "2026-10-11T14:24:00Z"
+  },
+  {
+    "id": "override-ALL-holiday-20261020",
+    "sectionId": "ALL",
+    "date": "2026-10-20",
+    "dayOfWeek": "TUESDAY",
+    "courseCode": "ALL",
+    "type": "cancelled",
+    "title": "Durga Puja Vacation (University Closed)",
+    "description": "All classes of Daffodil International University (DIU) will remain closed from 19 October to 22 October on the occasion of Durga Puja. Official notice issued by Dr. Mohammed Nadir Bin Ali, Registrar, DIU.",
+    "status": "CONFIRMED",
+    "createdAt": "2026-10-11T14:24:00Z"
+  },
+  {
+    "id": "override-ALL-holiday-20261021",
+    "sectionId": "ALL",
+    "date": "2026-10-21",
+    "dayOfWeek": "WEDNESDAY",
+    "courseCode": "ALL",
+    "type": "cancelled",
+    "title": "Durga Puja Vacation (University Closed)",
+    "description": "All classes of Daffodil International University (DIU) will remain closed from 19 October to 22 October on the occasion of Durga Puja. Official notice issued by Dr. Mohammed Nadir Bin Ali, Registrar, DIU.",
+    "status": "CONFIRMED",
+    "createdAt": "2026-10-11T14:24:00Z"
+  },
+  {
+    "id": "override-ALL-holiday-20261022",
+    "sectionId": "ALL",
+    "date": "2026-10-22",
+    "dayOfWeek": "THURSDAY",
+    "courseCode": "ALL",
+    "type": "cancelled",
+    "title": "Durga Puja Vacation (University Closed)",
+    "description": "All classes of Daffodil International University (DIU) will remain closed from 19 October to 22 October on the occasion of Durga Puja. Official notice issued by Dr. Mohammed Nadir Bin Ali, Registrar, DIU.",
+    "status": "CONFIRMED",
+    "createdAt": "2026-10-11T14:24:00Z"
   }
 ]

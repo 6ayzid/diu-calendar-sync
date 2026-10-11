@@ -10,6 +10,7 @@ import { getSectionById } from '@/data/sections';
 import { getFacultyByCode } from '@/data/faculty';
 import { getCourseShortTitle } from '@/lib/course-utils';
 import { COURSE_CATALOG } from '@/lib/courses';
+import { DEPARTMENT_HOLIDAYS } from '@/data/holidays';
 
 // First occurrence dates of the semester effective week (Effective: Sept 09, 2026)
 const WEEKDAY_DATE_MAP: Record<DayOfWeek, string> = {
@@ -184,6 +185,23 @@ export function buildCalendarFeed(
       `synced from diucal.vercel.app`,
     ].join('\n');
 
+    // Exclude dates matching department holidays for this class's weekday (RFC 5545 EXDATE)
+    const excludedHolidayDates: Date[] = [];
+    for (const holiday of DEPARTMENT_HOLIDAYS) {
+      for (const hDate of holiday.dates) {
+        const [hY, hM, hD] = hDate.split('-').map(Number);
+        const hTestDate = new Date(Date.UTC(hY, hM - 1, hD, 12, 0, 0));
+        const hWeekday = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Asia/Dhaka',
+          weekday: 'long',
+        }).format(hTestDate).toUpperCase();
+
+        if (hWeekday === item.dayOfWeek) {
+          excludedHolidayDates.push(new Date(hY, hM - 1, hD, startH, startM, 0));
+        }
+      }
+    }
+
     const event = calendar.createEvent({
       id: deterministicUid,
       start: startDate,
@@ -196,6 +214,7 @@ export function buildCalendarFeed(
         freq: ICalEventRepeatingFreq.WEEKLY,
         byDay: [ICAL_WEEKDAY_MAP[item.dayOfWeek]],
         until: SEMESTER_END_DATE,
+        exclude: excludedHolidayDates.length > 0 ? excludedHolidayDates : undefined,
       },
     });
 
@@ -211,6 +230,7 @@ export function buildCalendarFeed(
   if (overrides && overrides.length > 0) {
     for (const override of overrides) {
       if (override.status === 'CANCELLED') continue;
+      if (override.courseCode === 'ALL' || override.sectionId === 'ALL') continue;
 
       const [oYear, oMonth, oDay] = override.date.split('-').map(Number);
       if (!oYear || !oMonth || !oDay) continue;
@@ -351,6 +371,29 @@ export function buildCalendarFeed(
         });
       }
     }
+  }
+
+  // Add All-Day Department Holiday events
+  for (const holiday of DEPARTMENT_HOLIDAYS) {
+    const [sYear, sMonth, sDay] = holiday.startDate.split('-').map(Number);
+    const [eYear, eMonth, eDay] = holiday.endDate.split('-').map(Number);
+    // In RFC 5545, end date for allDay is non-inclusive (the day after the last date)
+    const endExclusiveDate = new Date(Date.UTC(eYear, eMonth - 1, eDay + 1));
+    const startUtcDate = new Date(Date.UTC(sYear, sMonth - 1, sDay));
+
+    calendar.createEvent({
+      id: `holiday-${holiday.id}@${sourceDomain}`,
+      start: startUtcDate,
+      end: endExclusiveDate,
+      allDay: true,
+      summary: holiday.title,
+      description: [
+        holiday.description,
+        ``,
+        `synced from diucal.vercel.app`,
+      ].join('\n'),
+      location: 'Daffodil International University',
+    });
   }
 
   return calendar;

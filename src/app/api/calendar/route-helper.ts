@@ -122,11 +122,15 @@ export async function handleFacultyCalendarFeedRequest(
   // Fetch schedule for faculty
   const { classes, version } = await getScheduleForFacultyWithMeta(cleanCode);
 
+  // Fetch active department-wide event overrides
+  const overrides = await getEventOverridesForSection('ALL');
+
   // Generate RFC 5545 iCalendar string with faculty formatting
   const calendar = buildCalendarFeed(classes, {
     faculty,
     sourceDomain: host,
     routineVersion: version,
+    overrides,
   });
 
   const icsOutput = serializeCalendarToIcs(calendar);
