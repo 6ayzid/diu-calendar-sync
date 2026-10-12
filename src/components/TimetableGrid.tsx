@@ -1400,8 +1400,15 @@ export function TimetableGrid({
         )}
 
         {/* Override Notice if present */}
-        {override?.description && (
-          <div className="rounded-lg border border-sky-200 dark:border-sky-800 bg-sky-50/70 dark:bg-sky-950/40 p-2 text-[10.5px] text-slate-700 dark:text-slate-300 font-sans leading-snug">
+        {override?.description && override.type !== 'regular' && (
+          <div className={`rounded-lg border p-2 text-[10.5px] font-sans leading-snug ${
+            override.type === 'cancelled'
+              ? 'border-rose-300 dark:border-rose-800 bg-rose-50/90 dark:bg-rose-950/40 text-rose-900 dark:text-rose-200'
+              : 'border-sky-200 dark:border-sky-800 bg-sky-50/70 dark:bg-sky-950/40 text-slate-700 dark:text-slate-300'
+          }`}>
+            <span className="font-bold block mb-0.5">
+              {override.type === 'cancelled' ? '⚠️ NOTICE:' : 'ANNOUNCEMENT:'}
+            </span>
             {override.description}
           </div>
         )}
@@ -1940,14 +1947,17 @@ export function TimetableGrid({
                         {dayOffGridOverrides.map((ev) => {
                           const cardKey = `offgrid-${d.globalDayIndex}-${ev.id}`;
                           const isCardExpanded = expandedCard?.cardKey === cardKey;
+                          const evClean = ev.courseCode.split('(')[0].trim().toUpperCase();
+                          const matchedClass = classes.find((c) => c.courseCode.split('(')[0].trim().toUpperCase() === evClean);
+                          const resolvedTeacher = matchedClass?.teacherCode || '';
                           const classItem: RoutineClass = {
                             id: ev.id,
-                            batch: '',
-                            section: '',
-                            sectionId: '',
+                            batch: section?.batch || '',
+                            section: section?.sectionLetter || '',
+                            sectionId: ev.sectionId || section?.id || '',
                             courseCode: ev.courseCode,
-                            courseTitle: ev.title ? `${ev.courseCode} - ${ev.title}` : ev.courseCode,
-                            teacherCode: '',
+                            courseTitle: matchedClass?.courseTitle || (ev.title ? `${ev.courseCode} - ${ev.title}` : ev.courseCode),
+                            teacherCode: resolvedTeacher,
                             room: ev.room || 'Online',
                             dayOfWeek: d.dayKey as DayOfWeek,
                             startTime: ev.startTime || '19:00',
@@ -2481,7 +2491,7 @@ export function TimetableGrid({
                                           : 'text-emerald-200 dark:text-emerald-900'
                                       }`} />
                                     )}
-                                    <span className="font-bold tracking-tight text-xs truncate leading-tight">
+                                    <span className={`font-bold tracking-tight text-xs truncate leading-tight ${cardOverride?.type === 'cancelled' ? 'line-through opacity-75' : ''}`}>
                                       {shortTitle}
                                     </span>
                                     {showSeparateCode && zoomDays <= 3.5 && (
@@ -2491,14 +2501,16 @@ export function TimetableGrid({
                                     )}
                                   </div>
 
-                                  {/* Subsection badge & Event Override Pill (e.g. Quiz) */}
+                                  {/* Subsection badge & Event Override Pill (e.g. Quiz / Cancelled / Online) */}
                                   <div className="flex items-center gap-1 shrink-0 relative z-10">
-                                    {cardOverride && (
+                                    {cardOverride && cardOverride.type !== 'regular' && (
                                       <span
                                         title={`${cardOverride.title}${cardOverride.description ? `: ${cardOverride.description}` : ''}`}
                                         className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold font-mono uppercase shadow-2xs relative z-10 ${
                                           cardOverride.type === 'online'
                                             ? 'bg-sky-400 text-sky-950 border border-sky-500/60'
+                                            : cardOverride.type === 'cancelled'
+                                            ? 'bg-rose-400 text-rose-950 border border-rose-500/60'
                                             : 'bg-amber-400 text-amber-950 border border-amber-500/60'
                                         }`}
                                       >
@@ -2506,6 +2518,8 @@ export function TimetableGrid({
                                           ? 'CT'
                                           : cardOverride.type === 'online'
                                           ? 'ONLINE'
+                                          : cardOverride.type === 'cancelled'
+                                          ? 'CANCELLED'
                                           : (cardOverride.type?.toUpperCase() || 'QUIZ')}
                                       </span>
                                     )}
@@ -2670,6 +2684,11 @@ export function TimetableGrid({
               .map((ev) => {
                 const isLab = ev.courseCode.toLowerCase().includes('lab') || ev.title.toLowerCase().includes('lab');
                 const subSecMatch = ev.courseCode.match(/O([12])/i) || ev.title.match(/O([12])/i);
+                const evClean = ev.courseCode.split('(')[0].trim().toUpperCase();
+                const matchedClass = classes.find((c) => c.courseCode.split('(')[0].trim().toUpperCase() === evClean);
+                const resolvedTeacher = matchedClass?.teacherCode || 'TBA';
+                const resolvedTitle = matchedClass?.courseTitle || ev.title || ev.courseCode;
+
                 return {
                   id: ev.id,
                   batch: section?.batch || '66',
@@ -2677,8 +2696,8 @@ export function TimetableGrid({
                   sectionId: ev.sectionId,
                   subSection: subSecMatch ? (subSecMatch[1] as '1' | '2') : null,
                   courseCode: ev.courseCode,
-                  courseTitle: ev.title || ev.courseCode,
-                  teacherCode: 'MRM',
+                  courseTitle: resolvedTitle,
+                  teacherCode: resolvedTeacher,
                   room: ev.room || 'Online',
                   dayOfWeek: d.dayKey as DayOfWeek,
                   startTime: ev.startTime || '19:00',
@@ -2825,8 +2844,29 @@ export function TimetableGrid({
                           currentDhakaTime.totalMinutes >= classEndMins &&
                           currentDhakaTime.totalMinutes < nextClassStartMins;
 
+                        const cardOverride = (eventOverrides || []).find((ev) => {
+                          if (ev.status === 'CANCELLED') return false;
+                          if (ev.date) {
+                            const matchesIso = d.isoDate && ev.date.trim() === d.isoDate.trim();
+                            const dayNum = String(parseInt(ev.date.split('-')[2] || '0', 10));
+                            const matchesDayNum = d.dayNumber === dayNum && (!ev.dayOfWeek || d.dayKey === ev.dayOfWeek);
+                            if (!matchesIso && !matchesDayNum) return false;
+                          } else if (ev.dayOfWeek && ev.dayOfWeek !== d.dayKey) {
+                            return false;
+                          }
+                          const cClean = (cleanCourseCode || classItem.courseCode || '').split('(')[0].trim().toUpperCase();
+                          const evClean = (ev.courseCode || '').split('(')[0].trim().toUpperCase();
+                          if (cClean !== evClean) return false;
+                          if (ev.startTime && classItem.startTime && ev.startTime !== classItem.startTime) return false;
+                          return true;
+                        });
+
                         // Solid Google Calendar styling adapting across light (emerald-600) and dark (emerald-500)
-                        const cardThemeClass = 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-emerald-950 border border-emerald-700/25 dark:border-emerald-400/40 shadow-xs';
+                        const cardThemeClass = cardOverride?.type === 'cancelled'
+                          ? 'bg-rose-950/80 text-rose-100 border border-rose-800/60 shadow-xs'
+                          : cardOverride?.type === 'online'
+                          ? 'bg-sky-600 text-white dark:bg-sky-500 dark:text-sky-950 border border-sky-700/25 dark:border-sky-400/40 shadow-xs'
+                          : 'bg-emerald-600 text-white dark:bg-emerald-500 dark:text-emerald-950 border border-emerald-700/25 dark:border-emerald-400/40 shadow-xs';
 
                         const cardKey = `agenda-class-${classItem.id}`;
                         const isAgendaExpanded = expandedCard?.cardKey === cardKey;
@@ -2848,6 +2888,7 @@ export function TimetableGrid({
                                     isBlockMode: false,
                                     targetBadge: targetBadge,
                                     dayLabel,
+                                    override: cardOverride,
                                   });
                                 }
                               }}
@@ -2865,6 +2906,7 @@ export function TimetableGrid({
                                   targetBadge,
                                   dayLabel,
                                   isLiveNow,
+                                  override: cardOverride,
                                 })
                               ) : (
                                 <>
@@ -2884,7 +2926,7 @@ export function TimetableGrid({
                                       {isLab && (
                                         <FlaskConical className="h-3.5 w-3.5 text-emerald-200 dark:text-emerald-900 shrink-0" />
                                       )}
-                                      <span className="font-bold text-sm tracking-tight truncate">
+                                      <span className={`font-bold text-sm tracking-tight truncate ${cardOverride?.type === 'cancelled' ? 'line-through opacity-70' : ''}`}>
                                         {shortTitle}
                                       </span>
                                       <span className="text-xs font-mono font-semibold opacity-80 shrink-0">
@@ -2893,43 +2935,26 @@ export function TimetableGrid({
                                     </div>
 
                                     <div className="flex items-center gap-1.5 shrink-0">
-                                      {(() => {
-                                        const cardOverride = (eventOverrides || []).find((ev) => {
-                                          if (ev.status === 'CANCELLED') return false;
-                                          if (ev.date) {
-                                            const matchesIso = d.isoDate && ev.date.trim() === d.isoDate.trim();
-                                            const dayNum = String(parseInt(ev.date.split('-')[2] || '0', 10));
-                                            const matchesDayNum = d.dayNumber === dayNum && (!ev.dayOfWeek || d.dayKey === ev.dayOfWeek);
-                                            if (!matchesIso && !matchesDayNum) return false;
-                                          } else if (ev.dayOfWeek && ev.dayOfWeek !== d.dayKey) {
-                                            return false;
-                                          }
-                                          const cClean = (cleanCourseCode || classItem.courseCode || '').split('(')[0].trim().toUpperCase();
-                                          const evClean = (ev.courseCode || '').split('(')[0].trim().toUpperCase();
-                                          if (cClean !== evClean) return false;
-                                          if (ev.startTime && classItem.startTime && ev.startTime !== classItem.startTime) return false;
-                                          return true;
-                                        });
-
-                                        if (!cardOverride) return null;
-
-                                        return (
-                                          <span
-                                            title={`${cardOverride.title}${cardOverride.description ? `: ${cardOverride.description}` : ''}`}
-                                            className={`shrink-0 rounded px-1.5 py-0.5 text-[9.5px] font-bold font-mono uppercase shadow-2xs ${
-                                              cardOverride.type === 'online'
-                                                ? 'bg-sky-400 text-sky-950 border border-sky-500/60'
-                                                : 'bg-amber-400 text-amber-950 border border-amber-500/60'
-                                            }`}
-                                          >
-                                            {cardOverride.type === 'ct'
-                                              ? 'CT'
-                                              : cardOverride.type === 'online'
-                                              ? 'ONLINE'
-                                              : (cardOverride.type?.toUpperCase() || 'QUIZ')}
-                                          </span>
-                                        );
-                                      })()}
+                                      {cardOverride && cardOverride.type !== 'regular' && (
+                                        <span
+                                          title={`${cardOverride.title}${cardOverride.description ? `: ${cardOverride.description}` : ''}`}
+                                          className={`shrink-0 rounded px-1.5 py-0.5 text-[9.5px] font-bold font-mono uppercase shadow-2xs ${
+                                            cardOverride.type === 'online'
+                                              ? 'bg-sky-400 text-sky-950 border border-sky-500/60'
+                                              : cardOverride.type === 'cancelled'
+                                              ? 'bg-rose-400 text-rose-950 border border-rose-500/60'
+                                              : 'bg-amber-400 text-amber-950 border border-amber-500/60'
+                                          }`}
+                                        >
+                                          {cardOverride.type === 'ct'
+                                            ? 'CT'
+                                            : cardOverride.type === 'online'
+                                            ? 'ONLINE'
+                                            : cardOverride.type === 'cancelled'
+                                            ? 'CANCELLED'
+                                            : (cardOverride.type?.toUpperCase() || 'QUIZ')}
+                                        </span>
+                                      )}
                                       {isDoubleSlot && (
                                         <span className="text-[10px] font-mono font-semibold bg-black/25 text-white border border-white/20 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20 px-1.5 py-0.5 rounded">
                                           3h Lab

@@ -261,14 +261,20 @@ export function buildCalendarFeed(
       const startDate = new Date(oYear, oMonth - 1, oDay, startH, startM, 0);
       const endDate = new Date(oYear, oMonth - 1, oDay, endH, endM, 0);
 
+      const isRegular = override.type === 'regular';
+      const isCancelled = override.type === 'cancelled';
       const typeTag = override.type.toUpperCase();
       const typeBadge =
-        override.type === 'quiz' || override.type === 'ct'
+        isRegular
+          ? ''
+          : override.type === 'quiz' || override.type === 'ct'
           ? '[QUIZ]'
           : override.type === 'assignment'
           ? '[ASSIGNMENT]'
           : override.type === 'presentation'
           ? '[PRESENTATION]'
+          : override.type === 'cancelled'
+          ? '[CANCELLED]'
           : `[${typeTag}]`;
 
       const targetRoom = override.room || matchingClass?.room || 'Campus';
@@ -289,7 +295,9 @@ export function buildCalendarFeed(
         const isLab = matchingClass.type === 'Lab' || matchingClass.courseCode.toLowerCase().includes('lab') || matchingClass.courseTitle.toLowerCase().includes('lab');
         const siteTitle = getCourseShortTitle(cleanCourseCode, matchingClass.courseTitle, isLab);
 
-        const summary = `${typeBadge} ${siteTitle} (${cleanCourseCode})${override.title && !override.title.toLowerCase().includes(override.type.toLowerCase()) ? ` - ${override.title}` : ''}`;
+        const summary = isRegular
+          ? `${siteTitle} (${cleanCourseCode})`
+          : `${typeBadge} ${siteTitle} (${cleanCourseCode})${override.title && !override.title.toLowerCase().includes(override.type.toLowerCase()) ? ` - ${override.title}` : ''}`;
 
         const teacherMeta = matchingClass.teacherCode ? getFacultyByCode(matchingClass.teacherCode) : undefined;
         const instructorName = teacherMeta
@@ -307,19 +315,30 @@ export function buildCalendarFeed(
           ? `${matchingClass.sectionId} (Subsection ${matchingClass.section || ''}${matchingClass.subSection})`
           : matchingClass.sectionId || sectionBadge;
 
-        const description = [
-          `ANNOUNCEMENT: ${override.title}`,
-          override.description ? `${override.description}` : '',
-          ``,
-          `Instructor: ${instructorName}`,
-          `Course: ${fullCourseTitle} (${cleanCourseCode})`,
-          `Section: ${sectionDisplay}`,
-          `Room: ${targetRoom}`,
-          `Type: ${matchingClass.type}`,
-          `Routine Version: ${formattedVersion}`,
-          ``,
-          `synced from diucal.vercel.app`,
-        ].filter(Boolean).join('\n');
+        const description = isRegular
+          ? [
+              `Instructor: ${instructorName}`,
+              `Course: ${fullCourseTitle} (${cleanCourseCode})`,
+              `Section: ${sectionDisplay}`,
+              `Room: ${targetRoom}`,
+              `Type: ${matchingClass.type}`,
+              `Routine Version: ${formattedVersion}`,
+              ``,
+              `synced from diucal.vercel.app`,
+            ].join('\n')
+          : [
+              `ANNOUNCEMENT: ${override.title}`,
+              override.description ? `${override.description}` : '',
+              ``,
+              `Instructor: ${instructorName}`,
+              `Course: ${fullCourseTitle} (${cleanCourseCode})`,
+              `Section: ${sectionDisplay}`,
+              `Room: ${targetRoom}`,
+              `Type: ${matchingClass.type}`,
+              `Routine Version: ${formattedVersion}`,
+              ``,
+              `synced from diucal.vercel.app`,
+            ].filter(Boolean).join('\n');
 
         const overrideEvent = calendar.createEvent({
           id: deterministicUid,
@@ -330,20 +349,30 @@ export function buildCalendarFeed(
           summary,
           description,
           location: targetRoom,
-          sequence: 1,
+          sequence: isRegular ? 2 : 1,
         });
 
-        // Alarms: 2 hours before & 15 mins before
-        overrideEvent.createAlarm({
-          type: ICalAlarmType.display,
-          trigger: 7200, // 2 hours
-          description: `Class Alert: ${cleanCourseCode} ${override.title} in Room ${cleanRoom}`,
-        });
-        overrideEvent.createAlarm({
-          type: ICalAlarmType.display,
-          trigger: 900, // 15 mins
-          description: `Class Alert: ${cleanCourseCode} ${override.title} in Room ${cleanRoom}`,
-        });
+        if (isCancelled) {
+          // No alarms for cancelled class
+        } else if (isRegular) {
+          overrideEvent.createAlarm({
+            type: ICalAlarmType.display,
+            trigger: 900, // 15 mins
+            description: `Class Reminder: ${cleanCourseCode} in Room ${cleanRoom}`,
+          });
+        } else {
+          // Alarms: 2 hours before & 15 mins before
+          overrideEvent.createAlarm({
+            type: ICalAlarmType.display,
+            trigger: 7200, // 2 hours
+            description: `Class Alert: ${cleanCourseCode} ${override.title} in Room ${cleanRoom}`,
+          });
+          overrideEvent.createAlarm({
+            type: ICalAlarmType.display,
+            trigger: 900, // 15 mins
+            description: `Class Alert: ${cleanCourseCode} ${override.title} in Room ${cleanRoom}`,
+          });
+        }
       } else {
         // Standalone event (e.g. Makeup or extra class)
         const standaloneUid = `event-${override.sectionId}-${override.id}@${sourceDomain}`;

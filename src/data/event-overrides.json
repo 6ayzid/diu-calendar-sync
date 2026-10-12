@@ -105,6 +105,51 @@
     "createdAt": "2026-10-08T20:25:00Z"
   },
   {
+    "id": "override-66_O-CSE326-cancel-20261013",
+    "sectionId": "66_O",
+    "date": "2026-10-13",
+    "dayOfWeek": "TUESDAY",
+    "startTime": "14:30",
+    "endTime": "16:00",
+    "courseCode": "CSE326",
+    "type": "cancelled",
+    "title": "Class Rescheduled to Online (8:00 PM)",
+    "description": "Daytime campus class at 2:30 PM rescheduled to online at 8:00 PM tonight. Notice from Faculty: \"Dear students tomorrow's class is online around rat 8 ta\". Room: KT-318(A).",
+    "room": "KT-318(A)",
+    "status": "CONFIRMED",
+    "createdAt": "2026-10-12T22:23:00Z"
+  },
+  {
+    "id": "override-66_O-CSE326-online-20261013",
+    "sectionId": "66_O",
+    "date": "2026-10-13",
+    "dayOfWeek": "TUESDAY",
+    "startTime": "20:00",
+    "endTime": "21:30",
+    "courseCode": "CSE326",
+    "type": "online",
+    "title": "Online Class: SPIC (Social & Ethics)",
+    "description": "Social and Professional Issues in Computing (CSE326) Online Class at 8:00 PM. Notice from Faculty: \"Dear students tomorrow's class is online around rat 8 ta\". Room: Online.",
+    "room": "Online",
+    "status": "CONFIRMED",
+    "createdAt": "2026-10-12T22:23:00Z"
+  },
+  {
+    "id": "override-66_O-CSE326-20261015",
+    "sectionId": "66_O",
+    "date": "2026-10-15",
+    "dayOfWeek": "THURSDAY",
+    "startTime": "13:00",
+    "endTime": "14:30",
+    "courseCode": "CSE326",
+    "type": "quiz",
+    "title": "Quiz 02",
+    "description": "Social and Professional Issues in Computing - SPIC (CSE326) Quiz 02. Topics: Freedom of speech + crime + Review class. Room KT-223. Applicable for full 66_O (both lab subsections).",
+    "room": "KT-223",
+    "status": "CONFIRMED",
+    "createdAt": "2026-10-08T20:25:00Z"
+  },
+  {
     "id": "override-66_O-CSE316-20261015",
     "sectionId": "66_O",
     "date": "2026-10-15",
@@ -118,6 +163,21 @@
     "room": "KT-223",
     "status": "CONFIRMED",
     "createdAt": "2026-10-11T14:16:00Z"
+  },
+  {
+    "id": "override-66_O-CSE323-20261017",
+    "sectionId": "66_O",
+    "date": "2026-10-17",
+    "dayOfWeek": "SATURDAY",
+    "startTime": "14:30",
+    "endTime": "16:00",
+    "courseCode": "CSE323",
+    "type": "regular",
+    "title": "Operating Systems",
+    "description": "Operating Systems (CSE323) regular class in Room KT-306.",
+    "room": "KT-306",
+    "status": "CONFIRMED",
+    "createdAt": "2026-10-12T22:23:00Z"
   },
   {
     "id": "override-66_O-CSE323-20261024",
