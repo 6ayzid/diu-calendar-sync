@@ -120,19 +120,19 @@
     "createdAt": "2026-10-11T14:16:00Z"
   },
   {
-    "id": "override-66_O-CSE323-20261017",
+    "id": "override-66_O-CSE323-20261024",
     "sectionId": "66_O",
-    "date": "2026-10-17",
+    "date": "2026-10-24",
     "dayOfWeek": "SATURDAY",
     "startTime": "14:30",
     "endTime": "16:00",
     "courseCode": "CSE323",
     "type": "quiz",
-    "title": "Quiz 2",
-    "description": "Operating Systems (CSE323) Quiz 2. Syllabus: Chapter 3. Room KT-306. Applicable for full 66_O (both lab subsections).",
+    "title": "Quiz 2 (Rescheduled)",
+    "description": "Operating Systems (CSE323) Quiz 2 (Rescheduled to 24th October as per majority consensus). Syllabus: Chapter 3. Room KT-306. Note: No excuses will be accepted by the Sir. There will be no second chance to retake the exam. — CR. Applicable for full 66_O.",
     "room": "KT-306",
     "status": "CONFIRMED",
-    "createdAt": "2026-10-07T15:20:00Z"
+    "createdAt": "2026-10-12T17:05:00Z"
   },
   {
     "id": "override-ALL-holiday-20261019",
