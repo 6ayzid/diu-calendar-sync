@@ -312,10 +312,12 @@ export function TimetableGrid({
   const getCardExpansionStyle = useCallback(
     (cardElement: HTMLElement, hasNotice?: boolean) => {
       const container = matrixScrollRef.current;
-      const parentElement = (cardElement.offsetParent as HTMLElement) || cardElement.parentElement;
-      if (!parentElement) return undefined;
+      const dayColumn = (cardElement.closest('[data-day-column="true"]') as HTMLElement)
+        || (cardElement.offsetParent as HTMLElement)
+        || cardElement.parentElement;
+      if (!dayColumn) return undefined;
 
-      const parentRect = parentElement.getBoundingClientRect();
+      const parentRect = dayColumn.getBoundingClientRect();
       const cardRect = cardElement.getBoundingClientRect();
 
       // Determine visible matrix boundaries
@@ -1851,6 +1853,7 @@ export function TimetableGrid({
               return (
                 <div
                   key={`timeline-${d.globalDayIndex}-${d.dayKey}-${d.formattedDate}`}
+                  data-day-column="true"
                   className={`relative h-[600px] ${isAnyCardExpandedInDay ? 'z-40' : 'z-10'} ${
                     isWeekStart
                       ? 'border-l-2 border-l-slate-300 dark:border-l-slate-700'
@@ -1939,24 +1942,32 @@ export function TimetableGrid({
 
                     {/* Off-Grid Event Card in Matrix Column (e.g. Evening / Online classes starting >= 18:00 or untimed) */}
                     {dayOffGridOverrides.length > 0 && (
-                      <div className="absolute inset-x-1.5 bottom-2 z-20 space-y-1.5 pointer-events-auto">
-                        <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300 px-1 flex items-center gap-1.5">
-                          <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
+                      <>
+                        <div
+                          className="absolute inset-x-1.5 z-20 pointer-events-none flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300 px-1 select-none"
+                          style={{
+                            bottom: `${8 + dayOffGridOverrides.length * 58 + 2}px`,
+                          }}
+                        >
+                          <span className="h-1.5 w-1.5 rounded-full bg-sky-500 animate-pulse" />
                           <span>Evening / Online</span>
                         </div>
-                        {dayOffGridOverrides.map((ev) => {
+                        {dayOffGridOverrides.map((ev, evIdx) => {
                           const cardKey = `offgrid-${d.globalDayIndex}-${ev.id}`;
                           const isCardExpanded = expandedCard?.cardKey === cardKey;
                           const evClean = ev.courseCode.split('(')[0].trim().toUpperCase();
                           const matchedClass = classes.find((c) => c.courseCode.split('(')[0].trim().toUpperCase() === evClean);
                           const resolvedTeacher = matchedClass?.teacherCode || '';
+                          const resolvedCourseTitle = matchedClass?.courseTitle || (ev.title ? `${ev.courseCode} - ${ev.title}` : ev.courseCode);
+                          const shortTitle = getCourseShortTitle(evClean, resolvedCourseTitle, false);
+
                           const classItem: RoutineClass = {
                             id: ev.id,
                             batch: section?.batch || '',
                             section: section?.sectionLetter || '',
                             sectionId: ev.sectionId || section?.id || '',
                             courseCode: ev.courseCode,
-                            courseTitle: matchedClass?.courseTitle || (ev.title ? `${ev.courseCode} - ${ev.title}` : ev.courseCode),
+                            courseTitle: resolvedCourseTitle,
                             teacherCode: resolvedTeacher,
                             room: ev.room || 'Online',
                             dayOfWeek: d.dayKey as DayOfWeek,
@@ -1965,6 +1976,10 @@ export function TimetableGrid({
                             type: 'Theory',
                           };
                           const dayLabel = `${d.dayLabel || d.dayShort}, ${d.monthShort} ${d.dayNumber}`;
+
+                          const offGridCardHeight = 54;
+                          const bottomOffset = 8 + (dayOffGridOverrides.length - 1 - evIdx) * (offGridCardHeight + 4);
+                          const unexpandedTop = 600 - bottomOffset - offGridCardHeight;
 
                           return (
                             <div
@@ -1988,10 +2003,10 @@ export function TimetableGrid({
                                   });
                                 }
                               }}
-                              className={`transition-all duration-300 ease-out select-none border ${
+                              className={`absolute transition-all duration-300 ease-out select-none ${
                                 isCardExpanded
-                                  ? 'absolute z-[60] rounded-xl shadow-xl p-2.5 sm:p-3 ring-1 ring-sky-500/40 bg-white/98 dark:bg-slate-900/98 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800 overflow-y-auto cursor-default'
-                                  : 'rounded-xl border-sky-300/80 bg-sky-50/95 dark:border-sky-800/80 dark:bg-sky-950/90 backdrop-blur-xs p-2 shadow-xs space-y-1 hover:scale-[1.01] cursor-pointer'
+                                  ? 'z-[60] rounded-xl shadow-xl p-2.5 sm:p-3 ring-1 ring-sky-500/40 bg-white/98 dark:bg-slate-900/98 text-slate-900 dark:text-slate-100 border border-slate-200 dark:border-slate-800 overflow-y-auto cursor-default'
+                                  : 'rounded-xl border border-sky-400/80 bg-sky-50/95 dark:border-sky-800/80 dark:bg-sky-950/90 backdrop-blur-xs p-1.5 shadow-xs flex flex-col justify-between cursor-pointer group z-20 hover:z-25 hover:shadow-md hover:scale-[1.01] overflow-hidden'
                               }`}
                               style={
                                 isCardExpanded && expandedCard?.style
@@ -2002,7 +2017,12 @@ export function TimetableGrid({
                                       height: `${expandedCard.style.height}px`,
                                       maxHeight: '360px',
                                     }
-                                  : undefined
+                                  : {
+                                      top: `${unexpandedTop}px`,
+                                      left: '6px',
+                                      width: 'calc(100% - 12px)',
+                                      height: `${offGridCardHeight}px`,
+                                    }
                               }
                             >
                               {isCardExpanded ? (
@@ -2013,29 +2033,31 @@ export function TimetableGrid({
                                 })
                               ) : (
                                 <>
-                                  <div className="flex items-center justify-between gap-1">
-                                    <span className="font-mono font-bold text-[11px] text-sky-950 dark:text-sky-100 truncate">
-                                      {ev.courseCode}
+                                  <div className="flex items-center justify-between gap-1 min-w-0">
+                                    <span className="font-bold text-xs tracking-tight truncate text-sky-950 dark:text-sky-100 leading-tight">
+                                      {shortTitle}
                                     </span>
-                                    <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-sky-400 text-sky-950">
+                                    <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-sky-400 text-sky-950 shrink-0">
                                       {ev.type === 'ct' ? 'CT' : ev.type === 'online' ? 'ONLINE' : (ev.type?.toUpperCase() || 'EVENT')}
                                     </span>
                                   </div>
-                                  <div className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-snug truncate">
-                                    {ev.title}
-                                  </div>
-                                  <div className="text-[10px] font-mono text-slate-600 dark:text-slate-300 flex items-center justify-between pt-0.5 border-t border-sky-200/60 dark:border-sky-800/60">
-                                    <span className="text-sky-700 dark:text-sky-300 font-medium truncate flex items-center gap-1">
+                                  <div className="flex items-center justify-between text-[10px] font-mono leading-tight pt-0.5 border-t border-sky-200/60 dark:border-sky-800/60 text-sky-700 dark:text-sky-300 min-w-0">
+                                    <span className="font-bold truncate flex items-center gap-0.5 min-w-0">
                                       <MapPin className="h-2.5 w-2.5 shrink-0 opacity-80" />
-                                      <span>{ev.room || 'Online'}</span>
+                                      <span className="truncate">{ev.room || 'Online'}</span>
                                     </span>
+                                    {ev.startTime && (
+                                      <span className="font-semibold shrink-0">
+                                        {formatTime12(ev.startTime)}
+                                      </span>
+                                    )}
                                   </div>
                                 </>
                               )}
                             </div>
                           );
                         })}
-                      </div>
+                      </>
                     )}
 
                     {!positionedEvents.some((pe) => pe.isHighPriority) && positionedEvents.some((pe) => pe.isBlockMode) && (
@@ -2297,16 +2319,18 @@ export function TimetableGrid({
 
                                 <div className="space-y-0.5 overflow-hidden min-w-0 relative z-10">
                                   <div className="flex items-center justify-between gap-1 min-w-0">
-                                    <span className="font-mono font-bold text-[11px] truncate">
-                                      {ev.courseCode}
+                                    <span className="font-bold text-xs truncate leading-tight">
+                                      {getCourseShortTitle(cleanCode, c.courseTitle, c.type === 'Lab')}
                                     </span>
                                     <span className={`text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded shrink-0 ${badgeClass}`}>
                                       {badgeLabel}
                                     </span>
                                   </div>
-                                  <div className="text-xs font-semibold leading-snug truncate">
-                                    {ev.title}
-                                  </div>
+                                  {ev.title && !ev.title.toLowerCase().includes(ev.type?.toLowerCase() || '') && (
+                                    <div className="text-[10.5px] font-medium leading-snug truncate opacity-90">
+                                      {ev.title}
+                                    </div>
+                                  )}
                                 </div>
                                 <div className="pt-0.5 border-t border-black/10 dark:border-white/10 flex items-center justify-between text-[10px] font-mono leading-tight min-w-0 relative z-10">
                                   <span className="flex items-center gap-0.5 font-bold truncate">
@@ -2323,12 +2347,6 @@ export function TimetableGrid({
                       // 2. Render Full Info Card (High-Priority Active Routine)
                       const isLab = c.type === 'Lab';
                       const shortTitle = getCourseShortTitle(cleanCode, c.courseTitle, isLab);
-
-                      // If shortTitle already contains cleanCode or is identical, do not show cleanCode separately
-                      const isCodeSameAsTitle =
-                        cleanCode.toUpperCase() === shortTitle.toUpperCase() ||
-                        shortTitle.toUpperCase().includes(cleanCode.toUpperCase());
-                      const showSeparateCode = cleanCode && !isCodeSameAsTitle;
 
                       // Determine card theme:
                       // If comparing, BOTH sections are washed out with in-theme dark/muted neutral distinctions; only Free Time is solid primary emerald!
@@ -2494,11 +2512,6 @@ export function TimetableGrid({
                                     <span className={`font-bold tracking-tight text-xs truncate leading-tight ${cardOverride?.type === 'cancelled' ? 'line-through opacity-75' : ''}`}>
                                       {shortTitle}
                                     </span>
-                                    {showSeparateCode && zoomDays <= 3.5 && (
-                                      <span className="text-[10px] font-mono opacity-80 shrink-0 leading-tight">
-                                        {cleanCode}
-                                      </span>
-                                    )}
                                   </div>
 
                                   {/* Subsection badge & Event Override Pill (e.g. Quiz / Cancelled / Online) */}
@@ -2928,9 +2941,6 @@ export function TimetableGrid({
                                       )}
                                       <span className={`font-bold text-sm tracking-tight truncate ${cardOverride?.type === 'cancelled' ? 'line-through opacity-70' : ''}`}>
                                         {shortTitle}
-                                      </span>
-                                      <span className="text-xs font-mono font-semibold opacity-80 shrink-0">
-                                        {cleanCourseCode}
                                       </span>
                                     </div>
 
