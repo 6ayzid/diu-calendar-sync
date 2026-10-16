@@ -141,3 +141,61 @@ export function getCourseShortTitle(code: string, rawTitle?: string, isLab?: boo
 
   return title.slice(0, 18);
 }
+
+/**
+ * Returns a high-glance, minimal short label (e.g. "D1", "D2", "A1") for lab subsections.
+ * Returns null for theory classes or labs without a specific subgroup.
+ */
+export function getLabSubsectionBadge(
+  c: {
+    type?: string;
+    subSection?: '1' | '2' | 'all' | null;
+    section?: string;
+    sectionId?: string;
+    courseCode?: string;
+    courseTitle?: string;
+    id?: string;
+  },
+  sectionProp?: { sectionLetter?: string; id?: string } | null
+): string | null {
+  const isLabClass =
+    c.type === 'Lab' ||
+    Boolean(c.courseTitle && /lab|sessional/i.test(c.courseTitle)) ||
+    Boolean(c.courseCode && /lab|sessional/i.test(c.courseCode)) ||
+    (c.subSection !== undefined && c.subSection !== null && c.subSection !== 'all');
+
+  if (!isLabClass) return null;
+
+  let sub = c.subSection && c.subSection !== 'all' ? c.subSection : null;
+  let letter = c.section || sectionProp?.sectionLetter || '';
+
+  if (!sub) {
+    const codeMatch = c.courseCode ? c.courseCode.match(/\((?:[0-9]+_)?([A-Za-z]+)([12])\)/) : null;
+    if (codeMatch) {
+      if (!letter) letter = codeMatch[1];
+      sub = codeMatch[2] as '1' | '2';
+    } else {
+      const idMatch = c.id ? c.id.match(/-sub([12])\-/) : null;
+      if (idMatch) {
+        sub = idMatch[1] as '1' | '2';
+      } else {
+        const secIdMatch = c.sectionId ? c.sectionId.match(/_([A-Za-z]+)([12])$/) : null;
+        if (secIdMatch) {
+          if (!letter) letter = secIdMatch[1];
+          sub = secIdMatch[2] as '1' | '2';
+        }
+      }
+    }
+  }
+
+  if (!letter && c.sectionId) {
+    const match = c.sectionId.match(/_([A-Za-z]+)/);
+    if (match) letter = match[1];
+  }
+
+  if (sub) {
+    return letter ? `${letter.toUpperCase()}${sub}` : `Sub ${sub}`;
+  }
+
+  return null;
+}

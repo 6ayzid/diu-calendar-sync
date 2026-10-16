@@ -19,7 +19,7 @@ import {
   GraduationCap,
 } from 'lucide-react';
 import { getFacultyByCode, registerDynamicFaculty } from '@/data/faculty';
-import { getCourseShortTitle } from '@/lib/course-utils';
+import { getCourseShortTitle, getLabSubsectionBadge } from '@/lib/course-utils';
 import { COURSE_CATALOG } from '@/lib/courses';
 import { formatTime12, getDhakaClock, DhakaClockState, getUpcomingDays, getCurrentWeekScheduleDays, WeekScheduleDay, ContinuousScheduleDay, getContinuousScheduleDays, timeToMinutes } from '@/lib/time-utils';
 import { HOURLY_MARKS, layoutDayEvents, getCurrentTimeTopPercent, PositionedEvent, TIMELINE_START_HOUR, TIMELINE_END_HOUR } from '@/lib/timeline-layout';
@@ -255,10 +255,9 @@ export function TimetableGrid({
     zoomDaysRef.current = zoomDays;
   }, [zoomDays]);
 
-  // Compression limit: on mobile (<640px) max comfortable days is 3.0. On desktop/tablet (>=640px) it is 7.0 (7 grids).
+  // Compression limit: allow viewing full 7 days (7 grids) on both mobile and desktop/tablet, just like Google Calendar
   const getCompressionLimit = useCallback(() => {
-    if (typeof window === 'undefined') return 7.0;
-    return window.innerWidth < 640 ? 3.0 : 7.0;
+    return 7.0;
   }, []);
 
   const minZoomLimit = 1.0;
@@ -418,15 +417,29 @@ export function TimetableGrid({
 
     let anchor = zoomAnchorRef.current;
     if (!anchor) {
-      // Fallback: anchor around the center of the visible day area
-      const centerOffsetX = dayAreaWidth / 2;
-      const centerViewportX = timeWidth + centerOffsetX;
-      const dayX = container.scrollLeft + centerOffsetX;
-      const dayUnits = Math.max(0, Math.min(continuousDays.length, (dayX * prevZoom) / dayAreaWidth));
-      anchor = {
-        dayUnits,
-        viewportX: centerViewportX,
-      };
+      // Prefer anchoring around Today if Today is visible or near onscreen
+      const todayIdx = continuousDays.findIndex((d) => d.isToday);
+      if (todayIdx >= 0) {
+        const todayDayX = todayIdx * (dayAreaWidth / prevZoom);
+        const relativeX = todayDayX - container.scrollLeft;
+        if (relativeX >= -dayAreaWidth * 0.1 && relativeX <= dayAreaWidth * 1.1) {
+          anchor = {
+            dayUnits: todayIdx,
+            viewportX: Math.max(timeWidth, Math.min(container.clientWidth, timeWidth + relativeX)),
+          };
+        }
+      }
+      if (!anchor) {
+        // Fallback: anchor around the center of the visible day area
+        const centerOffsetX = dayAreaWidth / 2;
+        const centerViewportX = timeWidth + centerOffsetX;
+        const dayX = container.scrollLeft + centerOffsetX;
+        const dayUnits = Math.max(0, Math.min(continuousDays.length, (dayX * prevZoom) / dayAreaWidth));
+        anchor = {
+          dayUnits,
+          viewportX: centerViewportX,
+        };
+      }
     }
 
     const targetOffsetX = Math.max(0, anchor.viewportX - timeWidth);
@@ -756,7 +769,9 @@ export function TimetableGrid({
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
-      if (e.touches.length < 2) {
+      // Only spring bounce if a 2-finger pinch was actively in progress.
+      // Single-finger taps or scrolls must NEVER trigger a spring bounce or zoom jump.
+      if (e.touches.length < 2 && initialTouchDistRef.current !== null) {
         initialTouchDistRef.current = null;
         touchAnchorRef.current = null;
 
@@ -770,6 +785,10 @@ export function TimetableGrid({
         } else {
           zoomAnchorRef.current = null;
         }
+      } else if (e.touches.length < 2) {
+        initialTouchDistRef.current = null;
+        touchAnchorRef.current = null;
+        zoomAnchorRef.current = null;
       }
     };
 
@@ -916,20 +935,26 @@ export function TimetableGrid({
     if (!matrixScrollRef.current) return;
     const container = matrixScrollRef.current;
     const todayIdx = continuousDays.findIndex((d) => d.isToday);
-    const targetIdx = todayIdx >= 0 ? todayIdx : 0;
+    if (todayIdx < 0) return;
 
-    if (targetIdx >= 0) {
-      const timeWidth = getTimeColWidth();
-      const dayAreaWidth = Math.max(1, container.clientWidth - timeWidth);
-      const dayWidth = dayAreaWidth / zoomDaysRef.current;
-      container.scrollTo({
-        left: Math.max(0, targetIdx * dayWidth),
-        behavior: smooth ? 'smooth' : 'auto',
-      });
-      setVisibleWeekOffset(continuousDays[targetIdx]?.weekOffset ?? 0);
-      isTodayVisibleRef.current = true;
-      setIsTodayVisible(true);
+    const currentZoom = zoomDaysRef.current;
+    let targetIdx = todayIdx;
+    if (currentZoom >= 5.5) {
+      // In full week view (7 days), show the whole current week starting from Saturday
+      const dayInWeek = continuousDays[todayIdx]?.dayIndexInWeek ?? 0;
+      targetIdx = Math.max(0, todayIdx - dayInWeek);
     }
+
+    const timeWidth = getTimeColWidth();
+    const dayAreaWidth = Math.max(1, container.clientWidth - timeWidth);
+    const dayWidth = dayAreaWidth / currentZoom;
+    container.scrollTo({
+      left: Math.max(0, targetIdx * dayWidth),
+      behavior: smooth ? 'smooth' : 'auto',
+    });
+    setVisibleWeekOffset(continuousDays[todayIdx]?.weekOffset ?? 0);
+    isTodayVisibleRef.current = true;
+    setIsTodayVisible(true);
   }, [continuousDays, getTimeColWidth]);
 
   const handlePrev = useCallback(() => {
@@ -958,7 +983,7 @@ export function TimetableGrid({
     });
   }, [getTimeColWidth]);
 
-  // Initial jump directly to Today's grid on mount - 0px gap, starts from Today
+  // Initial jump directly to Today / current week on mount
   const initialScrollDoneRef = useRef(false);
   useEffect(() => {
     if (initialScrollDoneRef.current || !matrixScrollRef.current || continuousDays.length === 0) return;
@@ -967,23 +992,30 @@ export function TimetableGrid({
     const performInitialScroll = () => {
       if (!container || container.clientWidth < 100) return false;
 
-      // Start directly from the grid of Today
       const todayIdx = continuousDays.findIndex((d) => d.isToday);
-      const targetIdx = todayIdx >= 0 ? todayIdx : 0;
+      if (todayIdx < 0) return false;
+
+      const currentZoom = zoomDaysRef.current;
+      let targetIdx = todayIdx;
+      if (currentZoom >= 5.5) {
+        // In full week view (7 days), show the whole current week starting from Saturday
+        const dayInWeek = continuousDays[todayIdx]?.dayIndexInWeek ?? 0;
+        targetIdx = Math.max(0, todayIdx - dayInWeek);
+      }
 
       const timeWidth = getTimeColWidth();
       const dayAreaWidth = Math.max(1, container.clientWidth - timeWidth);
-      const dayWidth = dayAreaWidth / zoomDaysRef.current;
+      const dayWidth = dayAreaWidth / currentZoom;
       const targetLeft = Math.max(0, targetIdx * dayWidth);
 
       container.scrollLeft = targetLeft;
-      setVisibleWeekOffset(continuousDays[targetIdx]?.weekOffset ?? 0);
+      setVisibleWeekOffset(continuousDays[todayIdx]?.weekOffset ?? 0);
       initialScrollDoneRef.current = true;
 
       const startDayIdx = targetIdx;
       const endDayIdx = Math.min(
         continuousDays.length - 1,
-        targetIdx + Math.max(1, Math.round(zoomDaysRef.current)) - 1
+        targetIdx + Math.max(1, Math.round(currentZoom)) - 1
       );
       visibleDateRangeRef.current = { startIdx: startDayIdx, endIdx: endDayIdx };
       setVisibleDateRange({ startIdx: startDayIdx, endIdx: endDayIdx });
@@ -1344,11 +1376,16 @@ export function TimetableGrid({
                   </button>
                 );
               })()
-            ) : item.subSection ? (
-              <span className="px-1.5 py-0.2 rounded font-mono text-[9.5px] font-bold bg-black/10 dark:bg-white/10 text-slate-700 dark:text-slate-300">
-                Sec {item.subSection}
-              </span>
             ) : null}
+            {(() => {
+              const labBadge = getLabSubsectionBadge(item, section);
+              if (!labBadge) return null;
+              return (
+                <span className="px-1.5 py-0.2 rounded font-mono text-[9.5px] font-bold bg-amber-400 text-amber-950 border border-amber-500/60 shadow-2xs">
+                  Lab {labBadge}
+                </span>
+              );
+            })()}
           </div>
 
           <button
@@ -2180,12 +2217,23 @@ export function TimetableGrid({
                                   />
                                 )}
                                 <div className="flex items-center justify-between gap-1 min-w-0 relative z-10">
-                                  <span className={`font-mono font-bold text-[9px] px-1 py-0.2 rounded shrink-0 ${badgeStyle}`}>
-                                    {pe.targetBadge}
-                                  </span>
-                                  <span className="font-bold text-[10px] sm:text-[11px] truncate opacity-90">
-                                    {getCourseShortTitle(cleanCode, c.courseTitle, c.type === 'Lab')}
-                                  </span>
+                                  <div className="flex items-center gap-1 min-w-0 truncate">
+                                    <span className={`font-mono font-bold text-[9px] px-1 py-0.2 rounded shrink-0 ${badgeStyle}`}>
+                                      {pe.targetBadge}
+                                    </span>
+                                    {(() => {
+                                      const labBadge = getLabSubsectionBadge(c, section);
+                                      if (!labBadge) return null;
+                                      return (
+                                        <span className="font-mono font-bold text-[9px] px-1 py-0.2 rounded shrink-0 bg-amber-400 text-amber-950 border border-amber-500/60 shadow-2xs">
+                                          {labBadge}
+                                        </span>
+                                      );
+                                    })()}
+                                    <span className="font-bold text-[10px] sm:text-[11px] truncate opacity-90">
+                                      {getCourseShortTitle(cleanCode, c.courseTitle, c.type === 'Lab')}
+                                    </span>
+                                  </div>
                                 </div>
                                 <div className="flex items-center justify-between text-[9px] sm:text-[9.5px] font-mono opacity-75 truncate pt-0.5 border-t border-black/10 dark:border-white/10 relative z-10">
                                   <span className="truncate font-semibold flex items-center gap-0.5">
@@ -2347,6 +2395,7 @@ export function TimetableGrid({
                       // 2. Render Full Info Card (High-Priority Active Routine)
                       const isLab = c.type === 'Lab';
                       const shortTitle = getCourseShortTitle(cleanCode, c.courseTitle, isLab);
+                      const labSubBadge = getLabSubsectionBadge(c, section);
 
                       // Determine card theme:
                       // If comparing, BOTH sections are washed out with in-theme dark/muted neutral distinctions; only Free Time is solid primary emerald!
@@ -2536,16 +2585,13 @@ export function TimetableGrid({
                                           : (cardOverride.type?.toUpperCase() || 'QUIZ')}
                                       </span>
                                     )}
-                                    {!isFaculty && (
-                                      c.subSection ? (
-                                        <span className={`shrink-0 rounded px-1.5 py-0.2 text-[9px] font-bold font-mono border relative z-10 ${subsectionBadgeClass}`}>
-                                          {section ? section.sectionLetter : ''}{c.subSection}
-                                        </span>
-                                      ) : durationMins >= 150 && zoomDays <= 3.5 ? (
-                                        <span className={`shrink-0 rounded px-1.5 py-0.2 text-[9px] font-mono font-bold border relative z-10 ${subsectionBadgeClass}`}>
-                                          3h
-                                        </span>
-                                      ) : null
+                                    {labSubBadge && (
+                                      <span
+                                        title={`Lab Subsection ${labSubBadge}`}
+                                        className="shrink-0 rounded px-1.5 py-0.2 text-[9px] font-bold font-mono border relative z-10 bg-amber-400 text-amber-950 border-amber-500/60 dark:bg-amber-400 dark:text-amber-950 shadow-2xs"
+                                      >
+                                        {labSubBadge}
+                                      </span>
                                     )}
                                   </div>
                                 </div>
@@ -2827,6 +2873,7 @@ export function TimetableGrid({
                         const isLab = classItem.type === 'Lab';
                         const cleanCourseCode = classItem.courseCode.split('(')[0].trim();
                         const shortTitle = getCourseShortTitle(cleanCourseCode, classItem.courseTitle, isLab);
+                        const agendaLabSubBadge = getLabSubsectionBadge(classItem, section);
 
                         const isLiveNow =
                           d.isToday &&
@@ -2970,9 +3017,9 @@ export function TimetableGrid({
                                           3h Lab
                                         </span>
                                       )}
-                                      {!isFaculty && classItem.subSection && (
-                                        <span className="text-[10px] font-mono font-bold bg-white/20 text-white border border-white/25 dark:bg-black/15 dark:text-emerald-950 dark:border-black/20 px-1.5 py-0.5 rounded">
-                                          Sec {section ? section.sectionLetter : ''}{classItem.subSection}
+                                      {agendaLabSubBadge && (
+                                        <span className="text-[10px] font-mono font-bold bg-amber-400 text-amber-950 border border-amber-500/60 px-1.5 py-0.5 rounded shadow-2xs shrink-0">
+                                          {agendaLabSubBadge}
                                         </span>
                                       )}
                                     </div>
