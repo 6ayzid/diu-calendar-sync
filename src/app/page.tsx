@@ -105,6 +105,7 @@ export default function Home() {
   const [facultyInfoCode, setFacultyInfoCode] = useState<string | null>(null);
   const [facultyInfoReturnSection, setFacultyInfoReturnSection] = useState<string | null>(null);
   const [facultyInfoInitial, setFacultyInfoInitial] = useState<FacultyMeta | null>(null);
+  const [facultyInfoOrigin, setFacultyInfoOrigin] = useState<{ x: number; y: number } | null>(null);
   const [isSectionInfoOpen, setIsSectionInfoOpen] = useState(false);
   const [sectionInfoTargetId, setSectionInfoTargetId] = useState<string | null>(null);
 
@@ -113,10 +114,26 @@ export default function Home() {
     setIsRoomFinderOpen(true);
   };
 
-  const handleOpenFacultyInfo = (code: string, returnSection?: string, initial?: FacultyMeta) => {
+  const handleOpenFacultyInfo = (
+    code: string,
+    originOrReturnSection?: { x: number; y: number } | string | null,
+    initial?: FacultyMeta | null,
+    explicitOrigin?: { x: number; y: number } | null
+  ) => {
+    let returnSec: string | null = null;
+    let origin: { x: number; y: number } | null = null;
+
+    if (typeof originOrReturnSection === 'string') {
+      returnSec = originOrReturnSection;
+      origin = explicitOrigin || null;
+    } else if (originOrReturnSection && typeof originOrReturnSection === 'object' && 'x' in originOrReturnSection) {
+      origin = originOrReturnSection;
+    }
+
     setFacultyInfoCode(code);
-    setFacultyInfoReturnSection(returnSection || null);
+    setFacultyInfoReturnSection(returnSec);
     setFacultyInfoInitial(initial || getFacultyByCode(code) || null);
+    setFacultyInfoOrigin(origin);
     setIsFacultyInfoOpen(true);
     setIsSectionInfoOpen(false);
   };
@@ -1149,6 +1166,7 @@ export default function Home() {
       <FacultyInfoModal
         isOpen={isFacultyInfoOpen}
         facultyCode={facultyInfoCode}
+        originPoint={facultyInfoOrigin}
         initialFaculty={
           facultyInfoInitial ||
           (activeTarget?.type === 'faculty' && activeTarget.faculty.code === facultyInfoCode
@@ -1162,22 +1180,29 @@ export default function Home() {
           setFacultyInfoCode(null);
           setFacultyInfoReturnSection(null);
           setFacultyInfoInitial(null);
+          setFacultyInfoOrigin(null);
         }}
         returnSectionId={facultyInfoReturnSection}
         onBackToSection={(secId) => {
           setIsFacultyInfoOpen(false);
           setFacultyInfoReturnSection(null);
+          setFacultyInfoOrigin(null);
           handleOpenSectionInfo(secId);
         }}
         onCompareWithFaculty={(fac) => {
+          setIsFacultyInfoOpen(false);
+          setFacultyInfoOrigin(null);
           handleSelectCompareTarget({ type: 'faculty', faculty: fac });
         }}
         onOpenComparePicker={() => {
           setIsFacultyInfoOpen(false);
+          setFacultyInfoOrigin(null);
           setIsComparePickerOpen(true);
           setIsSectionPickerOpen(true);
         }}
         onNavigateToFaculty={(fac) => {
+          setIsFacultyInfoOpen(false);
+          setFacultyInfoOrigin(null);
           handleSelectFaculty(fac);
         }}
       />
@@ -1208,8 +1233,8 @@ export default function Home() {
         onNavigateToSection={(sec) => {
           handleSelectSection(sec);
         }}
-        onOpenFacultyInfo={(code, initial) => {
-          handleOpenFacultyInfo(code, sectionInfoTargetId || undefined, initial);
+        onOpenFacultyInfo={(code, initial, origin) => {
+          handleOpenFacultyInfo(code, sectionInfoTargetId || undefined, initial, origin);
         }}
       />
 

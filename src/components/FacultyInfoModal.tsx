@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import {
   X,
   Copy,
@@ -24,6 +24,7 @@ interface FacultyInfoModalProps {
   activeTarget?: ActiveRoutineTarget | null;
   compareState?: CompareState;
   returnSectionId?: string | null;
+  originPoint?: { x: number; y: number } | null;
   onBackToSection?: (sectionId: string) => void;
   onCompareWithFaculty?: (faculty: FacultyMeta) => void;
   onOpenComparePicker?: () => void;
@@ -39,6 +40,7 @@ export function FacultyInfoModal({
   activeTarget,
   compareState,
   returnSectionId,
+  originPoint,
   onBackToSection,
   onCompareWithFaculty,
   onOpenComparePicker,
@@ -48,6 +50,64 @@ export function FacultyInfoModal({
   const [loading, setLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const [isClosing, setIsClosing] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Initial estimate for transform origin before paint
+  const getInitialOrigin = () => {
+    if (typeof window === 'undefined' || !originPoint) return 'center center';
+    const approxW = Math.min(window.innerWidth - 32, 448);
+    const approxH = Math.min(window.innerHeight - 32, 460);
+    const approxLeft = (window.innerWidth - approxW) / 2;
+    const approxTop = (window.innerHeight - approxH) / 2;
+    return `${Math.round(originPoint.x - approxLeft)}px ${Math.round(originPoint.y - approxTop)}px`;
+  };
+
+  const [cardTransformOrigin, setCardTransformOrigin] = useState<string>(getInitialOrigin);
+
+  useEffect(() => {
+    if (isOpen) {
+      setIsClosing(false);
+    }
+  }, [isOpen]);
+
+  // Handle animated close with snappy 170ms natural shrink
+  const handleAnimatedClose = useCallback(() => {
+    if (isClosing) return;
+    setIsClosing(true);
+    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = setTimeout(() => {
+      onClose();
+      setIsClosing(false);
+    }, 170);
+  }, [isClosing, onClose]);
+
+  // Cleanup close timer on unmount
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+    };
+  }, []);
+
+  // Compute exact sub-pixel transform origin before paint
+  const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+  useIsomorphicLayoutEffect(() => {
+    if (isOpen && originPoint && cardRef.current) {
+      const rect = cardRef.current.getBoundingClientRect();
+      const relX = Math.round(originPoint.x - rect.left);
+      const relY = Math.round(originPoint.y - rect.top);
+      const originStr = `${relX}px ${relY}px`;
+      setCardTransformOrigin(originStr);
+      cardRef.current.style.transformOrigin = originStr;
+    } else if (!originPoint) {
+      setCardTransformOrigin('center center');
+      if (cardRef.current) {
+        cardRef.current.style.transformOrigin = 'center center';
+      }
+    }
+  }, [isOpen, originPoint]);
 
   // Load initial data and query full details with client-side caching
   useEffect(() => {
@@ -102,13 +162,13 @@ export function FacultyInfoModal({
   // Handle escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
+      if (e.key === 'Escape' && isOpen && !isClosing) {
+        handleAnimatedClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, isClosing, handleAnimatedClose]);
 
   // Copy to clipboard helper
   const handleCopy = useCallback(async (text: string, key: string) => {
@@ -145,16 +205,24 @@ export function FacultyInfoModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="faculty-modal-title"
-      className="fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150"
+      className={`fixed inset-0 z-[110] flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm ${
+        isClosing ? 'animate-faculty-backdrop-out' : 'animate-faculty-backdrop-in'
+      }`}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget) handleAnimatedClose();
       }}
     >
-      <div className="relative w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col transition-all overflow-hidden p-5 sm:p-6 space-y-4">
+      <div
+        ref={cardRef}
+        style={{ transformOrigin: cardTransformOrigin }}
+        className={`relative w-full max-w-md rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden p-5 sm:p-6 space-y-4 ${
+          isClosing ? 'animate-faculty-shrink' : 'animate-faculty-grow'
+        }`}
+      >
         {/* Top Right Close Button */}
         <button
           type="button"
-          onClick={onClose}
+          onClick={handleAnimatedClose}
           aria-label="Close modal"
           className="absolute top-4 right-4 z-20 p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
         >

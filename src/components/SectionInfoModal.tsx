@@ -26,7 +26,11 @@ interface SectionInfoModalProps {
   onCompareWithSection?: (section: SectionMeta) => void;
   onOpenComparePicker?: () => void;
   onNavigateToSection?: (section: SectionMeta) => void;
-  onOpenFacultyInfo?: (facultyCode: string, initialFaculty?: FacultyMeta) => void;
+  onOpenFacultyInfo?: (
+    facultyCode: string,
+    initialFaculty?: FacultyMeta,
+    originPoint?: { x: number; y: number } | null
+  ) => void;
 }
 
 interface TeacherEntry {
@@ -315,7 +319,7 @@ export function SectionInfoModal({
               <button
                 key={teacher.code}
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
                   const fac = getFacultyByCode(teacher.code);
                   const initialFac: FacultyMeta = {
                     code: teacher.code,
@@ -327,7 +331,12 @@ export function SectionInfoModal({
                     email: fac?.email,
                     image: teacher.image || fac?.image,
                   };
-                  onOpenFacultyInfo?.(teacher.code, initialFac);
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const origin = {
+                    x: Math.round(rect.left + rect.width / 2),
+                    y: Math.round(rect.top + rect.height / 2),
+                  };
+                  onOpenFacultyInfo?.(teacher.code, initialFac, origin);
                 }}
                 title={`View profile for ${teacher.name}`}
                 className="w-full text-left p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40 hover:bg-slate-100/90 dark:hover:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-700 transition-all cursor-pointer flex items-center justify-between gap-3 group"

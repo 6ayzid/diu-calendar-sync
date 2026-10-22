@@ -40,6 +40,7 @@ html.dark {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --font-mono: var(--font-mono), ui-monospace, monospace;
   --color-radiant-emerald: var(--color-radiant-emerald);
   --color-signal-sky: var(--color-signal-sky);
@@ -50,6 +51,10 @@ html.dark {
   --color-obsidian-void: var(--color-canvas);
   --color-hard-slate: var(--color-surface);
   --color-terminal-border: var(--color-border-terminal);
+}
+
+.font-ui {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
 html,
@@ -301,8 +306,80 @@ html.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
 .calendar-matrix-scroll,
 .timeline-grid-layout,
 .matrix-grid-layout {
-  --col-time: 44px;
+  --col-time: 38px;
   --col-day: 0px;
+}
+
+/* Faculty Profile Modal - Natural Acceleration Transform Animations */
+@keyframes facultyCardGrow {
+  0% {
+    opacity: 0;
+    transform: scale(0.12);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes facultyCardShrink {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.15);
+  }
+}
+
+@keyframes facultyBackdropIn {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes facultyBackdropOut {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-faculty-grow {
+  animation: facultyCardGrow 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-faculty-shrink {
+  animation: facultyCardShrink 170ms cubic-bezier(0.4, 0, 1, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.animate-faculty-backdrop-in {
+  animation: facultyBackdropIn 220ms ease-out forwards;
+  will-change: opacity;
+}
+
+.animate-faculty-backdrop-out {
+  animation: facultyBackdropOut 170ms ease-in forwards;
+  will-change: opacity;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-faculty-grow,
+  .animate-faculty-shrink {
+    animation: none !important;
+    transform: none !important;
+  }
 }
 
 .timeline-grid-layout,

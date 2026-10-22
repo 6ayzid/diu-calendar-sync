@@ -54,14 +54,14 @@ export function getCourseShortTitle(code: string, rawTitle?: string, isLab?: boo
   if (lower.includes('theory of computation') || lower.includes('computation theory') || lower.includes('automata')) return (hasLabInTitle ? 'TOC Lab' : 'TOC' + labSuffix);
   if (lower.includes('data communication')) return (hasLabInTitle ? 'Data Comm Lab' : 'Data Comm' + labSuffix);
   if (lower.includes('artificial intelligence')) return (hasLabInTitle ? 'AI Lab' : 'AI' + labSuffix);
-  if (lower.includes('data science')) return (hasLabInTitle ? 'Data Science Lab' : 'Data Science' + labSuffix);
-  if (lower.includes('social and professional') || lower.includes('cyber ethics')) return 'Social & Ethics';
+  if (lower.includes('data science')) return (hasLabInTitle ? 'Data Sci Lab' : 'Data Sci' + labSuffix);
+  if (lower.includes('social and professional') || lower.includes('cyber ethics')) return 'Ethics';
   if (lower.includes('computer network')) return (hasLabInTitle ? 'Networks Lab' : 'Networks' + labSuffix);
   if (lower.includes('software engineering')) return (hasLabInTitle ? 'Software Eng Lab' : 'Software Eng' + labSuffix);
   if (lower.includes('software architecture') || lower.includes('design pattern')) return (hasLabInTitle ? 'Software Arch Lab' : 'Software Arch' + labSuffix);
   if (lower.includes('microprocessor') || lower.includes('microcontroller')) return (hasLabInTitle ? 'Microprocessor Lab' : 'Microprocessor' + labSuffix);
   if (lower.includes('object oriented programming') || lower.includes('oop')) return (hasLabInTitle ? 'OOP Lab' : 'OOP' + labSuffix);
-  if (lower.includes('data structure')) return (hasLabInTitle ? 'DS Lab' : 'Data Structures' + labSuffix);
+  if (lower.includes('data structure')) return (hasLabInTitle ? 'DS Lab' : 'Data Struct' + labSuffix);
   if (lower.includes('algorithm')) return (hasLabInTitle ? 'Algo Lab' : 'Algorithms' + labSuffix);
   if (lower.includes('discrete math')) return 'Discrete Math';
   if (lower.includes('database') || lower.includes('dbms')) return (hasLabInTitle ? 'DBMS Lab' : 'DBMS' + labSuffix);
@@ -94,19 +94,19 @@ export function getCourseShortTitle(code: string, rawTitle?: string, isLab?: boo
     return (hasLabInTitle ? 'SPL Lab' : 'SPL' + labSuffix);
   }
   if (lower.includes('computer fundamentals')) {
-    return 'Computer Fund';
+    return hasLabInTitle ? 'Comp Fund Lab' : 'Comp Fund';
   }
 
   // 4. University Core / GED
   if (lower.includes('bangladesh studies')) return 'BD Studies';
   if (lower.includes('art of living')) return 'Art of Living';
   if (lower.includes('accounting')) return 'Accounting';
-  if (lower.includes('biology') || lower.includes('chemistry')) return 'Bio & Chem';
+  if (lower.includes('biology') || lower.includes('chemistry')) return hasLabInTitle ? 'Bio-Chem Lab' : 'Bio-Chem';
 
   // 5. Physics & Math
   if (lower.includes('physics')) {
     const num = (lower.includes('ii') || lower.includes('- ii') || lower.includes('2')) ? ' II' : ' I';
-    return (hasLabInTitle ? 'Physics' + num + ' Lab' : 'Physics' + num + labSuffix);
+    return (hasLabInTitle ? 'Phys' + num + ' Lab' : 'Phys' + num + labSuffix);
   }
   if (lower.includes('mathematics') || lower.includes('calculus') || lower.includes('linear algebra')) {
     if (lower.includes('ii') || lower.includes('- ii') || lower.includes('2')) return 'Math II';
@@ -114,8 +114,8 @@ export function getCourseShortTitle(code: string, rawTitle?: string, isLab?: boo
     return 'Math I';
   }
   if (lower.includes('english') || lower.includes('writing and comprehension')) {
-    if (lower.includes('spoken') || lower.includes('basic') || lower.includes('functional')) return 'English I';
-    return 'English';
+    const num = (lower.includes('ii') || lower.includes('- ii') || lower.includes('2')) ? ' II' : ' I';
+    return 'Eng' + num;
   }
 
   // If title is concise (<= 16 chars), use directly
@@ -198,4 +198,40 @@ export function getLabSubsectionBadge(
   }
 
   return null;
+}
+
+export interface RoomParts {
+  prefix: string; // e.g. "KT", "ANX1", "G1", "SH" (without hyphen)
+  number: string; // e.g. "217", "517(A)", "402", "004", "Online"
+}
+
+/**
+ * Separates building prefix (e.g. "KT", "ANX1") and room number (e.g. "217", "402"),
+ * stripping the hyphen completely so it renders cleanly and compactly horizontally.
+ */
+export function parseRoomParts(rawRoom?: string): RoomParts {
+  if (!rawRoom) return { prefix: '', number: 'TBD' };
+
+  // Strip trailing notes like (COM LAB), (Physics Lab), (E.C & D.E Lab)
+  let cleaned = rawRoom.trim().replace(/\s*\([^)]*lab[^)]*\)/gi, '').trim();
+
+  // If there's e.g. "IOT LAB- KT-502", isolate "KT-502"
+  if (/kt-\d+/i.test(cleaned)) {
+    const ktIndex = cleaned.search(/kt-\d+/i);
+    if (ktIndex > 0) cleaned = cleaned.slice(ktIndex);
+  }
+
+  // Match building prefix and room number separated by hyphens or spaces, e.g. "KT-217" -> prefix "KT", number "217"
+  const match = cleaned.match(/^([A-Za-z0-9]+)[-\s]+(.+)$/);
+  if (match) {
+    return {
+      prefix: match[1],
+      number: match[2].trim().replace(/^-+/, ''),
+    };
+  }
+
+  return {
+    prefix: '',
+    number: cleaned.replace(/^-+/, ''),
+  };
 }
