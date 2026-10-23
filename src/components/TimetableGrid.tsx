@@ -99,9 +99,9 @@ export function TimetableGrid({
     const timer = setTimeout(() => {
       if (typeof window !== 'undefined') {
         const params = new URLSearchParams(window.location.search);
-        const v = params.get('view') || params.get('v');
-        if (v === 'agenda' || v === 'matrix') {
-          setInternalViewMode(v);
+        const rawV = (params.get('view') || params.get('v'))?.toLowerCase();
+        if (rawV === 'agenda' || rawV === 'day' || rawV === 'matrix') {
+          setInternalViewMode(rawV === 'matrix' ? 'matrix' : 'agenda');
         } else {
           setInternalViewMode(window.innerWidth < 768 ? 'agenda' : 'matrix');
         }
@@ -1069,7 +1069,7 @@ export function TimetableGrid({
     return 'October 2026';
   }, [continuousDays, visibleDateRange, effectiveViewMode, upcomingDays]);
 
-  // Calendar View Keyboard Shortcuts: W for Week, A for Agenda, Arrows/J/K for Week Navigation
+  // Calendar View Keyboard Shortcuts: W for Week, D/A for Day, Arrows/J/K for Week Navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -1083,7 +1083,7 @@ export function TimetableGrid({
       if (e.key === 'w' || e.key === 'W') {
         e.preventDefault();
         setEffectiveViewMode('matrix');
-      } else if (e.key === 'a' || e.key === 'A') {
+      } else if (e.key === 'd' || e.key === 'D' || e.key === 'a' || e.key === 'A') {
         e.preventDefault();
         setEffectiveViewMode('agenda');
       } else if (effectiveViewMode === 'matrix' && (e.key === 'ArrowDown' || e.key === 'j' || e.key === 'J' || e.key === 'PageDown' || e.key === 'ArrowRight')) {
@@ -1636,7 +1636,7 @@ export function TimetableGrid({
                 }`}
               >
                 <CalendarDays className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
-                <span>Agenda</span>
+                <span>Day</span>
               </button>
             </div>
           </div>
@@ -1713,7 +1713,7 @@ export function TimetableGrid({
               <span>Week</span>
             </button>
 
-            {/* Agenda View */}
+            {/* Day View */}
             <button
               type="button"
               onClick={() => setEffectiveViewMode('agenda')}
@@ -1725,7 +1725,7 @@ export function TimetableGrid({
               }`}
             >
               <CalendarDays className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-              <span>Agenda</span>
+              <span>Day</span>
             </button>
           </div>
         </div>

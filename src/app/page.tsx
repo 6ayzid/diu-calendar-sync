@@ -202,12 +202,12 @@ export default function Home() {
         secToUse = params.get('section') || params.get('s');
         subToUse = params.get('sub');
         compareParamToUse = params.get('compare') || params.get('c');
-        const v = params.get('view') || params.get('v');
-        if (v === 'agenda' || v === 'matrix') {
-          setViewMode(v);
+        const rawV = (params.get('view') || params.get('v'))?.toLowerCase();
+        if (rawV === 'agenda' || rawV === 'day' || rawV === 'matrix') {
+          setViewMode(rawV === 'matrix' ? 'matrix' : 'agenda');
           setHasExplicitViewMode(true);
         } else {
-          // Default to agenda on mobile screens (< 768px), matrix (week view) on desktop
+          // Default to day on mobile screens (< 768px), matrix (week view) on desktop
           const isMobile = window.innerWidth < 768;
           setViewMode(isMobile ? 'agenda' : 'matrix');
         }
