@@ -2517,9 +2517,9 @@ export function TimetableGrid({
                       });
 
                       if (cardOverride?.type === 'exam' || c.id.startsWith('midterm-')) {
-                        cardTheme = 'bg-gradient-to-br from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-600 hover:to-indigo-600 text-white border border-purple-400/40 shadow-sm shadow-purple-950/20';
-                        buttonBadgeClass = 'bg-white/20 hover:bg-white/30 text-white border-white/25';
-                        subsectionBadgeClass = 'bg-purple-900/70 text-purple-100 border-purple-400/40';
+                        cardTheme = 'bg-purple-700 hover:bg-purple-600 text-white dark:bg-purple-700 dark:hover:bg-purple-600 dark:text-white border border-purple-800/30 dark:border-purple-500/40 shadow-xs';
+                        buttonBadgeClass = 'bg-white/15 hover:bg-white/25 text-white/95 border-white/20 hover:border-white/30 backdrop-blur-xs';
+                        subsectionBadgeClass = 'bg-black/25 text-white border-white/20 dark:bg-black/30 dark:text-white dark:border-white/20';
                       }
 
                       return (
@@ -2997,7 +2997,7 @@ export function TimetableGrid({
                         const cardThemeClass = cardOverride?.type === 'cancelled'
                           ? 'bg-rose-900/90 text-rose-100 dark:bg-rose-950/90 dark:text-rose-100 border border-rose-800/60 shadow-xs'
                           : cardOverride?.type === 'exam'
-                          ? 'bg-gradient-to-r from-purple-700 to-indigo-700 text-white dark:from-purple-800 dark:to-indigo-800 dark:text-purple-50 border border-purple-500/40 shadow-sm'
+                          ? 'bg-purple-700 text-white dark:bg-purple-700 dark:text-white border border-purple-800/30 dark:border-purple-500/40 shadow-xs'
                           : cardOverride?.type === 'online'
                           ? 'bg-sky-600 text-white dark:bg-sky-600 dark:text-white border border-sky-700/25 dark:border-sky-500/30 shadow-xs'
                           : 'bg-emerald-600 text-white dark:bg-emerald-600 dark:text-white border border-emerald-700/20 dark:border-emerald-500/30 shadow-xs';
@@ -3084,7 +3084,7 @@ export function TimetableGrid({
                                             : cardOverride.type === 'cancelled'
                                             ? 'CANCELLED'
                                             : cardOverride.type === 'exam'
-                                            ? 'MIDTERM EXAM'
+                                            ? 'MIDTERM'
                                             : (cardOverride.type?.toUpperCase() || 'QUIZ')}
                                         </span>
                                       )}
