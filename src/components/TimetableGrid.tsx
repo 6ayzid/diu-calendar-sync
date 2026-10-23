@@ -27,6 +27,7 @@ import { getTimelinePercentForInterval, getTargetLabel } from '@/lib/compare-uti
 import { VersionBadge } from './VersionBadge';
 import { ClassEventOverride } from '@/types/events';
 import { getDepartmentHoliday } from '@/data/holidays';
+import { isMidtermExamPeriod } from '@/data/midterm-exams';
 
 interface TimetableGridProps {
   section?: SectionMeta | null;
@@ -1144,8 +1145,9 @@ export function TimetableGrid({
         continue;
       }
 
-      const highDay = highClasses.filter((c) => c.dayOfWeek === d.dayKey);
-      const lowDay = lowClasses.filter((c) => c.dayOfWeek === d.dayKey);
+      const isExamPeriod = isMidtermExamPeriod(d.isoDate);
+      const highDay = isExamPeriod ? [] : highClasses.filter((c) => c.dayOfWeek === d.dayKey);
+      const lowDay = isExamPeriod ? [] : lowClasses.filter((c) => c.dayOfWeek === d.dayKey);
 
       // Filter active overrides for this specific date
       const activeDayOverrides = (eventOverrides || []).filter((ev) => {
@@ -1228,7 +1230,7 @@ export function TimetableGrid({
           startTime: ev.startTime!,
           endTime: ev.endTime || defaultEndTime,
           type: isLab ? 'Lab' : 'Theory',
-          color: ev.type === 'quiz' || ev.type === 'ct' ? 'amber' : 'sky',
+          color: ev.type === 'exam' ? 'rose' : (ev.type === 'quiz' || ev.type === 'ct' ? 'amber' : 'sky'),
         };
         return { routineClass: rClass, override: ev };
       });
@@ -1435,13 +1437,19 @@ export function TimetableGrid({
 
         {/* Override Notice if present */}
         {override?.description && override.type !== 'regular' && (
-          <div className={`rounded-lg border p-2 text-[10.5px] font-sans leading-snug ${
+          <div className={`rounded-lg border p-2 text-[10.5px] font-sans leading-snug whitespace-pre-line ${
             override.type === 'cancelled'
               ? 'border-rose-300 dark:border-rose-800 bg-rose-50/90 dark:bg-rose-950/40 text-rose-900 dark:text-rose-200'
+              : override.type === 'exam'
+              ? 'border-purple-300 dark:border-purple-800 bg-purple-50/90 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200'
               : 'border-sky-200 dark:border-sky-800 bg-sky-50/70 dark:bg-sky-950/40 text-slate-700 dark:text-slate-300'
           }`}>
             <span className="font-bold block mb-0.5">
-              {override.type === 'cancelled' ? '⚠️ NOTICE:' : 'ANNOUNCEMENT:'}
+              {override.type === 'cancelled'
+                ? '⚠️ NOTICE:'
+                : override.type === 'exam'
+                ? '📝 MIDTERM EXAMINATION:'
+                : 'ANNOUNCEMENT:'}
             </span>
             {override.description}
           </div>
@@ -1931,6 +1939,18 @@ export function TimetableGrid({
                       <div className="absolute top-4 inset-x-1 text-center pointer-events-none select-none z-0">
                         <span className="text-[9px] font-mono font-bold text-amber-600/40 dark:text-amber-400/30 uppercase tracking-widest">
                           Campus Closed
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Midterm Exam Week subtle indicator when no exam is scheduled for this section today */}
+                    {!holiday && isMidtermExamPeriod(d.isoDate) && positionedEvents.length === 0 && dayOffGridOverrides.length === 0 && (
+                      <div className="absolute top-4 inset-x-1 text-center pointer-events-none select-none z-0">
+                        <span className="text-[9px] font-mono font-bold text-purple-600/50 dark:text-purple-400/40 uppercase tracking-wider block">
+                          No Exam Today
+                        </span>
+                        <span className="text-[8px] font-mono text-purple-500/40 dark:text-purple-400/30">
+                          Midterm Week
                         </span>
                       </div>
                     )}
@@ -2459,6 +2479,8 @@ export function TimetableGrid({
                         currentDhakaTime.totalMinutes >= pe.startMinutes &&
                         currentDhakaTime.totalMinutes < pe.endMinutes;
 
+
+
                       const cardLineTopPercent = isLiveNow
                         ? Math.max(
                             0,
@@ -2493,6 +2515,12 @@ export function TimetableGrid({
                         if (ev.startTime && c.startTime && ev.startTime !== c.startTime) return false;
                         return true;
                       });
+
+                      if (cardOverride?.type === 'exam' || c.id.startsWith('midterm-')) {
+                        cardTheme = 'bg-gradient-to-br from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-600 hover:to-indigo-600 text-white border border-purple-400/40 shadow-sm shadow-purple-950/20';
+                        buttonBadgeClass = 'bg-white/20 hover:bg-white/30 text-white border-white/25';
+                        subsectionBadgeClass = 'bg-purple-900/70 text-purple-100 border-purple-400/40';
+                      }
 
                       return (
                         <div
@@ -2594,6 +2622,8 @@ export function TimetableGrid({
                                             ? 'ONLINE'
                                             : cardOverride.type === 'cancelled'
                                             ? 'CANCELLED'
+                                            : cardOverride.type === 'exam'
+                                            ? 'MIDTERM'
                                             : (cardOverride.type?.toUpperCase() || 'QUIZ')}
                                         </span>
                                       )}
@@ -2745,8 +2775,9 @@ export function TimetableGrid({
             const targetBadge = activeTarget ? getTargetLabel(activeTarget).badge : (section?.id || 'Class');
 
             const holiday = getDepartmentHoliday(d.isoDate);
+            const isExamPeriod = isMidtermExamPeriod(d.isoDate);
 
-            const regularClasses = (d.isFriday || holiday)
+            const regularClasses = (d.isFriday || holiday || isExamPeriod)
               ? []
               : classes.filter((c) => c.dayOfWeek === d.dayKey);
 
@@ -2890,10 +2921,17 @@ export function TimetableGrid({
                     </div>
                   ) : dayClassList.length === 0 ? (
                     <div className="py-1 flex items-center">
-                      <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-100/70 px-2.5 py-0.5 text-[11px] font-mono font-medium text-slate-500 dark:border-slate-800/80 dark:bg-slate-900/60 dark:text-slate-400">
-                        <span className="h-1.5 w-1.5 rounded-full bg-slate-400 dark:bg-slate-500 shrink-0" />
-                        <span>No classes</span>
-                      </span>
+                      {isExamPeriod ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-purple-200/80 bg-purple-50/70 px-2.5 py-0.5 text-[11px] font-mono font-medium text-purple-700 dark:border-purple-800/80 dark:bg-purple-950/40 dark:text-purple-300">
+                          <span className="h-1.5 w-1.5 rounded-full bg-purple-500 shrink-0" />
+                          <span>No exam today (Midterm Week)</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-100/70 px-2.5 py-0.5 text-[11px] font-mono font-medium text-slate-500 dark:border-slate-800/80 dark:bg-slate-900/60 dark:text-slate-400">
+                          <span className="h-1.5 w-1.5 rounded-full bg-slate-400 dark:bg-slate-500 shrink-0" />
+                          <span>No classes</span>
+                        </span>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -2958,6 +2996,8 @@ export function TimetableGrid({
                         // Consistent vibrant styling across light and dark modes
                         const cardThemeClass = cardOverride?.type === 'cancelled'
                           ? 'bg-rose-900/90 text-rose-100 dark:bg-rose-950/90 dark:text-rose-100 border border-rose-800/60 shadow-xs'
+                          : cardOverride?.type === 'exam'
+                          ? 'bg-gradient-to-r from-purple-700 to-indigo-700 text-white dark:from-purple-800 dark:to-indigo-800 dark:text-purple-50 border border-purple-500/40 shadow-sm'
                           : cardOverride?.type === 'online'
                           ? 'bg-sky-600 text-white dark:bg-sky-600 dark:text-white border border-sky-700/25 dark:border-sky-500/30 shadow-xs'
                           : 'bg-emerald-600 text-white dark:bg-emerald-600 dark:text-white border border-emerald-700/20 dark:border-emerald-500/30 shadow-xs';
@@ -3043,6 +3083,8 @@ export function TimetableGrid({
                                             ? 'ONLINE'
                                             : cardOverride.type === 'cancelled'
                                             ? 'CANCELLED'
+                                            : cardOverride.type === 'exam'
+                                            ? 'MIDTERM EXAM'
                                             : (cardOverride.type?.toUpperCase() || 'QUIZ')}
                                         </span>
                                       )}

@@ -11,6 +11,7 @@ import { getFacultyByCode } from '@/data/faculty';
 import { getCourseShortTitle } from '@/lib/course-utils';
 import { COURSE_CATALOG } from '@/lib/courses';
 import { DEPARTMENT_HOLIDAYS } from '@/data/holidays';
+import { MIDTERM_EXAM_DATES } from '@/data/midterm-exams';
 
 // First occurrence dates of the semester effective week (Effective: Sept 09, 2026)
 const WEEKDAY_DATE_MAP: Record<DayOfWeek, string> = {
@@ -185,7 +186,7 @@ export function buildCalendarFeed(
       `synced from diucal.vercel.app`,
     ].join('\n');
 
-    // Exclude dates matching department holidays for this class's weekday (RFC 5545 EXDATE)
+    // Exclude dates matching department holidays & midterm exam period (RFC 5545 EXDATE)
     const excludedHolidayDates: Date[] = [];
     for (const holiday of DEPARTMENT_HOLIDAYS) {
       for (const hDate of holiday.dates) {
@@ -199,6 +200,20 @@ export function buildCalendarFeed(
         if (hWeekday === item.dayOfWeek) {
           excludedHolidayDates.push(new Date(hY, hM - 1, hD, startH, startM, 0));
         }
+      }
+    }
+
+    // Exclude Midterm Examination dates (all regular classes suspended Oct 28 - Nov 04)
+    for (const mDate of MIDTERM_EXAM_DATES) {
+      const [mY, mM, mD] = mDate.split('-').map(Number);
+      const mTestDate = new Date(Date.UTC(mY, mM - 1, mD, 12, 0, 0));
+      const mWeekday = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Asia/Dhaka',
+        weekday: 'long',
+      }).format(mTestDate).toUpperCase();
+
+      if (mWeekday === item.dayOfWeek) {
+        excludedHolidayDates.push(new Date(mY, mM - 1, mD, startH, startM, 0));
       }
     }
 
@@ -260,6 +275,46 @@ export function buildCalendarFeed(
 
       const startDate = new Date(oYear, oMonth - 1, oDay, startH, startM, 0);
       const endDate = new Date(oYear, oMonth - 1, oDay, endH, endM, 0);
+
+      if (override.type === 'exam') {
+        const examTargetRoom = override.room || matchingClass?.room || 'Exam Hall';
+        const examCleanRoom = examTargetRoom.split('(')[0].trim();
+        const examUid = `midterm-${override.sectionId}-${override.id}@${sourceDomain}`;
+        const examEvent = calendar.createEvent({
+          id: examUid,
+          start: startDate,
+          end: endDate,
+          timezone,
+          summary: `[MIDTERM EXAM] ${override.courseCode} - ${override.title}`,
+          description: [
+            `Midterm Examination — Fall 2026`,
+            `Course: ${override.title} (${override.courseCode})`,
+            override.description ? `${override.description}` : '',
+            `Room: ${examTargetRoom}`,
+            ``,
+            `synced from diucal.vercel.app`,
+          ].filter(Boolean).join('\n'),
+          location: examTargetRoom,
+          sequence: 1,
+        });
+
+        examEvent.createAlarm({
+          type: ICalAlarmType.display,
+          trigger: 86400, // 1 day before
+          description: `Exam Tomorrow: ${override.courseCode} (${override.title})`,
+        });
+        examEvent.createAlarm({
+          type: ICalAlarmType.display,
+          trigger: 7200, // 2 hours before
+          description: `Exam in 2 Hours: ${override.courseCode} in ${examCleanRoom}`,
+        });
+        examEvent.createAlarm({
+          type: ICalAlarmType.display,
+          trigger: 1800, // 30 mins before
+          description: `Exam in 30 Mins: ${override.courseCode} in ${examCleanRoom}`,
+        });
+        continue;
+      }
 
       const isRegular = override.type === 'regular';
       const isCancelled = override.type === 'cancelled';

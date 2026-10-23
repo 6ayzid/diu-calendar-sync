@@ -10,6 +10,7 @@ export type EventOverrideType =
   | 'makeup'
   | 'online'
   | 'regular'
+  | 'exam'
   | 'custom';
 
 export interface ClassEventOverride {
