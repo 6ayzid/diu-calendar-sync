@@ -18,34 +18,7 @@ export async function getEventOverridesForSection(
   const batchNumber = normalizedSection.split('_')[0];
   const midtermExams = getMidtermExamsForSection(normalizedSection);
 
-  // 1. Check live routine gateway if configured
-  try {
-    const gateway = getRoutineGatewayUrl();
-    if (gateway) {
-      const res = await robustFetch<{ success: boolean; events?: ClassEventOverride[] }>(
-        `${gateway}/api/events?section=${encodeURIComponent(normalizedSection)}`,
-        { timeout: 3500 }
-      );
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && Array.isArray(data.events)) {
-          const map = new Map<string, ClassEventOverride>();
-          for (const ev of data.events) {
-            map.set(ev.id, ev);
-          }
-          for (const ev of midtermExams) {
-            map.set(ev.id, ev);
-          }
-          return Array.from(map.values());
-        }
-      }
-    }
-  } catch (err) {
-    // Graceful fallback to static overrides
-    console.warn(`Upstream events fetch failed for section ${normalizedSection}:`, err);
-  }
-
-  // 2. Fallback to local stored overrides
+  // 1. Base stored local overrides (CR updates, quizzes, makeups, university holidays)
   const localList = (staticOverrides as ClassEventOverride[]).filter((ev) => {
     const s = ev.sectionId.toUpperCase().replace('-', '_');
     return (
@@ -61,6 +34,30 @@ export async function getEventOverridesForSection(
   for (const ev of localList) {
     map.set(ev.id, ev);
   }
+
+  // 2. Overlay live routine gateway if configured
+  try {
+    const gateway = getRoutineGatewayUrl();
+    if (gateway && normalizedSection !== 'ALL') {
+      const res = await robustFetch<{ success: boolean; events?: ClassEventOverride[] }>(
+        `${gateway}/api/events?section=${encodeURIComponent(normalizedSection)}`,
+        { timeout: 3500 }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.events)) {
+          for (const ev of data.events) {
+            map.set(ev.id, ev);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    // Graceful fallback to static overrides
+    console.warn(`Upstream events fetch failed for section ${normalizedSection}:`, err);
+  }
+
+  // 3. Seamlessly merge official Midterm Examination schedule
   for (const ev of midtermExams) {
     map.set(ev.id, ev);
   }
