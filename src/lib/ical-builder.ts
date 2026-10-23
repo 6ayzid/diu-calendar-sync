@@ -277,6 +277,10 @@ export function buildCalendarFeed(
       const endDate = new Date(oYear, oMonth - 1, oDay, endH, endM, 0);
 
       if (override.type === 'exam') {
+        // Faculty calendar feeds should not include student exam events
+        if (faculty) {
+          continue;
+        }
         const examTargetRoom = override.room || matchingClass?.room || 'Exam Hall';
         const examCleanRoom = examTargetRoom.split('(')[0].trim();
         const examUid = `midterm-${override.sectionId}-${override.id}@${sourceDomain}`;

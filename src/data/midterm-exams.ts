@@ -125,7 +125,7 @@ export const RAW_MIDTERM_EXAMS: RawMidtermExamSlot[] = [
     startTime: '14:00',
     endTime: '15:30',
     batch: 66,
-    courses: [{ code: 'CSE326', title: 'Social and Professional Issues in Computing' }],
+    courses: [{ code: 'CSE326', title: 'SPIC' }],
   },
 
   // ==========================================
@@ -578,7 +578,7 @@ export function getMidtermExamsForSection(sectionId: string): ClassEventOverride
       endTime: slot.endTime,
       courseCode: resolvedCode,
       type: 'exam',
-      title: `${resolvedTitle} (Midterm Exam)`,
+      title: `${resolvedCode === 'CSE326' ? 'SPIC' : resolvedTitle} (Midterm Exam)`,
       description: descriptionParts.join('\n'),
       room: 'Exam Hall (See Sitting Plan)',
       status: 'CONFIRMED',
@@ -606,7 +606,7 @@ export function getAllBatchMidtermOverrides(): ClassEventOverride[] {
       endTime: slot.endTime,
       courseCode: primaryCode,
       type: 'exam',
-      title: `${primaryTitle} (Midterm Exam)`,
+      title: `${primaryCode.includes('CSE326') ? 'SPIC' : primaryTitle} (Midterm Exam)`,
       description: [
         `Midterm Examination — Fall 2026 (${slot.dayLabel}, Slot ${slot.slot})`,
         `Course: ${primaryTitle} (${primaryCode})`,

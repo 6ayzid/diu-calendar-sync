@@ -9,7 +9,7 @@ import { COURSE_CATALOG } from './courses';
  * - "Operating Systems" -> "OS"
  * - "Artificial Intelligence" -> "AI"
  * - "Introduction to Data Science" -> "Data Science"
- * - "Social and Professional Issues in Computing" -> "Social & Ethics"
+ * - "Social and Professional Issues in Computing" -> "SPIC"
  *
  * CRITICAL RULE: DIU reassigns course codes across semesters/batches.
  * We must always prioritize the actual courseTitle (from upstream schedule / catalog)
@@ -55,7 +55,7 @@ export function getCourseShortTitle(code: string, rawTitle?: string, isLab?: boo
   if (lower.includes('data communication')) return (hasLabInTitle ? 'Data Comm Lab' : 'Data Comm' + labSuffix);
   if (lower.includes('artificial intelligence')) return (hasLabInTitle ? 'AI Lab' : 'AI' + labSuffix);
   if (lower.includes('data science')) return (hasLabInTitle ? 'Data Sci Lab' : 'Data Sci' + labSuffix);
-  if (lower.includes('social and professional') || lower.includes('cyber ethics')) return 'Ethics';
+  if (lower.includes('social and professional') || lower.includes('cyber ethics') || lower.includes('ethics') || lower.includes('spic')) return 'SPIC';
   if (lower.includes('computer network')) return (hasLabInTitle ? 'Networks Lab' : 'Networks' + labSuffix);
   if (lower.includes('software engineering')) return (hasLabInTitle ? 'Software Eng Lab' : 'Software Eng' + labSuffix);
   if (lower.includes('software architecture') || lower.includes('design pattern')) return (hasLabInTitle ? 'Software Arch Lab' : 'Software Arch' + labSuffix);
