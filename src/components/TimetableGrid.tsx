@@ -1441,7 +1441,7 @@ export function TimetableGrid({
             override.type === 'cancelled'
               ? 'border-rose-300 dark:border-rose-800 bg-rose-50/90 dark:bg-rose-950/40 text-rose-900 dark:text-rose-200'
               : override.type === 'exam'
-              ? 'border-purple-300 dark:border-purple-800 bg-purple-50/90 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200'
+              ? 'border-blue-300 dark:border-blue-800 bg-blue-50/90 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200'
               : 'border-sky-200 dark:border-sky-800 bg-sky-50/70 dark:bg-sky-950/40 text-slate-700 dark:text-slate-300'
           }`}>
             <span className="font-bold block mb-0.5">
@@ -1946,10 +1946,10 @@ export function TimetableGrid({
                     {/* Midterm Exam Week subtle indicator when no exam is scheduled for this section today */}
                     {!holiday && isMidtermExamPeriod(d.isoDate) && positionedEvents.length === 0 && dayOffGridOverrides.length === 0 && (
                       <div className="absolute top-4 inset-x-1 text-center pointer-events-none select-none z-0">
-                        <span className="text-[9px] font-mono font-bold text-purple-600/50 dark:text-purple-400/40 uppercase tracking-wider block">
+                        <span className="text-[9px] font-mono font-bold text-blue-600/50 dark:text-blue-400/40 uppercase tracking-wider block">
                           No Exam Today
                         </span>
-                        <span className="text-[8px] font-mono text-purple-500/40 dark:text-purple-400/30">
+                        <span className="text-[8px] font-mono text-blue-500/40 dark:text-blue-400/30">
                           Midterm Week
                         </span>
                       </div>
@@ -2517,7 +2517,7 @@ export function TimetableGrid({
                       });
 
                       if (cardOverride?.type === 'exam' || c.id.startsWith('midterm-')) {
-                        cardTheme = 'bg-purple-700 hover:bg-purple-600 text-white dark:bg-purple-700 dark:hover:bg-purple-600 dark:text-white border border-purple-800/30 dark:border-purple-500/40 shadow-xs';
+                        cardTheme = 'bg-blue-600 hover:bg-blue-500 text-white dark:bg-blue-600 dark:hover:bg-blue-500 dark:text-white border border-blue-700/20 dark:border-blue-500/30 shadow-xs';
                         buttonBadgeClass = 'bg-white/15 hover:bg-white/25 text-white/95 border-white/20 hover:border-white/30 backdrop-blur-xs';
                         subsectionBadgeClass = 'bg-black/25 text-white border-white/20 dark:bg-black/30 dark:text-white dark:border-white/20';
                       }
@@ -2922,8 +2922,8 @@ export function TimetableGrid({
                   ) : dayClassList.length === 0 ? (
                     <div className="py-1 flex items-center">
                       {isExamPeriod ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-purple-200/80 bg-purple-50/70 px-2.5 py-0.5 text-[11px] font-mono font-medium text-purple-700 dark:border-purple-800/80 dark:bg-purple-950/40 dark:text-purple-300">
-                          <span className="h-1.5 w-1.5 rounded-full bg-purple-500 shrink-0" />
+                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200/80 bg-blue-50/70 px-2.5 py-0.5 text-[11px] font-mono font-medium text-blue-700 dark:border-blue-800/80 dark:bg-blue-950/40 dark:text-blue-300">
+                          <span className="h-1.5 w-1.5 rounded-full bg-blue-500 shrink-0" />
                           <span>No exam today (Midterm Week)</span>
                         </span>
                       ) : (
@@ -2997,7 +2997,7 @@ export function TimetableGrid({
                         const cardThemeClass = cardOverride?.type === 'cancelled'
                           ? 'bg-rose-900/90 text-rose-100 dark:bg-rose-950/90 dark:text-rose-100 border border-rose-800/60 shadow-xs'
                           : cardOverride?.type === 'exam'
-                          ? 'bg-purple-700 text-white dark:bg-purple-700 dark:text-white border border-purple-800/30 dark:border-purple-500/40 shadow-xs'
+                          ? 'bg-blue-600 text-white dark:bg-blue-600 dark:text-white border border-blue-700/20 dark:border-blue-500/30 shadow-xs'
                           : cardOverride?.type === 'online'
                           ? 'bg-sky-600 text-white dark:bg-sky-600 dark:text-white border border-sky-700/25 dark:border-sky-500/30 shadow-xs'
                           : 'bg-emerald-600 text-white dark:bg-emerald-600 dark:text-white border border-emerald-700/20 dark:border-emerald-500/30 shadow-xs';
