@@ -13,6 +13,9 @@ interface UpstreamClassItem {
   time_slot: string;
   batch?: string;
   section?: string;
+  sub_section?: string | null;
+  subsection?: string | null;
+  sub?: string | null;
 }
 
 interface UpstreamApiResponse {
@@ -353,8 +356,13 @@ export async function fetchLiveScheduleFromUpstream(
       );
 
       const courseCode = codeMatch ? codeMatch[1].trim() : item.course_code.split('(')[0].trim();
+      
+      // 1. Direct API field (e.g. sub_section: "1" | "2", subsection: "1", or sub: "1")
+      const directSub = item.sub_section || item.subsection || item.sub;
       let subSection: '1' | '2' | null =
-        codeMatch && codeMatch[3] ? (codeMatch[3] as '1' | '2') : null;
+        directSub === '1' || directSub === '2'
+          ? (directSub as '1' | '2')
+          : (codeMatch && codeMatch[3] ? (codeMatch[3] as '1' | '2') : null);
 
       // Also extract subsection from item.batch (e.g. "66_O1", "68-D2", "70Q1", "O1")
       if (!subSection && item.batch) {
