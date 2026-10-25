@@ -349,11 +349,36 @@ export async function fetchLiveScheduleFromUpstream(
 
     const mappedClasses: RoutineClass[] = data.result.map((item, index) => {
       const codeMatch = item.course_code.match(
-        /^([A-Z0-9]+)\(([0-9]+)_([A-Za-z]+)([12])?\)/
+        /^([A-Za-z0-9]+)(?:\((?:[0-9]+[_-]?)?([A-Za-z]+)([12])?\))?/
       );
 
-      const courseCode = codeMatch ? codeMatch[1] : item.course_code.split('(')[0].trim();
-      const subSection = codeMatch && codeMatch[4] ? (codeMatch[4] as '1' | '2') : null;
+      const courseCode = codeMatch ? codeMatch[1].trim() : item.course_code.split('(')[0].trim();
+      let subSection: '1' | '2' | null =
+        codeMatch && codeMatch[3] ? (codeMatch[3] as '1' | '2') : null;
+
+      // Also extract subsection from item.batch (e.g. "66_O1", "68-D2", "70Q1", "O1")
+      if (!subSection && item.batch) {
+        const batchSubMatch = item.batch.trim().match(/^(?:[0-9]+[_-]?)?[A-Za-z]+([12])$/);
+        if (batchSubMatch) {
+          subSection = batchSubMatch[1] as '1' | '2';
+        }
+      }
+
+      // Also extract subsection from item.section (e.g. "O1", "D2", "1", "2")
+      if (!subSection && item.section) {
+        const secSubMatch = item.section.trim().match(/^[A-Za-z]*([12])$/);
+        if (secSubMatch) {
+          subSection = secSubMatch[1] as '1' | '2';
+        }
+      }
+
+      // Also check course_title for explicit subsection tag e.g. "(66_O1)" or "(O2)"
+      if (!subSection && item.course_title) {
+        const titleSubMatch = item.course_title.match(/\((?:[0-9]+[_-]?)?[A-Za-z]+([12])\)/);
+        if (titleSubMatch) {
+          subSection = titleSubMatch[1] as '1' | '2';
+        }
+      }
 
       const [startRaw, endRaw] = item.time_slot.split('-');
       const startTime = parse12HourTime(startRaw || '08:30');

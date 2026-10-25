@@ -8,7 +8,7 @@ import { DayOfWeek, RoutineClass, FacultyMeta } from '@/types/schedule';
 import { ClassEventOverride } from '@/types/events';
 import { getSectionById } from '@/data/sections';
 import { getFacultyByCode } from '@/data/faculty';
-import { getCourseShortTitle } from '@/lib/course-utils';
+import { getCourseShortTitle, extractSubSectionId } from '@/lib/course-utils';
 import { COURSE_CATALOG } from '@/lib/courses';
 import { DEPARTMENT_HOLIDAYS } from '@/data/holidays';
 import { MIDTERM_EXAM_DATES } from '@/data/midterm-exams';
@@ -84,23 +84,31 @@ export function buildCalendarFeed(
 
   let calendarName = 'DIU Routine';
   let calendarDesc = 'DIU CSE Class Schedule Feed';
+  const sectionMeta = sectionId ? getSectionById(sectionId) : undefined;
+  const sectionLetter = sectionMeta?.sectionLetter || (sectionId ? sectionId.split('_')[1]?.replace(/[12]$/, '') : '') || '';
 
   if (faculty) {
     calendarName = `DIU Routine — ${faculty.code}`;
     calendarDesc = `Teaching routine for ${faculty.name} (${faculty.code}), Dept. of CSE, DIU.`;
   } else if (sectionId) {
-    const sectionMeta = getSectionById(sectionId);
     let subLabel = '';
     if (subSection === '1') {
-      const letter = sectionMeta?.sectionLetter || sectionId.split('_')[1] || '';
-      subLabel = ` (${letter}1)`;
+      subLabel = ` (${sectionLetter}1)`;
     } else if (subSection === '2') {
-      const letter = sectionMeta?.sectionLetter || sectionId.split('_')[1] || '';
-      subLabel = ` (${letter}2)`;
+      subLabel = ` (${sectionLetter}2)`;
     }
     calendarName = `DIU Routine — ${sectionId}${subLabel}`;
     calendarDesc = `Class routine feed for ${sectionId}${subLabel}, Dept. of CSE, DIU.`;
   }
+
+  // Ensure classes are strictly filtered by subsection when subSection is '1' or '2'
+  const activeClasses =
+    !faculty && (subSection === '1' || subSection === '2')
+      ? classes.filter((c) => {
+          const cSub = c.subSection || extractSubSectionId(c, sectionLetter);
+          return !cSub || cSub === subSection;
+        })
+      : classes;
 
   // Do not set timezone on the top-level calendar options, because ical-generator
   // strips the mandatory 'Z' from DTSTAMP and RRULE:UNTIL when top-level timezone is present.
@@ -119,7 +127,7 @@ export function buildCalendarFeed(
   const verMatch = routineVersion.match(/\bv?([0-9]+(?:\.[0-9]+)?)\b/i);
   const formattedVersion = verMatch ? `v${verMatch[1]}` : (routineVersion.startsWith('v') ? routineVersion : `v${routineVersion}`);
 
-  for (const item of classes) {
+  for (const item of activeClasses) {
     const baseDate = WEEKDAY_DATE_MAP[item.dayOfWeek];
     if (!baseDate) continue;
 
@@ -138,11 +146,12 @@ export function buildCalendarFeed(
 
     // Deterministic UID:
     // Consistent across routine changes for identical slots so calendar engines replace/update in-place
-    const subIdentifier = item.subSection ? `sub${item.subSection}` : 'common';
+    const itemSub = item.subSection || extractSubSectionId(item, sectionLetter);
+    const subIdentifier = itemSub ? `sub${itemSub}` : 'common';
     const cleanCourseCode = item.courseCode.split('(')[0].trim().toUpperCase();
     const cleanRoom = item.room.split('(')[0].trim();
     const sectionBadge = item.sectionId
-      ? (item.subSection ? `${item.sectionId}${item.subSection}` : item.sectionId)
+      ? (itemSub ? `${item.sectionId}${itemSub}` : item.sectionId)
       : (item.batch && item.section ? `${item.batch}_${item.section}` : 'All');
 
     const deterministicUid = faculty
@@ -169,8 +178,8 @@ export function buildCalendarFeed(
       ? item.courseTitle
       : catalogEntry?.name || item.courseTitle || cleanCourseCode;
 
-    const sectionDisplay = item.subSection
-      ? `${item.sectionId} (Subsection ${item.section || ''}${item.subSection})`
+    const sectionDisplay = itemSub
+      ? `${item.sectionId} (Subsection ${item.section || sectionLetter}${itemSub})`
       : item.sectionId || sectionBadge;
 
     // 4. Description block structure:
@@ -247,6 +256,12 @@ export function buildCalendarFeed(
       if (override.status === 'CANCELLED') continue;
       if (override.courseCode === 'ALL' || override.sectionId === 'ALL') continue;
 
+      // Filter subsection-specific overrides when feed is scoped to subsection '1' or '2'
+      const overrideSub = extractSubSectionId(override, sectionLetter);
+      if (!faculty && (subSection === '1' || subSection === '2') && overrideSub && overrideSub !== subSection) {
+        continue;
+      }
+
       const [oYear, oMonth, oDay] = override.date.split('-').map(Number);
       if (!oYear || !oMonth || !oDay) continue;
 
@@ -259,12 +274,14 @@ export function buildCalendarFeed(
 
       const oCleanCourse = override.courseCode.split('(')[0].trim().toUpperCase();
 
-      // Find matching recurring class in classes
-      const matchingClass = classes.find((c) => {
+      // Find matching recurring class in activeClasses
+      const matchingClass = activeClasses.find((c) => {
         const cCleanCode = c.courseCode.split('(')[0].trim().toUpperCase();
         if (cCleanCode !== oCleanCourse) return false;
         if (c.dayOfWeek !== weekdayStr) return false;
         if (override.startTime && c.startTime !== override.startTime) return false;
+        const cSub = c.subSection || extractSubSectionId(c, sectionLetter);
+        if (overrideSub && cSub && overrideSub !== cSub) return false;
         return true;
       });
 
@@ -341,10 +358,11 @@ export function buildCalendarFeed(
 
       if (matchingClass) {
         // Occurrence exception for an existing recurring slot via RECURRENCE-ID
-        const subIdentifier = matchingClass.subSection ? `sub${matchingClass.subSection}` : 'common';
+        const matchSub = matchingClass.subSection || extractSubSectionId(matchingClass, sectionLetter);
+        const subIdentifier = matchSub ? `sub${matchSub}` : 'common';
         const cleanCourseCode = matchingClass.courseCode.split('(')[0].trim().toUpperCase();
         const sectionBadge = matchingClass.sectionId
-          ? (matchingClass.subSection ? `${matchingClass.sectionId}${matchingClass.subSection}` : matchingClass.sectionId)
+          ? (matchSub ? `${matchingClass.sectionId}${matchSub}` : matchingClass.sectionId)
           : (matchingClass.batch && matchingClass.section ? `${matchingClass.batch}_${matchingClass.section}` : 'All');
 
         const deterministicUid = faculty
@@ -370,8 +388,8 @@ export function buildCalendarFeed(
           ? matchingClass.courseTitle
           : catalogEntry?.name || matchingClass.courseTitle || cleanCourseCode;
 
-        const sectionDisplay = matchingClass.subSection
-          ? `${matchingClass.sectionId} (Subsection ${matchingClass.section || ''}${matchingClass.subSection})`
+        const sectionDisplay = matchSub
+          ? `${matchingClass.sectionId} (Subsection ${matchingClass.section || sectionLetter}${matchSub})`
           : matchingClass.sectionId || sectionBadge;
 
         const description = isRegular

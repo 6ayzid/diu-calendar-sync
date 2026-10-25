@@ -552,7 +552,7 @@ export default function Home() {
       if (target.type === 'faculty') {
         return `diu_cached_routine_${v}_t_${target.faculty.code.toUpperCase()}`;
       }
-      return `diu_cached_routine_${v}_s_${target.section.id}_sub_${target.subSection}`;
+      return `diu_cached_routine_${v}_s2_${target.section.id}_sub_${target.subSection}`;
     },
     [routineVersion]
   );
@@ -620,7 +620,16 @@ export default function Home() {
               currentTarget.type === 'faculty' &&
               parsed.classes.some((c: RoutineClass) => c.sectionId === 'Common');
 
-            if (!hasLegacyCommonSection) {
+            // Invalidate legacy cached student routine if lab subsections were missing or unfiltered
+            const hasInvalidStudentSubSection =
+              currentTarget.type === 'section' &&
+              currentTarget.subSection !== 'all' &&
+              parsed.classes.some(
+                (c: RoutineClass) =>
+                  c.subSection && c.subSection !== currentTarget.subSection
+              );
+
+            if (!hasLegacyCommonSection && !hasInvalidStudentSubSection) {
               cachedData = {
                 classes: parsed.classes,
                 version: parsed.version || currentVersion,

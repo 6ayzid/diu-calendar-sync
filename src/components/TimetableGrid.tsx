@@ -19,7 +19,7 @@ import {
   GraduationCap,
 } from 'lucide-react';
 import { getFacultyByCode, registerDynamicFaculty } from '@/data/faculty';
-import { getCourseShortTitle, getLabSubsectionBadge, parseRoomParts } from '@/lib/course-utils';
+import { getCourseShortTitle, getLabSubsectionBadge, parseRoomParts, extractSubSectionId } from '@/lib/course-utils';
 import { COURSE_CATALOG } from '@/lib/courses';
 import { formatTime12, getDhakaClock, DhakaClockState, getUpcomingDays, getCurrentWeekScheduleDays, WeekScheduleDay, ContinuousScheduleDay, getContinuousScheduleDays, timeToMinutes } from '@/lib/time-utils';
 import { HOURLY_MARKS, layoutDayEvents, getCurrentTimeTopPercent, PositionedEvent, TIMELINE_START_HOUR, TIMELINE_END_HOUR } from '@/lib/timeline-layout';
@@ -1163,20 +1163,24 @@ export function TimetableGrid({
         return true;
       });
 
-      // Filter by subsection if active
+      // Filter by subsection if active (works universally across all batches and section letters)
       const filteredDayOverrides = activeDayOverrides.filter((ev) => {
-        if (subSection === '1' && (ev.courseCode.includes('O2') || ev.title.includes('O2'))) return false;
-        if (subSection === '2' && (ev.courseCode.includes('O1') || ev.title.includes('O1'))) return false;
+        if (!subSection || subSection === 'all') return true;
+        const evSub = extractSubSectionId(ev, section?.sectionLetter);
+        if (evSub && evSub !== subSection) return false;
         return true;
       });
 
-      // An override matches a regular class slot if it shares course code and start time
+      // An override matches a regular class slot if it shares course code, start time, and compatible subsection
       const isMatchingRegularClass = (ev: ClassEventOverride) => {
         const evClean = (ev.courseCode || '').split('(')[0].trim().toUpperCase();
+        const evSub = extractSubSectionId(ev, section?.sectionLetter);
         return [...highDay, ...lowDay].some((c) => {
           const cClean = c.courseCode.split('(')[0].trim().toUpperCase();
           if (cClean !== evClean) return false;
           if (ev.startTime && c.startTime && ev.startTime !== c.startTime) return false;
+          const cSub = c.subSection || extractSubSectionId(c, section?.sectionLetter);
+          if (evSub && cSub && evSub !== cSub) return false;
           return true;
         });
       };
@@ -1209,7 +1213,7 @@ export function TimetableGrid({
       // Create synthetic RoutineClass objects for on-grid overrides so they can be positioned on the grid
       const syntheticHighClasses: { routineClass: RoutineClass; override: ClassEventOverride }[] = onGridOverrides.map((ev) => {
         const isLab = ev.courseCode.toLowerCase().includes('lab') || ev.title.toLowerCase().includes('lab');
-        const subSecMatch = ev.courseCode.match(/O([12])/i) || ev.title.match(/O([12])/i);
+        const extractedSub = extractSubSectionId(ev, section?.sectionLetter);
         const startMin = timeToMinutes(ev.startTime!);
         const endMin = ev.endTime ? timeToMinutes(ev.endTime) : startMin + 90;
         const endH = Math.floor(endMin / 60);
@@ -1221,7 +1225,7 @@ export function TimetableGrid({
           batch: section?.batch || '',
           section: section?.sectionLetter || '',
           sectionId: ev.sectionId,
-          subSection: subSecMatch ? (subSecMatch[1] as '1' | '2') : null,
+          subSection: extractedSub,
           courseCode: ev.courseCode,
           courseTitle: ev.title || ev.courseCode,
           teacherCode: '',
@@ -2513,6 +2517,10 @@ export function TimetableGrid({
                         const evClean = (ev.courseCode || '').split('(')[0].trim().toUpperCase();
                         if (cClean !== evClean) return false;
                         if (ev.startTime && c.startTime && ev.startTime !== c.startTime) return false;
+                        const evSub = extractSubSectionId(ev, section?.sectionLetter);
+                        const cSub = c.subSection || extractSubSectionId(c, section?.sectionLetter);
+                        if (evSub && cSub && evSub !== cSub) return false;
+                        if (subSection && subSection !== 'all' && evSub && evSub !== subSection) return false;
                         return true;
                       });
 
@@ -2793,10 +2801,13 @@ export function TimetableGrid({
                 return false;
               }
               const evClean = (ev.courseCode || '').split('(')[0].trim().toUpperCase();
+              const evSub = extractSubSectionId(ev, section?.sectionLetter);
               const matchesRegular = regularClasses.some((c) => {
                 const cClean = c.courseCode.split('(')[0].trim().toUpperCase();
                 if (cClean !== evClean) return false;
                 if (ev.startTime && c.startTime && ev.startTime !== c.startTime) return false;
+                const cSub = c.subSection || extractSubSectionId(c, section?.sectionLetter);
+                if (evSub && cSub && evSub !== cSub) return false;
                 return true;
               });
               return !matchesRegular;
@@ -2804,13 +2815,14 @@ export function TimetableGrid({
 
             const syntheticClasses: RoutineClass[] = standaloneOverrides
               .filter((ev) => {
-                if (subSection === '1' && (ev.courseCode.includes('O2') || ev.title.includes('O2'))) return false;
-                if (subSection === '2' && (ev.courseCode.includes('O1') || ev.title.includes('O1'))) return false;
+                if (!subSection || subSection === 'all') return true;
+                const evSub = extractSubSectionId(ev, section?.sectionLetter);
+                if (evSub && evSub !== subSection) return false;
                 return true;
               })
               .map((ev) => {
                 const isLab = ev.courseCode.toLowerCase().includes('lab') || ev.title.toLowerCase().includes('lab');
-                const subSecMatch = ev.courseCode.match(/O([12])/i) || ev.title.match(/O([12])/i);
+                const extractedSub = extractSubSectionId(ev, section?.sectionLetter);
                 const evClean = ev.courseCode.split('(')[0].trim().toUpperCase();
                 const matchedClass = classes.find((c) => c.courseCode.split('(')[0].trim().toUpperCase() === evClean);
                 const resolvedTeacher = matchedClass?.teacherCode || 'TBA';
@@ -2821,7 +2833,7 @@ export function TimetableGrid({
                   batch: section?.batch || '66',
                   section: section?.sectionLetter || 'O',
                   sectionId: ev.sectionId,
-                  subSection: subSecMatch ? (subSecMatch[1] as '1' | '2') : null,
+                  subSection: extractedSub,
                   courseCode: ev.courseCode,
                   courseTitle: resolvedTitle,
                   teacherCode: resolvedTeacher,
@@ -2990,6 +3002,10 @@ export function TimetableGrid({
                           const evClean = (ev.courseCode || '').split('(')[0].trim().toUpperCase();
                           if (cClean !== evClean) return false;
                           if (ev.startTime && classItem.startTime && ev.startTime !== classItem.startTime) return false;
+                          const evSub = extractSubSectionId(ev, section?.sectionLetter);
+                          const cSub = classItem.subSection || extractSubSectionId(classItem, section?.sectionLetter);
+                          if (evSub && cSub && evSub !== cSub) return false;
+                          if (subSection && subSection !== 'all' && evSub && evSub !== subSection) return false;
                           return true;
                         });
 

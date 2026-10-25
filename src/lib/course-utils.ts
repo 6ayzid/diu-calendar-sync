@@ -143,6 +143,104 @@ export function getCourseShortTitle(code: string, rawTitle?: string, isLab?: boo
 }
 
 /**
+ * Universal helper to extract subsection ('1' or '2') from a class or event override
+ * across ANY batch and ANY section letter (e.g. 66_O1, 68_D2, 70_Q1, 72_B2, (O2), (D1), etc.).
+ * Returns null if the item applies to the whole section / combined class.
+ */
+export function extractSubSectionId(
+  item: {
+    subSection?: '1' | '2' | 'all' | null;
+    courseCode?: string;
+    courseTitle?: string;
+    title?: string;
+    description?: string;
+    id?: string;
+    sectionId?: string;
+    section?: string;
+  },
+  sectionLetterHint?: string
+): '1' | '2' | null {
+  if (item.subSection === '1' || item.subSection === '2') {
+    return item.subSection;
+  }
+
+  let letter = (
+    item.section ||
+    sectionLetterHint ||
+    (item.sectionId ? item.sectionId.split('_')[1]?.replace(/[12]$/, '') : '') ||
+    ''
+  )
+    .trim()
+    .toUpperCase();
+
+  if (!letter && item.courseCode) {
+    const secFromCode = item.courseCode.match(/\((?:[0-9]+[_-]?)?([A-Za-z]+)[12]?\)/);
+    if (secFromCode) {
+      letter = secFromCode[1].toUpperCase();
+    }
+  }
+
+  // 1. Check courseCode e.g. "CSE324(66_O2)", "CSE224(68_D1)", "CSE324(O2)", "CSE324 - O1"
+  if (item.courseCode) {
+    const parenMatch = item.courseCode.match(/\((?:[0-9]+[_-]?)?[A-Za-z]+([12])\)/);
+    if (parenMatch) return parenMatch[1] as '1' | '2';
+
+    const batchSecMatch = item.courseCode.match(/\b[0-9]+[_-][A-Za-z]+([12])\b/);
+    if (batchSecMatch) return batchSecMatch[1] as '1' | '2';
+
+    if (letter) {
+      const letterMatch = item.courseCode.match(
+        new RegExp(`(?:^|[\\s(\\[,-])${letter}([12])(?=$|[\\s)\\],.])`, 'i')
+      );
+      if (letterMatch) return letterMatch[1] as '1' | '2';
+    }
+  }
+
+  // 2. Check deterministic ID e.g. "66_O-CSE324-sub1-MONDAY-0830"
+  if (item.id) {
+    const idMatch = item.id.match(/-sub([12])(?:-|$)/i);
+    if (idMatch) return idMatch[1] as '1' | '2';
+  }
+
+  // 3. Check sectionId e.g. "66_O1" or "68_D2"
+  if (item.sectionId) {
+    const secIdMatch = item.sectionId.match(/^(?:[0-9]+[_-])?[A-Za-z]+([12])$/);
+    if (secIdMatch) return secIdMatch[1] as '1' | '2';
+  }
+
+  // 4. Check title / courseTitle / description for subsection tags e.g. "(O2)", "(66_O2)", "68_D1", "(D1)"
+  const textFields = [item.title, item.courseTitle, item.description].filter(Boolean) as string[];
+  for (const text of textFields) {
+    if (/both\s+lab\s+subsections|full\s+[0-9]+_[A-Za-z]+/i.test(text)) {
+      return null;
+    }
+    const foundSubs = new Set<'1' | '2'>();
+
+    for (const m of text.matchAll(/\((?:[0-9]+[_-]?)?[A-Za-z]+([12])\)/g)) {
+      foundSubs.add(m[1] as '1' | '2');
+    }
+    for (const m of text.matchAll(/\b[0-9]+[_-][A-Za-z]+([12])\b/g)) {
+      foundSubs.add(m[1] as '1' | '2');
+    }
+    if (letter) {
+      const letterRegex = new RegExp(`(?:^|[\\s(\\[,-])${letter}([12])(?=$|[\\s)\\],.])`, 'gi');
+      for (const m of text.matchAll(letterRegex)) {
+        foundSubs.add(m[1] as '1' | '2');
+      }
+    }
+
+    if (foundSubs.size === 1) {
+      return Array.from(foundSubs)[0];
+    }
+    if (foundSubs.size > 1) {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+/**
  * Returns a high-glance, minimal short label (e.g. "D1", "D2", "A1") for lab subsections.
  * Returns null for theory classes or labs without a specific subgroup.
  */
@@ -158,46 +256,33 @@ export function getLabSubsectionBadge(
   },
   sectionProp?: { sectionLetter?: string; id?: string } | null
 ): string | null {
+  const sub = extractSubSectionId(c, sectionProp?.sectionLetter);
   const isLabClass =
     c.type === 'Lab' ||
     Boolean(c.courseTitle && /lab|sessional/i.test(c.courseTitle)) ||
     Boolean(c.courseCode && /lab|sessional/i.test(c.courseCode)) ||
-    (c.subSection !== undefined && c.subSection !== null && c.subSection !== 'all');
+    sub !== null;
 
-  if (!isLabClass) return null;
+  if (!isLabClass || !sub) return null;
 
-  let sub = c.subSection && c.subSection !== 'all' ? c.subSection : null;
   let letter = c.section || sectionProp?.sectionLetter || '';
 
-  if (!sub) {
-    const codeMatch = c.courseCode ? c.courseCode.match(/\((?:[0-9]+_)?([A-Za-z]+)([12])\)/) : null;
-    if (codeMatch) {
-      if (!letter) letter = codeMatch[1];
-      sub = codeMatch[2] as '1' | '2';
-    } else {
-      const idMatch = c.id ? c.id.match(/-sub([12])\-/) : null;
-      if (idMatch) {
-        sub = idMatch[1] as '1' | '2';
-      } else {
-        const secIdMatch = c.sectionId ? c.sectionId.match(/_([A-Za-z]+)([12])$/) : null;
-        if (secIdMatch) {
-          if (!letter) letter = secIdMatch[1];
-          sub = secIdMatch[2] as '1' | '2';
-        }
-      }
-    }
+  if (!letter && c.courseCode) {
+    const codeMatch = c.courseCode.match(/\((?:[0-9]+[_-]?)?([A-Za-z]+)[12]?\)/);
+    if (codeMatch) letter = codeMatch[1];
   }
 
   if (!letter && c.sectionId) {
     const match = c.sectionId.match(/_([A-Za-z]+)/);
-    if (match) letter = match[1];
+    if (match) letter = match[1].replace(/[12]$/, '');
   }
 
-  if (sub) {
-    return letter ? `${letter.toUpperCase()}${sub}` : `Sub ${sub}`;
+  if (!letter && sectionProp?.id) {
+    const match = sectionProp.id.match(/_([A-Za-z]+)/);
+    if (match) letter = match[1].replace(/[12]$/, '');
   }
 
-  return null;
+  return letter ? `${letter.toUpperCase()}${sub}` : `Sub ${sub}`;
 }
 
 export interface RoomParts {

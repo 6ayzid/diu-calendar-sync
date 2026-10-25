@@ -4,6 +4,7 @@ import { CURATED_ROUTINES } from '@/data/routines';
 import { fetchLiveScheduleFromUpstream, fetchLiveTeacherScheduleFromUpstream } from './routine-gateway';
 import { getFacultyByCode } from '@/data/faculty';
 import { getCourseName } from '@/lib/courses';
+import { extractSubSectionId } from '@/lib/course-utils';
 import officialRoutine from '@/data/official-routine.json';
 
 /**
@@ -43,6 +44,7 @@ export async function getScheduleWithMeta(
   const normalizedId = sectionId.replace('-', '_').toUpperCase();
 
   // 1. Primary: Departmental routine gateway (live Cloudflare Worker with edge caching)
+  const officialClasses = (officialRoutine.sections as Record<string, RoutineClass[]>)[normalizedId];
   try {
     const liveResult = await fetchLiveScheduleFromUpstream(normalizedId);
     if (liveResult && liveResult.classes.length > 0) {
@@ -51,8 +53,31 @@ export async function getScheduleWithMeta(
         const rawT = (c.courseTitle || '').trim();
         const cleanT = rawT.replace(/\s*lab\s*/i, '').replace(/[^A-Za-z0-9]/g, '').toUpperCase();
         const isJustCode = !rawT || rawT.toLowerCase() === 'unknown' || cleanT === cleanC.replace(/[^A-Za-z0-9]/g, '');
+
+        let resolvedSub = c.subSection || extractSubSectionId(c);
+        if (!resolvedSub && officialClasses && officialClasses.length > 0) {
+          const matchedOfficial = officialClasses.find(
+            (oc) =>
+              oc.courseCode.split('(')[0].trim().toUpperCase() === cleanC &&
+              oc.dayOfWeek === c.dayOfWeek &&
+              oc.startTime === c.startTime &&
+              (oc.subSection === '1' || oc.subSection === '2')
+          );
+          if (matchedOfficial) {
+            resolvedSub = matchedOfficial.subSection as '1' | '2';
+          }
+        }
+
+        const resolvedCourseCode =
+          resolvedSub && !c.courseCode.includes('(')
+            ? `${cleanC}(${normalizedId}${resolvedSub})`
+            : c.courseCode;
+
         return {
           ...c,
+          subSection: resolvedSub,
+          courseCode: resolvedCourseCode,
+          color: c.type === 'Lab' ? (resolvedSub === '1' ? 'amber' : 'rose') : c.color,
           courseTitle: isJustCode ? (getCourseName(cleanC) || c.courseTitle) : c.courseTitle,
         };
       });
@@ -66,7 +91,6 @@ export async function getScheduleWithMeta(
   }
 
   // 2. Fallback: Official Departmental Routine snapshot
-  const officialClasses = (officialRoutine.sections as Record<string, RoutineClass[]>)[normalizedId];
   if (officialClasses && officialClasses.length > 0) {
     const enriched = officialClasses.map((c) => ({
       ...c,
@@ -250,12 +274,13 @@ function filterBySubSection(
     return classes;
   }
   return classes.filter((c) => {
-    // Keep all common theory classes
-    if (c.subSection === null || c.subSection === undefined) {
+    const effectiveSub = c.subSection || extractSubSectionId(c);
+    // Keep all common theory/combined classes
+    if (effectiveSub === null || effectiveSub === undefined) {
       return true;
     }
-    // Keep only the selected lab subsection (e.g. D1 or D2)
-    return c.subSection === subSection;
+    // Keep only the selected lab subsection (e.g. O1/D1 or O2/D2)
+    return effectiveSub === subSection;
   });
 }
 
