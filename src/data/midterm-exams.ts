@@ -1,6 +1,40 @@
 import { DayOfWeek, RoutineClass } from '@/types/schedule';
 import { ClassEventOverride } from '@/types/events';
 import officialRoutine from '@/data/official-routine.json';
+import rawSeatPlans from '@/data/midterm-seat-plans.json';
+
+export interface MidtermSeatPlan {
+  date: string;
+  slot: 'A' | 'B' | 'C';
+  courseCode: string;
+  courseTitle: string;
+  teacher?: string;
+  section: string;
+  rooms: [string, string][];
+  roomString: string;
+  total: number;
+}
+
+export const MIDTERM_SEAT_PLANS: MidtermSeatPlan[] = rawSeatPlans as MidtermSeatPlan[];
+
+// Fast indexed lookup by SECTION_DATE and SECTION_COURSE
+const SEAT_PLAN_INDEX = new Map<string, MidtermSeatPlan>();
+for (const plan of MIDTERM_SEAT_PLANS) {
+  const sec = plan.section.toUpperCase().replace('-', '_');
+  SEAT_PLAN_INDEX.set(`${sec}_${plan.date}`, plan);
+  SEAT_PLAN_INDEX.set(`${sec}_${plan.courseCode.toUpperCase()}`, plan);
+}
+
+export function getSeatPlanForSection(
+  sectionId: string,
+  dateOrCourse: string
+): MidtermSeatPlan | undefined {
+  const sec = sectionId.toUpperCase().replace('-', '_');
+  return (
+    SEAT_PLAN_INDEX.get(`${sec}_${dateOrCourse}`) ||
+    SEAT_PLAN_INDEX.get(`${sec}_${dateOrCourse.toUpperCase()}`)
+  );
+}
 
 /**
  * Midterm Examination Schedule — Fall 2026
@@ -226,7 +260,7 @@ export const RAW_MIDTERM_EXAMS: RawMidtermExamSlot[] = [
     startTime: '11:30',
     endTime: '13:00',
     batch: 68,
-    courses: [{ code: 'CSE228', title: 'Theory of Computation' }],
+    courses: [{ code: 'CSE223', title: 'Digital Logic Design' }],
   },
   {
     day: 3,
@@ -353,7 +387,7 @@ export const RAW_MIDTERM_EXAMS: RawMidtermExamSlot[] = [
     startTime: '11:30',
     endTime: '13:00',
     batch: 68,
-    courses: [{ code: 'CSE223', title: 'Digital Logic Design' }],
+    courses: [{ code: 'CSE228', title: 'Theory of Computation' }],
   },
   {
     day: 5,
@@ -553,6 +587,13 @@ export function getMidtermExamsForSection(sectionId: string): ClassEventOverride
       }
     }
 
+    // Look up official published seating plan for this section on this date/course
+    const seatPlan =
+      getSeatPlanForSection(normalizedSection, slot.date) ||
+      getSeatPlanForSection(normalizedSection, resolvedCode);
+
+    const room = seatPlan ? seatPlan.roomString : 'Exam Hall (See Sitting Plan)';
+
     const electiveDetail =
       slot.courses.length > 1
         ? `Elective Courses for Batch ${slot.batch}: ${slot.courses.map((c) => `${c.code} (${c.title})`).join(' | ')}`
@@ -561,9 +602,11 @@ export function getMidtermExamsForSection(sectionId: string): ClassEventOverride
     const descriptionParts = [
       `Midterm Examination — Fall 2026 (${slot.dayLabel}, Slot ${slot.slot})`,
       `Course: ${resolvedTitle} (${resolvedCode})`,
-      `Batch: Batch ${slot.batch}`,
+      `Batch: Batch ${slot.batch} (Section ${normalizedSection})`,
       `Time: ${slot.startTime} – ${slot.endTime} (${slot.dayOfWeek})`,
-      `Room: Exam Hall (See Published Seating Plan)`,
+      `Room / Seating Plan: ${room}`,
+      seatPlan?.teacher ? `Invigilator / Course Teacher: ${seatPlan.teacher}` : '',
+      seatPlan?.total ? `Total Allocated Seats: ${seatPlan.total}` : '',
       electiveDetail,
       '',
       STUDENT_EXAM_INSTRUCTIONS,
@@ -580,7 +623,7 @@ export function getMidtermExamsForSection(sectionId: string): ClassEventOverride
       type: 'exam',
       title: `${resolvedCode === 'CSE326' ? 'SPIC' : resolvedTitle} (Midterm Exam)`,
       description: descriptionParts.join('\n'),
-      room: 'Exam Hall (See Sitting Plan)',
+      room,
       status: 'CONFIRMED',
       createdAt: '2026-10-23T00:00:00Z',
     };

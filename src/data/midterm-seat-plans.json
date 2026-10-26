@@ -1,0 +1,9762 @@
+[
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE213",
+    "courseTitle": "Algorithms",
+    "teacher": "NNA",
+    "section": "70_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "9"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE213",
+    "courseTitle": "Algorithms",
+    "teacher": "SMAH",
+    "section": "70_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "15"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "12"
+      ]
+    ],
+    "roomString": "ANX1-103(15), ANX1-201(24), ANX1-202(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE213",
+    "courseTitle": "Algorithms",
+    "teacher": "SI",
+    "section": "70_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "14"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "15"
+      ]
+    ],
+    "roomString": "ANX1-202(14), ANX1-203(16), ANX1-204(15)",
+    "total": 45
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE213",
+    "courseTitle": "Algorithms",
+    "teacher": "SS",
+    "section": "70_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "9"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "16"
+      ]
+    ],
+    "roomString": "ANX1-204(9), ANX1-207(24), ANX1-208(16)",
+    "total": 49
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE213",
+    "courseTitle": "Algorithms",
+    "teacher": "MUH",
+    "section": "70_E",
+    "rooms": [
+      [
+        "ANX1-208",
+        "8"
+      ],
+      [
+        "ANX1-209",
+        "24"
+      ],
+      [
+        "ANX1-210",
+        "16"
+      ]
+    ],
+    "roomString": "ANX1-208(8), ANX1-209(24), ANX1-210(16)",
+    "total": 48
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE213",
+    "courseTitle": "Algorithms",
+    "teacher": "MUH",
+    "section": "70_F",
+    "rooms": [
+      [
+        "208",
+        "18"
+      ],
+      [
+        "213",
+        "24"
+      ],
+      [
+        "216",
+        "7"
+      ]
+    ],
+    "roomString": "208(18), 213(24), 216(7)",
+    "total": 49
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE213",
+    "courseTitle": "Algorithms",
+    "teacher": "SNK",
+    "section": "70_G",
+    "rooms": [
+      [
+        "216",
+        "17"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "8"
+      ]
+    ],
+    "roomString": "216(17), 217(24), 218(8)",
+    "total": 49
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE213",
+    "courseTitle": "Algorithms",
+    "teacher": "MJA",
+    "section": "70_H",
+    "rooms": [
+      [
+        "218",
+        "16"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "8"
+      ]
+    ],
+    "roomString": "218(16), 219(24), 220(8)",
+    "total": 48
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE213",
+    "courseTitle": "Algorithms",
+    "teacher": "TAB",
+    "section": "70_I",
+    "rooms": [
+      [
+        "220",
+        "16"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "11"
+      ]
+    ],
+    "roomString": "220(16), 221(24), 222(11)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE213",
+    "courseTitle": "Algorithms",
+    "teacher": "SS",
+    "section": "70_J",
+    "rooms": [
+      [
+        "222",
+        "13"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "12"
+      ]
+    ],
+    "roomString": "222(13), 223(24), 224(12)",
+    "total": 49
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE213",
+    "courseTitle": "Algorithms",
+    "teacher": "AGT",
+    "section": "70_K",
+    "rooms": [
+      [
+        "224",
+        "12"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "305",
+        "12"
+      ]
+    ],
+    "roomString": "224(12), 303(24), 305(12)",
+    "total": 48
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE213",
+    "courseTitle": "Algorithms",
+    "teacher": "DRAR",
+    "section": "70_L",
+    "rooms": [
+      [
+        "305",
+        "12"
+      ],
+      [
+        "304",
+        "24"
+      ],
+      [
+        "306",
+        "8"
+      ]
+    ],
+    "roomString": "305(12), 304(24), 306(8)",
+    "total": 44
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE213",
+    "courseTitle": "Algorithms",
+    "teacher": "NAE",
+    "section": "70_M",
+    "rooms": [
+      [
+        "306",
+        "16"
+      ],
+      [
+        "307",
+        "20"
+      ],
+      [
+        "318A",
+        "11"
+      ]
+    ],
+    "roomString": "306(16), 307(20), 318A(11)",
+    "total": 47
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE213",
+    "courseTitle": "Algorithms",
+    "teacher": "NSL",
+    "section": "70_N",
+    "rooms": [
+      [
+        "318A",
+        "13"
+      ],
+      [
+        "318B",
+        "24"
+      ],
+      [
+        "320",
+        "13"
+      ]
+    ],
+    "roomString": "318A(13), 318B(24), 320(13)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE213",
+    "courseTitle": "Algorithms",
+    "teacher": "TIS",
+    "section": "70_O",
+    "rooms": [
+      [
+        "320",
+        "18"
+      ],
+      [
+        "514",
+        "24"
+      ],
+      [
+        "515",
+        "5"
+      ]
+    ],
+    "roomString": "320(18), 514(24), 515(5)",
+    "total": 47
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE213",
+    "courseTitle": "Algorithms",
+    "teacher": "SFMA",
+    "section": "70_P",
+    "rooms": [
+      [
+        "515",
+        "19"
+      ],
+      [
+        "516",
+        "24"
+      ],
+      [
+        "518",
+        "4"
+      ]
+    ],
+    "roomString": "515(19), 516(24), 518(4)",
+    "total": 47
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE213",
+    "courseTitle": "Algorithms",
+    "teacher": "TIS",
+    "section": "70_Q",
+    "rooms": [
+      [
+        "518",
+        "22"
+      ],
+      [
+        "G26",
+        "26"
+      ]
+    ],
+    "roomString": "518(22), G26(26)",
+    "total": 48
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE213",
+    "courseTitle": "Algorithms",
+    "teacher": "MRY",
+    "section": "70_R",
+    "rooms": [
+      [
+        "G26",
+        "6"
+      ],
+      [
+        "G27",
+        "29"
+      ]
+    ],
+    "roomString": "G26(6), G27(29)",
+    "total": 35
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE112",
+    "courseTitle": "Computer Fundamentals",
+    "teacher": "MFH",
+    "section": "73_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "9"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE112",
+    "courseTitle": "Computer Fundamentals",
+    "teacher": "FZA",
+    "section": "73_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "15"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "12"
+      ]
+    ],
+    "roomString": "ANX1-103(15), ANX1-201(24), ANX1-202(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE112",
+    "courseTitle": "Computer Fundamentals",
+    "teacher": "TAB",
+    "section": "73_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "14"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "21"
+      ]
+    ],
+    "roomString": "ANX1-202(14), ANX1-203(16), ANX1-204(21)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE112",
+    "courseTitle": "Computer Fundamentals",
+    "teacher": "MHS",
+    "section": "73_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "3"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "24"
+      ]
+    ],
+    "roomString": "ANX1-204(3), ANX1-207(24), ANX1-208(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE112",
+    "courseTitle": "Computer Fundamentals",
+    "teacher": "ACC",
+    "section": "73_E",
+    "rooms": [
+      [
+        "208",
+        "27"
+      ],
+      [
+        "213",
+        "24"
+      ]
+    ],
+    "roomString": "208(27), 213(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE112",
+    "courseTitle": "Computer Fundamentals",
+    "teacher": "ACC",
+    "section": "73_F",
+    "rooms": [
+      [
+        "216",
+        "24"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "3"
+      ]
+    ],
+    "roomString": "216(24), 217(24), 218(3)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE112",
+    "courseTitle": "Computer Fundamentals",
+    "teacher": "ACC",
+    "section": "73_G",
+    "rooms": [
+      [
+        "218",
+        "21"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "6"
+      ]
+    ],
+    "roomString": "218(21), 219(24), 220(6)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE112",
+    "courseTitle": "Computer Fundamentals",
+    "teacher": "MIN",
+    "section": "73_H",
+    "rooms": [
+      [
+        "220",
+        "18"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "9"
+      ]
+    ],
+    "roomString": "220(18), 221(24), 222(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE112",
+    "courseTitle": "Computer Fundamentals",
+    "teacher": "MB",
+    "section": "73_I",
+    "rooms": [
+      [
+        "222",
+        "15"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "12"
+      ]
+    ],
+    "roomString": "222(15), 223(24), 224(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE112",
+    "courseTitle": "Computer Fundamentals",
+    "teacher": "AAK",
+    "section": "73_J",
+    "rooms": [
+      [
+        "224",
+        "12"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "305",
+        "15"
+      ]
+    ],
+    "roomString": "224(12), 303(24), 305(15)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE112",
+    "courseTitle": "Computer Fundamentals",
+    "teacher": "MB",
+    "section": "73_K",
+    "rooms": [
+      [
+        "305",
+        "9"
+      ],
+      [
+        "304",
+        "24"
+      ],
+      [
+        "306",
+        "18"
+      ]
+    ],
+    "roomString": "305(9), 304(24), 306(18)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE112",
+    "courseTitle": "Computer Fundamentals",
+    "teacher": "AAK",
+    "section": "73_L",
+    "rooms": [
+      [
+        "306",
+        "6"
+      ],
+      [
+        "307",
+        "28"
+      ],
+      [
+        "318A",
+        "17"
+      ]
+    ],
+    "roomString": "306(6), 307(28), 318A(17)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE112",
+    "courseTitle": "Computer Fundamentals",
+    "teacher": "MUR",
+    "section": "73_M",
+    "rooms": [
+      [
+        "318A",
+        "7"
+      ],
+      [
+        "318B",
+        "24"
+      ],
+      [
+        "320",
+        "20"
+      ]
+    ],
+    "roomString": "318A(7), 318B(24), 320(20)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE112",
+    "courseTitle": "Computer Fundamentals",
+    "teacher": "MUR",
+    "section": "73_N",
+    "rooms": [
+      [
+        "320",
+        "27"
+      ],
+      [
+        "514",
+        "24"
+      ]
+    ],
+    "roomString": "320(27), 514(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE112",
+    "courseTitle": "Computer Fundamentals",
+    "teacher": "TAB",
+    "section": "73_O",
+    "rooms": [
+      [
+        "515",
+        "24"
+      ],
+      [
+        "516",
+        "24"
+      ],
+      [
+        "518",
+        "3"
+      ]
+    ],
+    "roomString": "515(24), 516(24), 518(3)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE112",
+    "courseTitle": "Computer Fundamentals",
+    "teacher": "MUR",
+    "section": "73_P",
+    "rooms": [
+      [
+        "518",
+        "36"
+      ],
+      [
+        "G26",
+        "14"
+      ]
+    ],
+    "roomString": "518(36), G26(14)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "A",
+    "courseCode": "CSE213",
+    "courseTitle": "Algorithms",
+    "teacher": "MHS",
+    "section": "73_Q",
+    "rooms": [
+      [
+        "ANX1-209",
+        "24"
+      ],
+      [
+        "ANX1-210",
+        "4"
+      ]
+    ],
+    "roomString": "ANX1-209(24), ANX1-210(4)",
+    "total": 28
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE321",
+    "courseTitle": "Computer Networks",
+    "teacher": "FNN",
+    "section": "67_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "4"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(4)",
+    "total": 46
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE321",
+    "courseTitle": "Computer Networks",
+    "teacher": "STA",
+    "section": "67_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "20"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "5"
+      ]
+    ],
+    "roomString": "ANX1-103(20), ANX1-201(24), ANX1-202(5)",
+    "total": 49
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE321",
+    "courseTitle": "Computer Networks",
+    "teacher": "FNN",
+    "section": "67_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "21"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "4"
+      ]
+    ],
+    "roomString": "ANX1-202(21), ANX1-203(16), ANX1-204(4)",
+    "total": 41
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE321",
+    "courseTitle": "Computer Networks",
+    "teacher": "TAA",
+    "section": "67_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "20"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "7"
+      ]
+    ],
+    "roomString": "ANX1-204(20), ANX1-207(24), ANX1-208(7)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE321",
+    "courseTitle": "Computer Networks",
+    "teacher": "STA",
+    "section": "67_E",
+    "rooms": [
+      [
+        "ANX1-208",
+        "17"
+      ],
+      [
+        "ANX1-209",
+        "24"
+      ],
+      [
+        "ANX1-210",
+        "10"
+      ]
+    ],
+    "roomString": "ANX1-208(17), ANX1-209(24), ANX1-210(10)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE321",
+    "courseTitle": "Computer Networks",
+    "teacher": "IEA",
+    "section": "67_F",
+    "rooms": [
+      [
+        "208",
+        "18"
+      ],
+      [
+        "213",
+        "24"
+      ],
+      [
+        "216",
+        "9"
+      ]
+    ],
+    "roomString": "208(18), 213(24), 216(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE321",
+    "courseTitle": "Computer Networks",
+    "teacher": "PDS",
+    "section": "67_G",
+    "rooms": [
+      [
+        "216",
+        "15"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "11"
+      ]
+    ],
+    "roomString": "216(15), 217(24), 218(11)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE321",
+    "courseTitle": "Computer Networks",
+    "teacher": "MIN",
+    "section": "67_H",
+    "rooms": [
+      [
+        "218",
+        "13"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "14"
+      ]
+    ],
+    "roomString": "218(13), 219(24), 220(14)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE321",
+    "courseTitle": "Computer Networks",
+    "teacher": "ROZ",
+    "section": "67_I",
+    "rooms": [
+      [
+        "220",
+        "10"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "17"
+      ]
+    ],
+    "roomString": "220(10), 221(24), 222(17)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE321",
+    "courseTitle": "Computer Networks",
+    "teacher": "TI",
+    "section": "67_J",
+    "rooms": [
+      [
+        "222",
+        "7"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "20"
+      ]
+    ],
+    "roomString": "222(7), 223(24), 224(20)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE321",
+    "courseTitle": "Computer Networks",
+    "teacher": "NHE",
+    "section": "67_K",
+    "rooms": [
+      [
+        "224",
+        "4"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "305",
+        "23"
+      ]
+    ],
+    "roomString": "224(4), 303(24), 305(23)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE321",
+    "courseTitle": "Computer Networks",
+    "teacher": "JHJ",
+    "section": "67_L",
+    "rooms": [
+      [
+        "305",
+        "1"
+      ],
+      [
+        "304",
+        "24"
+      ],
+      [
+        "306",
+        "24"
+      ],
+      [
+        "307",
+        "2"
+      ]
+    ],
+    "roomString": "305(1), 304(24), 306(24), 307(2)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE321",
+    "courseTitle": "Computer Networks",
+    "teacher": "SMF",
+    "section": "67_M",
+    "rooms": [
+      [
+        "307",
+        "18"
+      ],
+      [
+        "318A",
+        "24"
+      ],
+      [
+        "318B",
+        "9"
+      ]
+    ],
+    "roomString": "307(18), 318A(24), 318B(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE321",
+    "courseTitle": "Computer Networks",
+    "teacher": "NHE",
+    "section": "67_N",
+    "rooms": [
+      [
+        "318B",
+        "15"
+      ],
+      [
+        "320",
+        "31"
+      ],
+      [
+        "514",
+        "4"
+      ]
+    ],
+    "roomString": "318B(15), 320(31), 514(4)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE321",
+    "courseTitle": "Computer Networks",
+    "teacher": "JHJ",
+    "section": "67_O",
+    "rooms": [
+      [
+        "514",
+        "20"
+      ],
+      [
+        "515",
+        "24"
+      ],
+      [
+        "516",
+        "7"
+      ]
+    ],
+    "roomString": "514(20), 515(24), 516(7)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE321",
+    "courseTitle": "Computer Networks",
+    "teacher": "ARK",
+    "section": "67_P",
+    "rooms": [
+      [
+        "516",
+        "17"
+      ],
+      [
+        "518",
+        "26"
+      ],
+      [
+        "G26",
+        "8"
+      ]
+    ],
+    "roomString": "516(17), 518(26), G26(8)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE113",
+    "courseTitle": "Programming and Problem Solving",
+    "teacher": "MHN",
+    "section": "72_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "9"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE113",
+    "courseTitle": "Programming and Problem Solving",
+    "teacher": "SRH",
+    "section": "72_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "15"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "12"
+      ]
+    ],
+    "roomString": "ANX1-103(15), ANX1-201(24), ANX1-202(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE113",
+    "courseTitle": "Programming and Problem Solving",
+    "teacher": "MSM",
+    "section": "72_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "14"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "21"
+      ]
+    ],
+    "roomString": "ANX1-202(14), ANX1-203(16), ANX1-204(21)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE113",
+    "courseTitle": "Programming and Problem Solving",
+    "teacher": "SI",
+    "section": "72_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "3"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "24"
+      ]
+    ],
+    "roomString": "ANX1-204(3), ANX1-207(24), ANX1-208(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE113",
+    "courseTitle": "Programming and Problem Solving",
+    "teacher": "FAF",
+    "section": "72_E",
+    "rooms": [
+      [
+        "208",
+        "27"
+      ],
+      [
+        "213",
+        "22"
+      ]
+    ],
+    "roomString": "208(27), 213(22)",
+    "total": 49
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE113",
+    "courseTitle": "Programming and Problem Solving",
+    "teacher": "FAF",
+    "section": "72_F",
+    "rooms": [
+      [
+        "213",
+        "2"
+      ],
+      [
+        "216",
+        "24"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "1"
+      ]
+    ],
+    "roomString": "213(2), 216(24), 217(24), 218(1)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE113",
+    "courseTitle": "Programming and Problem Solving",
+    "teacher": "SI",
+    "section": "72_G",
+    "rooms": [
+      [
+        "218",
+        "23"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "4"
+      ]
+    ],
+    "roomString": "218(23), 219(24), 220(4)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE113",
+    "courseTitle": "Programming and Problem Solving",
+    "teacher": "MHN",
+    "section": "72_H",
+    "rooms": [
+      [
+        "220",
+        "20"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "7"
+      ]
+    ],
+    "roomString": "220(20), 221(24), 222(7)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE113",
+    "courseTitle": "Programming and Problem Solving",
+    "teacher": "MB",
+    "section": "72_I",
+    "rooms": [
+      [
+        "222",
+        "17"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "10"
+      ]
+    ],
+    "roomString": "222(17), 223(24), 224(10)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE113",
+    "courseTitle": "Programming and Problem Solving",
+    "teacher": "JRY",
+    "section": "72_J",
+    "rooms": [
+      [
+        "224",
+        "14"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "305",
+        "13"
+      ]
+    ],
+    "roomString": "224(14), 303(24), 305(13)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE113",
+    "courseTitle": "Programming and Problem Solving",
+    "teacher": "JRY",
+    "section": "72_K",
+    "rooms": [
+      [
+        "305",
+        "11"
+      ],
+      [
+        "304",
+        "24"
+      ],
+      [
+        "306",
+        "15"
+      ]
+    ],
+    "roomString": "305(11), 304(24), 306(15)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE113",
+    "courseTitle": "Programming and Problem Solving",
+    "teacher": "MA",
+    "section": "72_L",
+    "rooms": [
+      [
+        "306",
+        "9"
+      ],
+      [
+        "307",
+        "28"
+      ],
+      [
+        "318A",
+        "14"
+      ]
+    ],
+    "roomString": "306(9), 307(28), 318A(14)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE113",
+    "courseTitle": "Programming and Problem Solving",
+    "teacher": "MAIT",
+    "section": "72_M",
+    "rooms": [
+      [
+        "318A",
+        "10"
+      ],
+      [
+        "318B",
+        "24"
+      ],
+      [
+        "320",
+        "17"
+      ]
+    ],
+    "roomString": "318A(10), 318B(24), 320(17)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE113",
+    "courseTitle": "Programming and Problem Solving",
+    "teacher": "SHR",
+    "section": "72_N",
+    "rooms": [
+      [
+        "320",
+        "30"
+      ],
+      [
+        "514",
+        "21"
+      ]
+    ],
+    "roomString": "320(30), 514(21)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE113",
+    "courseTitle": "Programming and Problem Solving",
+    "teacher": "SMF",
+    "section": "72_O",
+    "rooms": [
+      [
+        "514",
+        "3"
+      ],
+      [
+        "515",
+        "24"
+      ],
+      [
+        "516",
+        "24"
+      ]
+    ],
+    "roomString": "514(3), 515(24), 516(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE113",
+    "courseTitle": "Programming and Problem Solving",
+    "teacher": "SHR",
+    "section": "72_P",
+    "rooms": [
+      [
+        "518",
+        "39"
+      ],
+      [
+        "G26",
+        "12"
+      ]
+    ],
+    "roomString": "518(39), G26(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE113",
+    "courseTitle": "Programming and Problem Solving",
+    "teacher": "MAR",
+    "section": "72_Q",
+    "rooms": [
+      [
+        "G26",
+        "28"
+      ],
+      [
+        "G27",
+        "23"
+      ]
+    ],
+    "roomString": "G26(28), G27(23)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE113",
+    "courseTitle": "Programming and Problem Solving",
+    "teacher": "MSA",
+    "section": "72_R",
+    "rooms": [
+      [
+        "ANX1-209",
+        "24"
+      ],
+      [
+        "ANX1-210",
+        "20"
+      ]
+    ],
+    "roomString": "ANX1-209(24), ANX1-210(20)",
+    "total": 44
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE113",
+    "courseTitle": "Programming and Problem Solving",
+    "teacher": "KNA",
+    "section": "72_S",
+    "rooms": [
+      [
+        "501A-L",
+        "25"
+      ],
+      [
+        "501B-L",
+        "25"
+      ],
+      [
+        "503L",
+        "1"
+      ]
+    ],
+    "roomString": "501A-L(25), 501B-L(25), 503L(1)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE113",
+    "courseTitle": "Programming and Problem Solving",
+    "teacher": "MIH",
+    "section": "72_T",
+    "rooms": [
+      [
+        "503L",
+        "24"
+      ],
+      [
+        "504L",
+        "25"
+      ]
+    ],
+    "roomString": "503L(24), 504L(25)",
+    "total": 49
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "B",
+    "courseCode": "CSE321",
+    "courseTitle": "Computer Networks",
+    "teacher": "YI",
+    "section": "72_U",
+    "rooms": [
+      [
+        "G27",
+        "13"
+      ],
+      [
+        "517A",
+        "20"
+      ]
+    ],
+    "roomString": "G27(13), 517A(20)",
+    "total": 33
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE326",
+    "courseTitle": "Social and Professional Issues in Computing",
+    "teacher": "MUH",
+    "section": "66_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "9"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE326",
+    "courseTitle": "Social and Professional Issues in Computing",
+    "teacher": "MMI",
+    "section": "66_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "15"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "12"
+      ]
+    ],
+    "roomString": "ANX1-103(15), ANX1-201(24), ANX1-202(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE326",
+    "courseTitle": "Social and Professional Issues in Computing",
+    "teacher": "MNB",
+    "section": "66_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "14"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "21"
+      ]
+    ],
+    "roomString": "ANX1-202(14), ANX1-203(16), ANX1-204(21)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE326",
+    "courseTitle": "Social and Professional Issues in Computing",
+    "teacher": "MMI",
+    "section": "66_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "3"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "24"
+      ]
+    ],
+    "roomString": "ANX1-204(3), ANX1-207(24), ANX1-208(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE326",
+    "courseTitle": "Social and Professional Issues in Computing",
+    "teacher": "MNB",
+    "section": "66_E",
+    "rooms": [
+      [
+        "208",
+        "18"
+      ],
+      [
+        "213",
+        "24"
+      ],
+      [
+        "216",
+        "9"
+      ]
+    ],
+    "roomString": "208(18), 213(24), 216(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE326",
+    "courseTitle": "Social and Professional Issues in Computing",
+    "teacher": "MUH",
+    "section": "66_F",
+    "rooms": [
+      [
+        "216",
+        "15"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "12"
+      ]
+    ],
+    "roomString": "216(15), 217(24), 218(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE326",
+    "courseTitle": "Social and Professional Issues in Computing",
+    "teacher": "MMB",
+    "section": "66_G",
+    "rooms": [
+      [
+        "218",
+        "12"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "15"
+      ]
+    ],
+    "roomString": "218(12), 219(24), 220(15)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE326",
+    "courseTitle": "Social and Professional Issues in Computing",
+    "teacher": "MMB",
+    "section": "66_H",
+    "rooms": [
+      [
+        "220",
+        "9"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "18"
+      ]
+    ],
+    "roomString": "220(9), 221(24), 222(18)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE326",
+    "courseTitle": "Social and Professional Issues in Computing",
+    "teacher": "SAL",
+    "section": "66_I",
+    "rooms": [
+      [
+        "222",
+        "6"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "21"
+      ]
+    ],
+    "roomString": "222(6), 223(24), 224(21)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE326",
+    "courseTitle": "Social and Professional Issues in Computing",
+    "teacher": "SAL",
+    "section": "66_J",
+    "rooms": [
+      [
+        "224",
+        "3"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "305",
+        "24"
+      ]
+    ],
+    "roomString": "224(3), 303(24), 305(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE326",
+    "courseTitle": "Social and Professional Issues in Computing",
+    "teacher": "RIA",
+    "section": "66_K",
+    "rooms": [
+      [
+        "304",
+        "24"
+      ],
+      [
+        "306",
+        "24"
+      ],
+      [
+        "307",
+        "3"
+      ]
+    ],
+    "roomString": "304(24), 306(24), 307(3)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE326",
+    "courseTitle": "Social and Professional Issues in Computing",
+    "teacher": "SFMA",
+    "section": "66_L",
+    "rooms": [
+      [
+        "307",
+        "25"
+      ],
+      [
+        "318A",
+        "24"
+      ],
+      [
+        "318B",
+        "2"
+      ]
+    ],
+    "roomString": "307(25), 318A(24), 318B(2)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE326",
+    "courseTitle": "Social and Professional Issues in Computing",
+    "teacher": "RIA",
+    "section": "66_M",
+    "rooms": [
+      [
+        "318B",
+        "22"
+      ],
+      [
+        "320",
+        "29"
+      ]
+    ],
+    "roomString": "318B(22), 320(29)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE326",
+    "courseTitle": "Social and Professional Issues in Computing",
+    "teacher": "SFMA",
+    "section": "66_N",
+    "rooms": [
+      [
+        "320",
+        "18"
+      ],
+      [
+        "514",
+        "24"
+      ],
+      [
+        "515",
+        "9"
+      ]
+    ],
+    "roomString": "320(18), 514(24), 515(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE326",
+    "courseTitle": "Social and Professional Issues in Computing",
+    "teacher": "SFMA",
+    "section": "66_O",
+    "rooms": [
+      [
+        "515",
+        "15"
+      ],
+      [
+        "516",
+        "24"
+      ],
+      [
+        "518",
+        "12"
+      ]
+    ],
+    "roomString": "515(15), 516(24), 518(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE326",
+    "courseTitle": "Social and Professional Issues in Computing",
+    "teacher": "SAL",
+    "section": "66_P",
+    "rooms": [
+      [
+        "518",
+        "27"
+      ],
+      [
+        "G26",
+        "25"
+      ]
+    ],
+    "roomString": "518(27), G26(25)",
+    "total": 52
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE225",
+    "courseTitle": "Data Communication",
+    "teacher": "AM",
+    "section": "68_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "8"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(8)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE225",
+    "courseTitle": "Data Communication",
+    "teacher": "AM",
+    "section": "68_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "16"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "11"
+      ]
+    ],
+    "roomString": "ANX1-103(16), ANX1-201(24), ANX1-202(11)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE225",
+    "courseTitle": "Data Communication",
+    "teacher": "AM",
+    "section": "68_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "15"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "20"
+      ]
+    ],
+    "roomString": "ANX1-202(15), ANX1-203(16), ANX1-204(20)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE225",
+    "courseTitle": "Data Communication",
+    "teacher": "BCD",
+    "section": "68_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "4"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "22"
+      ]
+    ],
+    "roomString": "ANX1-204(4), ANX1-207(24), ANX1-208(22)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE225",
+    "courseTitle": "Data Communication",
+    "teacher": "BCD",
+    "section": "68_E",
+    "rooms": [
+      [
+        "208",
+        "27"
+      ],
+      [
+        "213",
+        "24"
+      ]
+    ],
+    "roomString": "208(27), 213(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE225",
+    "courseTitle": "Data Communication",
+    "teacher": "MFH",
+    "section": "68_F",
+    "rooms": [
+      [
+        "216",
+        "24"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "3"
+      ]
+    ],
+    "roomString": "216(24), 217(24), 218(3)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE225",
+    "courseTitle": "Data Communication",
+    "teacher": "LR",
+    "section": "68_G",
+    "rooms": [
+      [
+        "ANX1-208",
+        "2"
+      ],
+      [
+        "ANX1-209",
+        "24"
+      ],
+      [
+        "ANX1-210",
+        "23"
+      ]
+    ],
+    "roomString": "ANX1-208(2), ANX1-209(24), ANX1-210(23)",
+    "total": 49
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE225",
+    "courseTitle": "Data Communication",
+    "teacher": "ZS",
+    "section": "68_H",
+    "rooms": [
+      [
+        "218",
+        "21"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "6"
+      ]
+    ],
+    "roomString": "218(21), 219(24), 220(6)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE225",
+    "courseTitle": "Data Communication",
+    "teacher": "LR",
+    "section": "68_I",
+    "rooms": [
+      [
+        "220",
+        "18"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "9"
+      ]
+    ],
+    "roomString": "220(18), 221(24), 222(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE225",
+    "courseTitle": "Data Communication",
+    "teacher": "ZMK",
+    "section": "68_J",
+    "rooms": [
+      [
+        "222",
+        "15"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "12"
+      ]
+    ],
+    "roomString": "222(15), 223(24), 224(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE225",
+    "courseTitle": "Data Communication",
+    "teacher": "ZS",
+    "section": "68_K",
+    "rooms": [
+      [
+        "224",
+        "12"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "305",
+        "15"
+      ]
+    ],
+    "roomString": "224(12), 303(24), 305(15)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE225",
+    "courseTitle": "Data Communication",
+    "teacher": "ZMK",
+    "section": "68_L",
+    "rooms": [
+      [
+        "305",
+        "9"
+      ],
+      [
+        "304",
+        "24"
+      ],
+      [
+        "306",
+        "18"
+      ]
+    ],
+    "roomString": "305(9), 304(24), 306(18)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE225",
+    "courseTitle": "Data Communication",
+    "teacher": "IEA",
+    "section": "68_M",
+    "rooms": [
+      [
+        "306",
+        "6"
+      ],
+      [
+        "307",
+        "20"
+      ],
+      [
+        "318A",
+        "24"
+      ],
+      [
+        "318B",
+        "1"
+      ]
+    ],
+    "roomString": "306(6), 307(20), 318A(24), 318B(1)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE225",
+    "courseTitle": "Data Communication",
+    "teacher": "IEA",
+    "section": "68_N",
+    "rooms": [
+      [
+        "318B",
+        "23"
+      ],
+      [
+        "320",
+        "28"
+      ]
+    ],
+    "roomString": "318B(23), 320(28)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE225",
+    "courseTitle": "Data Communication",
+    "teacher": "ASJ",
+    "section": "68_O",
+    "rooms": [
+      [
+        "320",
+        "3"
+      ],
+      [
+        "514",
+        "24"
+      ],
+      [
+        "515",
+        "24"
+      ]
+    ],
+    "roomString": "320(3), 514(24), 515(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-28",
+    "slot": "C",
+    "courseCode": "CSE326",
+    "courseTitle": "Social and Professional Issues in Computing",
+    "teacher": "ASJ",
+    "section": "68_P",
+    "rooms": [
+      [
+        "516",
+        "24"
+      ],
+      [
+        "518",
+        "13"
+      ]
+    ],
+    "roomString": "516(24), 518(13)",
+    "total": 37
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "CSE212",
+    "courseTitle": "Discrete Mathematics",
+    "teacher": "DMR",
+    "section": "70_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "8"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(8)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "CSE212",
+    "courseTitle": "Discrete Mathematics",
+    "teacher": "SR",
+    "section": "70_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "16"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "11"
+      ]
+    ],
+    "roomString": "ANX1-103(16), ANX1-201(24), ANX1-202(11)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "CSE212",
+    "courseTitle": "Discrete Mathematics",
+    "teacher": "DMR",
+    "section": "70_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "15"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "19"
+      ]
+    ],
+    "roomString": "ANX1-202(15), ANX1-203(16), ANX1-204(19)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "CSE212",
+    "courseTitle": "Discrete Mathematics",
+    "teacher": "SR",
+    "section": "70_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "5"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "22"
+      ]
+    ],
+    "roomString": "ANX1-204(5), ANX1-207(24), ANX1-208(22)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "MAT101",
+    "courseTitle": "Mathematics-I",
+    "teacher": "AHN",
+    "section": "70_E",
+    "rooms": [
+      [
+        "ANX1-208",
+        "2"
+      ],
+      [
+        "ANX1-209",
+        "24"
+      ],
+      [
+        "ANX1-210",
+        "24"
+      ]
+    ],
+    "roomString": "ANX1-208(2), ANX1-209(24), ANX1-210(24)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "CSE212",
+    "courseTitle": "Discrete Mathematics",
+    "teacher": "AHN",
+    "section": "70_F",
+    "rooms": [
+      [
+        "216",
+        "24"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "3"
+      ]
+    ],
+    "roomString": "216(24), 217(24), 218(3)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "CSE212",
+    "courseTitle": "Discrete Mathematics",
+    "teacher": "DMR",
+    "section": "70_G",
+    "rooms": [
+      [
+        "218",
+        "21"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "6"
+      ]
+    ],
+    "roomString": "218(21), 219(24), 220(6)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "CSE212",
+    "courseTitle": "Discrete Mathematics",
+    "teacher": "AHN",
+    "section": "70_H",
+    "rooms": [
+      [
+        "220",
+        "18"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "9"
+      ]
+    ],
+    "roomString": "220(18), 221(24), 222(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "CSE212",
+    "courseTitle": "Discrete Mathematics",
+    "teacher": "AHN",
+    "section": "70_I",
+    "rooms": [
+      [
+        "222",
+        "15"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "12"
+      ]
+    ],
+    "roomString": "222(15), 223(24), 224(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "CSE212",
+    "courseTitle": "Discrete Mathematics",
+    "teacher": "MMI",
+    "section": "70_J",
+    "rooms": [
+      [
+        "224",
+        "12"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "304",
+        "15"
+      ]
+    ],
+    "roomString": "224(12), 303(24), 304(15)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "CSE212",
+    "courseTitle": "Discrete Mathematics",
+    "teacher": "MMI",
+    "section": "70_K",
+    "rooms": [
+      [
+        "304",
+        "9"
+      ],
+      [
+        "305",
+        "24"
+      ],
+      [
+        "306",
+        "18"
+      ]
+    ],
+    "roomString": "304(9), 305(24), 306(18)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "CSE212",
+    "courseTitle": "Discrete Mathematics",
+    "teacher": "RKR",
+    "section": "70_L",
+    "rooms": [
+      [
+        "306",
+        "6"
+      ],
+      [
+        "307",
+        "28"
+      ],
+      [
+        "318A",
+        "11"
+      ]
+    ],
+    "roomString": "306(6), 307(28), 318A(11)",
+    "total": 45
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "CSE212",
+    "courseTitle": "Discrete Mathematics",
+    "teacher": "RKR",
+    "section": "70_M",
+    "rooms": [
+      [
+        "318A",
+        "13"
+      ],
+      [
+        "318B",
+        "24"
+      ],
+      [
+        "320",
+        "14"
+      ]
+    ],
+    "roomString": "318A(13), 318B(24), 320(14)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "CSE212",
+    "courseTitle": "Discrete Mathematics",
+    "teacher": "TI",
+    "section": "70_N",
+    "rooms": [
+      [
+        "320",
+        "33"
+      ],
+      [
+        "514",
+        "18"
+      ]
+    ],
+    "roomString": "320(33), 514(18)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "CSE212",
+    "courseTitle": "Discrete Mathematics",
+    "teacher": "AGT",
+    "section": "70_O",
+    "rooms": [
+      [
+        "514",
+        "6"
+      ],
+      [
+        "515",
+        "24"
+      ],
+      [
+        "516",
+        "21"
+      ]
+    ],
+    "roomString": "514(6), 515(24), 516(21)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "CSE212",
+    "courseTitle": "Discrete Mathematics",
+    "teacher": "MJZ",
+    "section": "70_P",
+    "rooms": [
+      [
+        "516",
+        "3"
+      ],
+      [
+        "517A",
+        "24"
+      ],
+      [
+        "518",
+        "24"
+      ]
+    ],
+    "roomString": "516(3), 517A(24), 518(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "CSE212",
+    "courseTitle": "Discrete Mathematics",
+    "teacher": "MJZ",
+    "section": "70_Q",
+    "rooms": [
+      [
+        "518",
+        "15"
+      ],
+      [
+        "G26",
+        "36"
+      ]
+    ],
+    "roomString": "518(15), G26(36)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "MAT101",
+    "courseTitle": "Mathematics-I",
+    "teacher": "MJZ",
+    "section": "70_R",
+    "rooms": [
+      [
+        "G26",
+        "4"
+      ],
+      [
+        "G27",
+        "36"
+      ],
+      [
+        "501A-L",
+        "11"
+      ]
+    ],
+    "roomString": "G26(4), G27(36), 501A-L(11)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "MAT101",
+    "courseTitle": "Mathematics-I",
+    "teacher": "MRN",
+    "section": "73_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "9"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "MAT101",
+    "courseTitle": "Mathematics-I",
+    "teacher": "MRN",
+    "section": "73_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "15"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "12"
+      ]
+    ],
+    "roomString": "ANX1-103(15), ANX1-201(24), ANX1-202(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "MAT101",
+    "courseTitle": "Mathematics-I",
+    "teacher": "MRN",
+    "section": "73_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "14"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "21"
+      ]
+    ],
+    "roomString": "ANX1-202(14), ANX1-203(16), ANX1-204(21)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "MAT101",
+    "courseTitle": "Mathematics-I",
+    "teacher": "MSH",
+    "section": "73_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "3"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "24"
+      ]
+    ],
+    "roomString": "ANX1-204(3), ANX1-207(24), ANX1-208(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "MAT101",
+    "courseTitle": "Mathematics-I",
+    "teacher": "MSH",
+    "section": "73_E",
+    "rooms": [
+      [
+        "216",
+        "24"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "3"
+      ]
+    ],
+    "roomString": "216(24), 217(24), 218(3)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "MAT101",
+    "courseTitle": "Mathematics-I",
+    "teacher": "MRN",
+    "section": "73_F",
+    "rooms": [
+      [
+        "218",
+        "21"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "6"
+      ]
+    ],
+    "roomString": "218(21), 219(24), 220(6)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "MAT101",
+    "courseTitle": "Mathematics-I",
+    "teacher": "AST",
+    "section": "73_G",
+    "rooms": [
+      [
+        "220",
+        "18"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "9"
+      ]
+    ],
+    "roomString": "220(18), 221(24), 222(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "MAT101",
+    "courseTitle": "Mathematics-I",
+    "teacher": "MSH",
+    "section": "73_H",
+    "rooms": [
+      [
+        "222",
+        "15"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "12"
+      ]
+    ],
+    "roomString": "222(15), 223(24), 224(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "MAT101",
+    "courseTitle": "Mathematics-I",
+    "teacher": "MSH",
+    "section": "73_I",
+    "rooms": [
+      [
+        "224",
+        "12"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "304",
+        "15"
+      ]
+    ],
+    "roomString": "224(12), 303(24), 304(15)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "MAT101",
+    "courseTitle": "Mathematics-I",
+    "teacher": "MSH",
+    "section": "73_J",
+    "rooms": [
+      [
+        "304",
+        "9"
+      ],
+      [
+        "305",
+        "24"
+      ],
+      [
+        "306",
+        "18"
+      ]
+    ],
+    "roomString": "304(9), 305(24), 306(18)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "MAT101",
+    "courseTitle": "Mathematics-I",
+    "teacher": "AMN",
+    "section": "73_K",
+    "rooms": [
+      [
+        "306",
+        "6"
+      ],
+      [
+        "307",
+        "20"
+      ],
+      [
+        "318A",
+        "24"
+      ],
+      [
+        "318B",
+        "1"
+      ]
+    ],
+    "roomString": "306(6), 307(20), 318A(24), 318B(1)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "MAT101",
+    "courseTitle": "Mathematics-I",
+    "teacher": "AST",
+    "section": "73_L",
+    "rooms": [
+      [
+        "318B",
+        "23"
+      ],
+      [
+        "320",
+        "28"
+      ]
+    ],
+    "roomString": "318B(23), 320(28)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "MAT101",
+    "courseTitle": "Mathematics-I",
+    "teacher": "AMN",
+    "section": "73_M",
+    "rooms": [
+      [
+        "320",
+        "3"
+      ],
+      [
+        "514",
+        "24"
+      ],
+      [
+        "515",
+        "24"
+      ]
+    ],
+    "roomString": "320(3), 514(24), 515(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "MAT101",
+    "courseTitle": "Mathematics-I",
+    "teacher": "AMN",
+    "section": "73_N",
+    "rooms": [
+      [
+        "516",
+        "24"
+      ],
+      [
+        "517A",
+        "24"
+      ],
+      [
+        "518",
+        "3"
+      ]
+    ],
+    "roomString": "516(24), 517A(24), 518(3)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "MAT101",
+    "courseTitle": "Mathematics-I",
+    "teacher": "AST",
+    "section": "73_O",
+    "rooms": [
+      [
+        "518",
+        "23"
+      ],
+      [
+        "G26",
+        "28"
+      ]
+    ],
+    "roomString": "518(23), G26(28)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "MAT101",
+    "courseTitle": "Mathematics-I",
+    "teacher": "AST",
+    "section": "73_P",
+    "rooms": [
+      [
+        "G26",
+        "4"
+      ],
+      [
+        "G27",
+        "36"
+      ],
+      [
+        "501A-L",
+        "10"
+      ]
+    ],
+    "roomString": "G26(4), G27(36), 501A-L(10)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "A",
+    "courseCode": "MAT101",
+    "courseTitle": "Mathematics-I",
+    "teacher": "AMN",
+    "section": "73_Q",
+    "rooms": [
+      [
+        "501A-L",
+        "10"
+      ],
+      [
+        "501B-L",
+        "21"
+      ]
+    ],
+    "roomString": "501A-L(10), 501B-L(21)",
+    "total": 31
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "CSE223",
+    "courseTitle": "Digital Logic Design",
+    "teacher": "ADK",
+    "section": "68_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "9"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "CSE223",
+    "courseTitle": "Digital Logic Design",
+    "teacher": "ZS",
+    "section": "68_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "15"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "11"
+      ]
+    ],
+    "roomString": "ANX1-103(15), ANX1-201(24), ANX1-202(11)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "CSE223",
+    "courseTitle": "Digital Logic Design",
+    "teacher": "SMTS",
+    "section": "68_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "15"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "18"
+      ]
+    ],
+    "roomString": "ANX1-202(15), ANX1-203(16), ANX1-204(18)",
+    "total": 49
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "CSE223",
+    "courseTitle": "Digital Logic Design",
+    "teacher": "SMTS",
+    "section": "68_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "6"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "20"
+      ]
+    ],
+    "roomString": "ANX1-204(6), ANX1-207(24), ANX1-208(20)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "NTS",
+    "section": "68_E",
+    "rooms": [
+      [
+        "ANX1-208",
+        "4"
+      ],
+      [
+        "ANX1-209",
+        "24"
+      ],
+      [
+        "ANX1-210",
+        "23"
+      ]
+    ],
+    "roomString": "ANX1-208(4), ANX1-209(24), ANX1-210(23)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "CSE223",
+    "courseTitle": "Digital Logic Design",
+    "teacher": "NTS",
+    "section": "68_F",
+    "rooms": [
+      [
+        "208",
+        "18"
+      ],
+      [
+        "213",
+        "24"
+      ],
+      [
+        "216",
+        "9"
+      ]
+    ],
+    "roomString": "208(18), 213(24), 216(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "CSE223",
+    "courseTitle": "Digital Logic Design",
+    "teacher": "SMTS",
+    "section": "68_G",
+    "rooms": [
+      [
+        "216",
+        "15"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "11"
+      ]
+    ],
+    "roomString": "216(15), 217(24), 218(11)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "CSE223",
+    "courseTitle": "Digital Logic Design",
+    "teacher": "SMTS",
+    "section": "68_H",
+    "rooms": [
+      [
+        "218",
+        "13"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "14"
+      ]
+    ],
+    "roomString": "218(13), 219(24), 220(14)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "CSE223",
+    "courseTitle": "Digital Logic Design",
+    "teacher": "ZMK",
+    "section": "68_I",
+    "rooms": [
+      [
+        "220",
+        "10"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "17"
+      ]
+    ],
+    "roomString": "220(10), 221(24), 222(17)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "CSE223",
+    "courseTitle": "Digital Logic Design",
+    "teacher": "MDA",
+    "section": "68_J",
+    "rooms": [
+      [
+        "222",
+        "7"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "19"
+      ]
+    ],
+    "roomString": "222(7), 223(24), 224(19)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "CSE223",
+    "courseTitle": "Digital Logic Design",
+    "teacher": "RIA",
+    "section": "68_K",
+    "rooms": [
+      [
+        "224",
+        "5"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "304",
+        "22"
+      ]
+    ],
+    "roomString": "224(5), 303(24), 304(22)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "CSE223",
+    "courseTitle": "Digital Logic Design",
+    "teacher": "IST",
+    "section": "68_L",
+    "rooms": [
+      [
+        "304",
+        "2"
+      ],
+      [
+        "305",
+        "24"
+      ],
+      [
+        "306",
+        "24"
+      ]
+    ],
+    "roomString": "304(2), 305(24), 306(24)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "CSE223",
+    "courseTitle": "Digital Logic Design",
+    "teacher": "MAH",
+    "section": "68_M",
+    "rooms": [
+      [
+        "307",
+        "20"
+      ],
+      [
+        "318A",
+        "24"
+      ],
+      [
+        "318B",
+        "5"
+      ]
+    ],
+    "roomString": "307(20), 318A(24), 318B(5)",
+    "total": 49
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "CSE223",
+    "courseTitle": "Digital Logic Design",
+    "teacher": "RYS",
+    "section": "68_N",
+    "rooms": [
+      [
+        "318B",
+        "19"
+      ],
+      [
+        "320",
+        "31"
+      ],
+      [
+        "514",
+        "1"
+      ]
+    ],
+    "roomString": "318B(19), 320(31), 514(1)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "CSE223",
+    "courseTitle": "Digital Logic Design",
+    "teacher": "IJN",
+    "section": "68_O",
+    "rooms": [
+      [
+        "514",
+        "23"
+      ],
+      [
+        "515",
+        "24"
+      ],
+      [
+        "516",
+        "2"
+      ]
+    ],
+    "roomString": "514(23), 515(24), 516(2)",
+    "total": 49
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "MSU",
+    "section": "68_P",
+    "rooms": [
+      [
+        "516",
+        "22"
+      ],
+      [
+        "517A",
+        "8"
+      ]
+    ],
+    "roomString": "516(22), 517A(8)",
+    "total": 30
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "AKC",
+    "section": "72_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "8"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(8)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "AKC",
+    "section": "72_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "16"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "11"
+      ]
+    ],
+    "roomString": "ANX1-103(16), ANX1-201(24), ANX1-202(11)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "AKC",
+    "section": "72_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "15"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "19"
+      ]
+    ],
+    "roomString": "ANX1-202(15), ANX1-203(16), ANX1-204(19)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "SP",
+    "section": "72_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "5"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "19"
+      ]
+    ],
+    "roomString": "ANX1-204(5), ANX1-207(24), ANX1-208(19)",
+    "total": 48
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "SP",
+    "section": "72_E",
+    "rooms": [
+      [
+        "ANX1-208",
+        "5"
+      ],
+      [
+        "ANX1-209",
+        "24"
+      ],
+      [
+        "ANX1-210",
+        "18"
+      ]
+    ],
+    "roomString": "ANX1-208(5), ANX1-209(24), ANX1-210(18)",
+    "total": 47
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "AKC",
+    "section": "72_F",
+    "rooms": [
+      [
+        "208",
+        "27"
+      ],
+      [
+        "213",
+        "22"
+      ]
+    ],
+    "roomString": "208(27), 213(22)",
+    "total": 49
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "MMR",
+    "section": "72_G",
+    "rooms": [
+      [
+        "213",
+        "2"
+      ],
+      [
+        "216",
+        "24"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "1"
+      ]
+    ],
+    "roomString": "213(2), 216(24), 217(24), 218(1)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "SP",
+    "section": "72_H",
+    "rooms": [
+      [
+        "218",
+        "23"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "4"
+      ]
+    ],
+    "roomString": "218(23), 219(24), 220(4)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "SP",
+    "section": "72_I",
+    "rooms": [
+      [
+        "220",
+        "20"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "5"
+      ]
+    ],
+    "roomString": "220(20), 221(24), 222(5)",
+    "total": 49
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "NRM",
+    "section": "72_J",
+    "rooms": [
+      [
+        "222",
+        "19"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "5"
+      ]
+    ],
+    "roomString": "222(19), 223(24), 224(5)",
+    "total": 48
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "MMR",
+    "section": "72_K",
+    "rooms": [
+      [
+        "224",
+        "19"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "304",
+        "3"
+      ]
+    ],
+    "roomString": "224(19), 303(24), 304(3)",
+    "total": 46
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "MMR",
+    "section": "72_L",
+    "rooms": [
+      [
+        "304",
+        "21"
+      ],
+      [
+        "305",
+        "24"
+      ],
+      [
+        "306",
+        "5"
+      ]
+    ],
+    "roomString": "304(21), 305(24), 306(5)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "NRM",
+    "section": "72_M",
+    "rooms": [
+      [
+        "306",
+        "19"
+      ],
+      [
+        "307",
+        "28"
+      ],
+      [
+        "318A",
+        "2"
+      ]
+    ],
+    "roomString": "306(19), 307(28), 318A(2)",
+    "total": 49
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "NRM",
+    "section": "72_N",
+    "rooms": [
+      [
+        "318A",
+        "22"
+      ],
+      [
+        "318B",
+        "20"
+      ]
+    ],
+    "roomString": "318A(22), 318B(20)",
+    "total": 42
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "MMR",
+    "section": "72_O",
+    "rooms": [
+      [
+        "318B",
+        "4"
+      ],
+      [
+        "320",
+        "43"
+      ]
+    ],
+    "roomString": "318B(4), 320(43)",
+    "total": 47
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "MMR",
+    "section": "72_P",
+    "rooms": [
+      [
+        "320",
+        "4"
+      ],
+      [
+        "514",
+        "24"
+      ],
+      [
+        "515",
+        "17"
+      ]
+    ],
+    "roomString": "320(4), 514(24), 515(17)",
+    "total": 45
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "NRM",
+    "section": "72_Q",
+    "rooms": [
+      [
+        "515",
+        "7"
+      ],
+      [
+        "516",
+        "24"
+      ],
+      [
+        "517A",
+        "17"
+      ]
+    ],
+    "roomString": "515(7), 516(24), 517A(17)",
+    "total": 48
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "ALH",
+    "section": "72_R",
+    "rooms": [
+      [
+        "517A",
+        "7"
+      ],
+      [
+        "518",
+        "23"
+      ]
+    ],
+    "roomString": "517A(7), 518(23)",
+    "total": 30
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "ALH",
+    "section": "72_S",
+    "rooms": [
+      [
+        "518",
+        "16"
+      ],
+      [
+        "G26",
+        "22"
+      ]
+    ],
+    "roomString": "518(16), G26(22)",
+    "total": 38
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "ALH",
+    "section": "72_T",
+    "rooms": [
+      [
+        "G26",
+        "18"
+      ],
+      [
+        "G27",
+        "23"
+      ]
+    ],
+    "roomString": "G26(18), G27(23)",
+    "total": 41
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "B",
+    "courseCode": "MAT102",
+    "courseTitle": "Mathematics-II",
+    "teacher": "ALH",
+    "section": "72_U",
+    "rooms": [
+      [
+        "G27",
+        "13"
+      ],
+      [
+        "501A-L",
+        "4"
+      ]
+    ],
+    "roomString": "G27(13), 501A-L(4)",
+    "total": 17
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE316",
+    "courseTitle": "Artificial Intelligence",
+    "teacher": "MMRN",
+    "section": "66_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "9"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE316",
+    "courseTitle": "Artificial Intelligence",
+    "teacher": "DAN",
+    "section": "66_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "15"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "12"
+      ]
+    ],
+    "roomString": "ANX1-103(15), ANX1-201(24), ANX1-202(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE316",
+    "courseTitle": "Artificial Intelligence",
+    "teacher": "DAN",
+    "section": "66_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "14"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "21"
+      ]
+    ],
+    "roomString": "ANX1-202(14), ANX1-203(16), ANX1-204(21)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE316",
+    "courseTitle": "Artificial Intelligence",
+    "teacher": "TAR",
+    "section": "66_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "3"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "24"
+      ]
+    ],
+    "roomString": "ANX1-204(3), ANX1-207(24), ANX1-208(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE316",
+    "courseTitle": "Artificial Intelligence",
+    "teacher": "MMRN",
+    "section": "66_E",
+    "rooms": [
+      [
+        "208",
+        "27"
+      ],
+      [
+        "213",
+        "24"
+      ]
+    ],
+    "roomString": "208(27), 213(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE316",
+    "courseTitle": "Artificial Intelligence",
+    "teacher": "MMRN",
+    "section": "66_F",
+    "rooms": [
+      [
+        "216",
+        "24"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "3"
+      ]
+    ],
+    "roomString": "216(24), 217(24), 218(3)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE316",
+    "courseTitle": "Artificial Intelligence",
+    "teacher": "MMRN",
+    "section": "66_G",
+    "rooms": [
+      [
+        "218",
+        "21"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "6"
+      ]
+    ],
+    "roomString": "218(21), 219(24), 220(6)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE316",
+    "courseTitle": "Artificial Intelligence",
+    "teacher": "MSJ",
+    "section": "66_H",
+    "rooms": [
+      [
+        "220",
+        "18"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "9"
+      ]
+    ],
+    "roomString": "220(18), 221(24), 222(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE316",
+    "courseTitle": "Artificial Intelligence",
+    "teacher": "MRY",
+    "section": "66_I",
+    "rooms": [
+      [
+        "222",
+        "15"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "12"
+      ]
+    ],
+    "roomString": "222(15), 223(24), 224(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE316",
+    "courseTitle": "Artificial Intelligence",
+    "teacher": "TAR",
+    "section": "66_J",
+    "rooms": [
+      [
+        "224",
+        "12"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "304",
+        "15"
+      ]
+    ],
+    "roomString": "224(12), 303(24), 304(15)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE316",
+    "courseTitle": "Artificial Intelligence",
+    "teacher": "MRY",
+    "section": "66_K",
+    "rooms": [
+      [
+        "304",
+        "9"
+      ],
+      [
+        "305",
+        "24"
+      ],
+      [
+        "306",
+        "18"
+      ]
+    ],
+    "roomString": "304(9), 305(24), 306(18)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE316",
+    "courseTitle": "Artificial Intelligence",
+    "teacher": "TAR",
+    "section": "66_L",
+    "rooms": [
+      [
+        "306",
+        "6"
+      ],
+      [
+        "307",
+        "28"
+      ],
+      [
+        "318A",
+        "17"
+      ]
+    ],
+    "roomString": "306(6), 307(28), 318A(17)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE316",
+    "courseTitle": "Artificial Intelligence",
+    "teacher": "SNS",
+    "section": "66_M",
+    "rooms": [
+      [
+        "318A",
+        "7"
+      ],
+      [
+        "318B",
+        "24"
+      ],
+      [
+        "320",
+        "20"
+      ]
+    ],
+    "roomString": "318A(7), 318B(24), 320(20)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE316",
+    "courseTitle": "Artificial Intelligence",
+    "teacher": "SNS",
+    "section": "66_N",
+    "rooms": [
+      [
+        "320",
+        "27"
+      ],
+      [
+        "514",
+        "24"
+      ]
+    ],
+    "roomString": "320(27), 514(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE316",
+    "courseTitle": "Artificial Intelligence",
+    "teacher": "MHIM",
+    "section": "66_O",
+    "rooms": [
+      [
+        "515",
+        "24"
+      ],
+      [
+        "516",
+        "24"
+      ],
+      [
+        "517A",
+        "3"
+      ]
+    ],
+    "roomString": "515(24), 516(24), 517A(3)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE316",
+    "courseTitle": "Artificial Intelligence",
+    "teacher": "MHIM",
+    "section": "66_P",
+    "rooms": [
+      [
+        "517A",
+        "21"
+      ],
+      [
+        "518",
+        "29"
+      ]
+    ],
+    "roomString": "517A(21), 518(29)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE315",
+    "courseTitle": "Software Engineering",
+    "teacher": "MM",
+    "section": "67_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "3"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(3)",
+    "total": 45
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE315",
+    "courseTitle": "Software Engineering",
+    "teacher": "AS",
+    "section": "67_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "21"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "5"
+      ]
+    ],
+    "roomString": "ANX1-103(21), ANX1-201(24), ANX1-202(5)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE315",
+    "courseTitle": "Software Engineering",
+    "teacher": "AS",
+    "section": "67_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "21"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "5"
+      ]
+    ],
+    "roomString": "ANX1-202(21), ANX1-203(16), ANX1-204(5)",
+    "total": 42
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE315",
+    "courseTitle": "Software Engineering",
+    "teacher": "MNB",
+    "section": "67_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "19"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "5"
+      ]
+    ],
+    "roomString": "ANX1-204(19), ANX1-207(24), ANX1-208(5)",
+    "total": 48
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE316",
+    "courseTitle": "Artificial Intelligence",
+    "teacher": "MM",
+    "section": "67_E",
+    "rooms": [
+      [
+        "ANX1-208",
+        "19"
+      ],
+      [
+        "ANX1-209",
+        "24"
+      ],
+      [
+        "ANX1-210",
+        "8"
+      ]
+    ],
+    "roomString": "ANX1-208(19), ANX1-209(24), ANX1-210(8)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE315",
+    "courseTitle": "Software Engineering",
+    "teacher": "NS",
+    "section": "67_F",
+    "rooms": [
+      [
+        "208",
+        "18"
+      ],
+      [
+        "213",
+        "24"
+      ],
+      [
+        "216",
+        "7"
+      ]
+    ],
+    "roomString": "208(18), 213(24), 216(7)",
+    "total": 49
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE315",
+    "courseTitle": "Software Engineering",
+    "teacher": "AS",
+    "section": "67_G",
+    "rooms": [
+      [
+        "216",
+        "17"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "8"
+      ]
+    ],
+    "roomString": "216(17), 217(24), 218(8)",
+    "total": 49
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE315",
+    "courseTitle": "Software Engineering",
+    "teacher": "NS",
+    "section": "67_H",
+    "rooms": [
+      [
+        "218",
+        "16"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "8"
+      ]
+    ],
+    "roomString": "218(16), 219(24), 220(8)",
+    "total": 48
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE315",
+    "courseTitle": "Software Engineering",
+    "teacher": "MHR",
+    "section": "67_I",
+    "rooms": [
+      [
+        "220",
+        "16"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "11"
+      ]
+    ],
+    "roomString": "220(16), 221(24), 222(11)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE315",
+    "courseTitle": "Software Engineering",
+    "teacher": "SH",
+    "section": "67_J",
+    "rooms": [
+      [
+        "222",
+        "13"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "13"
+      ]
+    ],
+    "roomString": "222(13), 223(24), 224(13)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE315",
+    "courseTitle": "Software Engineering",
+    "teacher": "SH",
+    "section": "67_K",
+    "rooms": [
+      [
+        "224",
+        "11"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "304",
+        "15"
+      ]
+    ],
+    "roomString": "224(11), 303(24), 304(15)",
+    "total": 50
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE315",
+    "courseTitle": "Software Engineering",
+    "teacher": "MNB",
+    "section": "67_L",
+    "rooms": [
+      [
+        "304",
+        "9"
+      ],
+      [
+        "305",
+        "24"
+      ],
+      [
+        "306",
+        "18"
+      ]
+    ],
+    "roomString": "304(9), 305(24), 306(18)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE315",
+    "courseTitle": "Software Engineering",
+    "teacher": "MMB",
+    "section": "67_M",
+    "rooms": [
+      [
+        "306",
+        "6"
+      ],
+      [
+        "307",
+        "20"
+      ],
+      [
+        "318A",
+        "24"
+      ],
+      [
+        "318B",
+        "1"
+      ]
+    ],
+    "roomString": "306(6), 307(20), 318A(24), 318B(1)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE315",
+    "courseTitle": "Software Engineering",
+    "teacher": "MMB",
+    "section": "67_N",
+    "rooms": [
+      [
+        "318B",
+        "23"
+      ],
+      [
+        "320",
+        "28"
+      ]
+    ],
+    "roomString": "318B(23), 320(28)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE315",
+    "courseTitle": "Software Engineering",
+    "teacher": "SNA",
+    "section": "67_O",
+    "rooms": [
+      [
+        "320",
+        "3"
+      ],
+      [
+        "514",
+        "24"
+      ],
+      [
+        "515",
+        "24"
+      ]
+    ],
+    "roomString": "320(3), 514(24), 515(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-10-31",
+    "slot": "C",
+    "courseCode": "CSE316",
+    "courseTitle": "Artificial Intelligence",
+    "teacher": "SNA",
+    "section": "67_P",
+    "rooms": [
+      [
+        "516",
+        "24"
+      ],
+      [
+        "517A",
+        "24"
+      ],
+      [
+        "518",
+        "2"
+      ]
+    ],
+    "roomString": "516(24), 517A(24), 518(2)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "MAT211",
+    "courseTitle": "Engineering Mathematics",
+    "teacher": "SAR",
+    "section": "70_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "7"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(7)",
+    "total": 49
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "MAT211",
+    "courseTitle": "Engineering Mathematics",
+    "teacher": "MPL",
+    "section": "70_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "17"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "10"
+      ]
+    ],
+    "roomString": "ANX1-103(17), ANX1-201(24), ANX1-202(10)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "MAT211",
+    "courseTitle": "Engineering Mathematics",
+    "teacher": "SAR",
+    "section": "70_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "16"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "18"
+      ]
+    ],
+    "roomString": "ANX1-202(16), ANX1-203(16), ANX1-204(18)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "MAT211",
+    "courseTitle": "Engineering Mathematics",
+    "teacher": "SAR",
+    "section": "70_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "6"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "21"
+      ]
+    ],
+    "roomString": "ANX1-204(6), ANX1-207(24), ANX1-208(21)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "MAT211",
+    "courseTitle": "Engineering Mathematics",
+    "teacher": "MPL",
+    "section": "70_E",
+    "rooms": [
+      [
+        "ANX1-208",
+        "3"
+      ],
+      [
+        "ANX1-209",
+        "24"
+      ],
+      [
+        "ANX1-210",
+        "17"
+      ]
+    ],
+    "roomString": "ANX1-208(3), ANX1-209(24), ANX1-210(17)",
+    "total": 44
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "MAT211",
+    "courseTitle": "Engineering Mathematics",
+    "teacher": "SAR",
+    "section": "70_F",
+    "rooms": [
+      [
+        "208",
+        "27"
+      ],
+      [
+        "213",
+        "23"
+      ]
+    ],
+    "roomString": "208(27), 213(23)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "MAT211",
+    "courseTitle": "Engineering Mathematics",
+    "teacher": "MPL",
+    "section": "70_G",
+    "rooms": [
+      [
+        "213",
+        "1"
+      ],
+      [
+        "216",
+        "24"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "1"
+      ]
+    ],
+    "roomString": "213(1), 216(24), 217(24), 218(1)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "MAT211",
+    "courseTitle": "Engineering Mathematics",
+    "teacher": "MPL",
+    "section": "70_H",
+    "rooms": [
+      [
+        "218",
+        "23"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "3"
+      ]
+    ],
+    "roomString": "218(23), 219(24), 220(3)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "MAT211",
+    "courseTitle": "Engineering Mathematics",
+    "teacher": "MNM",
+    "section": "70_I",
+    "rooms": [
+      [
+        "220",
+        "21"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "6"
+      ]
+    ],
+    "roomString": "220(21), 221(24), 222(6)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "MAT211",
+    "courseTitle": "Engineering Mathematics",
+    "teacher": "MNM",
+    "section": "70_J",
+    "rooms": [
+      [
+        "222",
+        "18"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "9"
+      ]
+    ],
+    "roomString": "222(18), 223(24), 224(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "MAT211",
+    "courseTitle": "Engineering Mathematics",
+    "teacher": "NDS",
+    "section": "70_K",
+    "rooms": [
+      [
+        "224",
+        "15"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "305",
+        "11"
+      ]
+    ],
+    "roomString": "224(15), 303(24), 305(11)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "MAT211",
+    "courseTitle": "Engineering Mathematics",
+    "teacher": "NDS",
+    "section": "70_L",
+    "rooms": [
+      [
+        "305",
+        "13"
+      ],
+      [
+        "304",
+        "24"
+      ],
+      [
+        "306",
+        "7"
+      ]
+    ],
+    "roomString": "305(13), 304(24), 306(7)",
+    "total": 44
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "MAT211",
+    "courseTitle": "Engineering Mathematics",
+    "teacher": "MNM",
+    "section": "70_M",
+    "rooms": [
+      [
+        "306",
+        "17"
+      ],
+      [
+        "307",
+        "28"
+      ],
+      [
+        "318A",
+        "5"
+      ]
+    ],
+    "roomString": "306(17), 307(28), 318A(5)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "MAT211",
+    "courseTitle": "Engineering Mathematics",
+    "teacher": "MNM",
+    "section": "70_N",
+    "rooms": [
+      [
+        "318A",
+        "19"
+      ],
+      [
+        "318B",
+        "24"
+      ],
+      [
+        "320",
+        "7"
+      ]
+    ],
+    "roomString": "318A(19), 318B(24), 320(7)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "MAT211",
+    "courseTitle": "Engineering Mathematics",
+    "teacher": "NDS",
+    "section": "70_O",
+    "rooms": [
+      [
+        "320",
+        "40"
+      ],
+      [
+        "514",
+        "8"
+      ]
+    ],
+    "roomString": "320(40), 514(8)",
+    "total": 48
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "MAT211",
+    "courseTitle": "Engineering Mathematics",
+    "teacher": "NDS",
+    "section": "70_P",
+    "rooms": [
+      [
+        "514",
+        "16"
+      ],
+      [
+        "515",
+        "24"
+      ],
+      [
+        "516",
+        "11"
+      ]
+    ],
+    "roomString": "514(16), 515(24), 516(11)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "MAT211",
+    "courseTitle": "Engineering Mathematics",
+    "teacher": "JS",
+    "section": "70_Q",
+    "rooms": [
+      [
+        "516",
+        "13"
+      ],
+      [
+        "518",
+        "35"
+      ]
+    ],
+    "roomString": "516(13), 518(35)",
+    "total": 48
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "MAT211",
+    "courseTitle": "Engineering Mathematics",
+    "teacher": "JS",
+    "section": "70_R",
+    "rooms": [
+      [
+        "518",
+        "4"
+      ],
+      [
+        "G26",
+        "40"
+      ],
+      [
+        "G27",
+        "5"
+      ]
+    ],
+    "roomString": "518(4), G26(40), G27(5)",
+    "total": 49
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "ENG101",
+    "courseTitle": "Basic Functional English and English Spoken",
+    "teacher": "ASA",
+    "section": "73_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "8"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(8)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "ENG101",
+    "courseTitle": "Basic Functional English and English Spoken",
+    "teacher": "ASA",
+    "section": "73_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "16"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "11"
+      ]
+    ],
+    "roomString": "ANX1-103(16), ANX1-201(24), ANX1-202(11)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "ENG101",
+    "courseTitle": "Basic Functional English and English Spoken",
+    "teacher": "SMH",
+    "section": "73_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "15"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "18"
+      ]
+    ],
+    "roomString": "ANX1-202(15), ANX1-203(16), ANX1-204(18)",
+    "total": 49
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "ENG101",
+    "courseTitle": "Basic Functional English and English Spoken",
+    "teacher": "ASA",
+    "section": "73_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "6"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "17"
+      ]
+    ],
+    "roomString": "ANX1-204(6), ANX1-207(24), ANX1-208(17)",
+    "total": 47
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "ENG101",
+    "courseTitle": "Basic Functional English and English Spoken",
+    "teacher": "ASA",
+    "section": "73_E",
+    "rooms": [
+      [
+        "ANX1-208",
+        "7"
+      ],
+      [
+        "ANX1-209",
+        "24"
+      ],
+      [
+        "ANX1-210",
+        "18"
+      ]
+    ],
+    "roomString": "ANX1-208(7), ANX1-209(24), ANX1-210(18)",
+    "total": 49
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "ENG101",
+    "courseTitle": "Basic Functional English and English Spoken",
+    "teacher": "IMT",
+    "section": "73_F",
+    "rooms": [
+      [
+        "208",
+        "18"
+      ],
+      [
+        "213",
+        "24"
+      ],
+      [
+        "216",
+        "8"
+      ]
+    ],
+    "roomString": "208(18), 213(24), 216(8)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "ENG101",
+    "courseTitle": "Basic Functional English and English Spoken",
+    "teacher": "SMH",
+    "section": "73_G",
+    "rooms": [
+      [
+        "216",
+        "16"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "10"
+      ]
+    ],
+    "roomString": "216(16), 217(24), 218(10)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "ENG101",
+    "courseTitle": "Basic Functional English and English Spoken",
+    "teacher": "JRM",
+    "section": "73_H",
+    "rooms": [
+      [
+        "218",
+        "14"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "10"
+      ]
+    ],
+    "roomString": "218(14), 219(24), 220(10)",
+    "total": 48
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "ENG101",
+    "courseTitle": "Basic Functional English and English Spoken",
+    "teacher": "JRM",
+    "section": "73_I",
+    "rooms": [
+      [
+        "220",
+        "14"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "10"
+      ]
+    ],
+    "roomString": "220(14), 221(24), 222(10)",
+    "total": 48
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "ENG101",
+    "courseTitle": "Basic Functional English and English Spoken",
+    "teacher": "JRM",
+    "section": "73_J",
+    "rooms": [
+      [
+        "222",
+        "14"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "11"
+      ]
+    ],
+    "roomString": "222(14), 223(24), 224(11)",
+    "total": 49
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "ENG101",
+    "courseTitle": "Basic Functional English and English Spoken",
+    "teacher": "JRM",
+    "section": "73_K",
+    "rooms": [
+      [
+        "224",
+        "13"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "305",
+        "11"
+      ]
+    ],
+    "roomString": "224(13), 303(24), 305(11)",
+    "total": 48
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "ENG101",
+    "courseTitle": "Basic Functional English and English Spoken",
+    "teacher": "PS",
+    "section": "73_L",
+    "rooms": [
+      [
+        "305",
+        "13"
+      ],
+      [
+        "304",
+        "24"
+      ],
+      [
+        "306",
+        "12"
+      ]
+    ],
+    "roomString": "305(13), 304(24), 306(12)",
+    "total": 49
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "ENG101",
+    "courseTitle": "Basic Functional English and English Spoken",
+    "teacher": "PS",
+    "section": "73_M",
+    "rooms": [
+      [
+        "306",
+        "12"
+      ],
+      [
+        "307",
+        "20"
+      ],
+      [
+        "318A",
+        "17"
+      ]
+    ],
+    "roomString": "306(12), 307(20), 318A(17)",
+    "total": 49
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "ENG101",
+    "courseTitle": "Basic Functional English and English Spoken",
+    "teacher": "PS",
+    "section": "73_N",
+    "rooms": [
+      [
+        "318A",
+        "7"
+      ],
+      [
+        "318B",
+        "24"
+      ],
+      [
+        "320",
+        "16"
+      ]
+    ],
+    "roomString": "318A(7), 318B(24), 320(16)",
+    "total": 47
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "ENG101",
+    "courseTitle": "Basic Functional English and English Spoken",
+    "teacher": "PS",
+    "section": "73_O",
+    "rooms": [
+      [
+        "320",
+        "15"
+      ],
+      [
+        "514",
+        "24"
+      ],
+      [
+        "515",
+        "9"
+      ]
+    ],
+    "roomString": "320(15), 514(24), 515(9)",
+    "total": 48
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "ENG101",
+    "courseTitle": "Basic Functional English and English Spoken",
+    "teacher": "IMT",
+    "section": "73_P",
+    "rooms": [
+      [
+        "515",
+        "15"
+      ],
+      [
+        "516",
+        "24"
+      ],
+      [
+        "518",
+        "8"
+      ]
+    ],
+    "roomString": "515(15), 516(24), 518(8)",
+    "total": 47
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "A",
+    "courseCode": "MAT211",
+    "courseTitle": "Engineering Mathematics",
+    "teacher": "PS",
+    "section": "73_Q",
+    "rooms": [
+      [
+        "518",
+        "18"
+      ],
+      [
+        "G26",
+        "5"
+      ]
+    ],
+    "roomString": "518(18), G26(5)",
+    "total": 23
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "CSE228",
+    "courseTitle": "Theory Of Computation",
+    "teacher": "MIS",
+    "section": "68_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "9"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "CSE228",
+    "courseTitle": "Theory Of Computation",
+    "teacher": "MIS",
+    "section": "68_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "15"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "10"
+      ]
+    ],
+    "roomString": "ANX1-103(15), ANX1-201(24), ANX1-202(10)",
+    "total": 49
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "CSE228",
+    "courseTitle": "Theory Of Computation",
+    "teacher": "MIS",
+    "section": "68_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "16"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "16"
+      ]
+    ],
+    "roomString": "ANX1-202(16), ANX1-203(16), ANX1-204(16)",
+    "total": 48
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "CSE228",
+    "courseTitle": "Theory Of Computation",
+    "teacher": "MIS",
+    "section": "68_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "8"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "19"
+      ]
+    ],
+    "roomString": "ANX1-204(8), ANX1-207(24), ANX1-208(19)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "CSE228",
+    "courseTitle": "Theory Of Computation",
+    "teacher": "SAL",
+    "section": "68_E",
+    "rooms": [
+      [
+        "ANX1-208",
+        "5"
+      ],
+      [
+        "ANX1-209",
+        "24"
+      ],
+      [
+        "ANX1-210",
+        "20"
+      ]
+    ],
+    "roomString": "ANX1-208(5), ANX1-209(24), ANX1-210(20)",
+    "total": 49
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "CSE228",
+    "courseTitle": "Theory Of Computation",
+    "teacher": "SAL",
+    "section": "68_F",
+    "rooms": [
+      [
+        "208",
+        "27"
+      ],
+      [
+        "213",
+        "24"
+      ]
+    ],
+    "roomString": "208(27), 213(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "CSE228",
+    "courseTitle": "Theory Of Computation",
+    "teacher": "NNA",
+    "section": "68_G",
+    "rooms": [
+      [
+        "216",
+        "24"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "2"
+      ]
+    ],
+    "roomString": "216(24), 217(24), 218(2)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "CSE228",
+    "courseTitle": "Theory Of Computation",
+    "teacher": "MAR",
+    "section": "68_H",
+    "rooms": [
+      [
+        "218",
+        "22"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "5"
+      ]
+    ],
+    "roomString": "218(22), 219(24), 220(5)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "CSE228",
+    "courseTitle": "Theory Of Computation",
+    "teacher": "LAR",
+    "section": "68_I",
+    "rooms": [
+      [
+        "220",
+        "19"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "8"
+      ]
+    ],
+    "roomString": "220(19), 221(24), 222(8)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "CSE228",
+    "courseTitle": "Theory Of Computation",
+    "teacher": "MAR",
+    "section": "68_J",
+    "rooms": [
+      [
+        "222",
+        "16"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "11"
+      ]
+    ],
+    "roomString": "222(16), 223(24), 224(11)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "CSE228",
+    "courseTitle": "Theory Of Computation",
+    "teacher": "LAR",
+    "section": "68_K",
+    "rooms": [
+      [
+        "224",
+        "13"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "305",
+        "14"
+      ]
+    ],
+    "roomString": "224(13), 303(24), 305(14)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "CSE228",
+    "courseTitle": "Theory Of Computation",
+    "teacher": "LAR",
+    "section": "68_L",
+    "rooms": [
+      [
+        "305",
+        "10"
+      ],
+      [
+        "304",
+        "24"
+      ],
+      [
+        "306",
+        "17"
+      ]
+    ],
+    "roomString": "305(10), 304(24), 306(17)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "CSE228",
+    "courseTitle": "Theory Of Computation",
+    "teacher": "SRS",
+    "section": "68_M",
+    "rooms": [
+      [
+        "306",
+        "7"
+      ],
+      [
+        "307",
+        "28"
+      ],
+      [
+        "318A",
+        "16"
+      ]
+    ],
+    "roomString": "306(7), 307(28), 318A(16)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "CSE228",
+    "courseTitle": "Theory Of Computation",
+    "teacher": "SRS",
+    "section": "68_N",
+    "rooms": [
+      [
+        "318A",
+        "8"
+      ],
+      [
+        "318B",
+        "24"
+      ],
+      [
+        "320",
+        "19"
+      ]
+    ],
+    "roomString": "318A(8), 318B(24), 320(19)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "CSE228",
+    "courseTitle": "Theory Of Computation",
+    "teacher": "MIS",
+    "section": "68_O",
+    "rooms": [
+      [
+        "320",
+        "28"
+      ],
+      [
+        "514",
+        "22"
+      ]
+    ],
+    "roomString": "320(28), 514(22)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "AAK",
+    "section": "68_P",
+    "rooms": [
+      [
+        "514",
+        "2"
+      ],
+      [
+        "515",
+        "24"
+      ],
+      [
+        "516",
+        "11"
+      ]
+    ],
+    "roomString": "514(2), 515(24), 516(11)",
+    "total": 37
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "SMH",
+    "section": "72_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "9"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "SMH",
+    "section": "72_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "15"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "12"
+      ]
+    ],
+    "roomString": "ANX1-103(15), ANX1-201(24), ANX1-202(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "SMH",
+    "section": "72_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "14"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "20"
+      ]
+    ],
+    "roomString": "ANX1-202(14), ANX1-203(16), ANX1-204(20)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "SAS",
+    "section": "72_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "4"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "23"
+      ]
+    ],
+    "roomString": "ANX1-204(4), ANX1-207(24), ANX1-208(23)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "SAS",
+    "section": "72_E",
+    "rooms": [
+      [
+        "ANX1-208",
+        "1"
+      ],
+      [
+        "ANX1-209",
+        "24"
+      ],
+      [
+        "ANX1-210",
+        "24"
+      ]
+    ],
+    "roomString": "ANX1-208(1), ANX1-209(24), ANX1-210(24)",
+    "total": 49
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "SAS",
+    "section": "72_F",
+    "rooms": [
+      [
+        "208",
+        "18"
+      ],
+      [
+        "213",
+        "24"
+      ],
+      [
+        "216",
+        "9"
+      ]
+    ],
+    "roomString": "208(18), 213(24), 216(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "NAT",
+    "section": "72_G",
+    "rooms": [
+      [
+        "216",
+        "15"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "12"
+      ]
+    ],
+    "roomString": "216(15), 217(24), 218(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "NAT",
+    "section": "72_H",
+    "rooms": [
+      [
+        "218",
+        "12"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "15"
+      ]
+    ],
+    "roomString": "218(12), 219(24), 220(15)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "NAT",
+    "section": "72_I",
+    "rooms": [
+      [
+        "220",
+        "9"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "17"
+      ]
+    ],
+    "roomString": "220(9), 221(24), 222(17)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "NAT",
+    "section": "72_J",
+    "rooms": [
+      [
+        "222",
+        "7"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "19"
+      ]
+    ],
+    "roomString": "222(7), 223(24), 224(19)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "SAS",
+    "section": "72_K",
+    "rooms": [
+      [
+        "224",
+        "5"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "305",
+        "21"
+      ]
+    ],
+    "roomString": "224(5), 303(24), 305(21)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "IMT",
+    "section": "72_L",
+    "rooms": [
+      [
+        "305",
+        "3"
+      ],
+      [
+        "304",
+        "24"
+      ],
+      [
+        "306",
+        "22"
+      ]
+    ],
+    "roomString": "305(3), 304(24), 306(22)",
+    "total": 49
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "IMT",
+    "section": "72_M",
+    "rooms": [
+      [
+        "306",
+        "2"
+      ],
+      [
+        "307",
+        "20"
+      ],
+      [
+        "318A",
+        "24"
+      ],
+      [
+        "318B",
+        "4"
+      ]
+    ],
+    "roomString": "306(2), 307(20), 318A(24), 318B(4)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "MZS",
+    "section": "72_N",
+    "rooms": [
+      [
+        "318B",
+        "20"
+      ],
+      [
+        "320",
+        "31"
+      ]
+    ],
+    "roomString": "318B(20), 320(31)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "Not provided",
+    "section": "72_O",
+    "rooms": [
+      [
+        "514",
+        "24"
+      ],
+      [
+        "515",
+        "24"
+      ],
+      [
+        "516",
+        "3"
+      ]
+    ],
+    "roomString": "514(24), 515(24), 516(3)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "Not provided",
+    "section": "72_P",
+    "rooms": [
+      [
+        "516",
+        "21"
+      ],
+      [
+        "518",
+        "30"
+      ]
+    ],
+    "roomString": "516(21), 518(30)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "Not provided",
+    "section": "72_Q",
+    "rooms": [
+      [
+        "518",
+        "9"
+      ],
+      [
+        "G26",
+        "39"
+      ]
+    ],
+    "roomString": "518(9), G26(39)",
+    "total": 48
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "Not",
+    "section": "72_R",
+    "rooms": [
+      [
+        "G26",
+        "1"
+      ],
+      [
+        "G27",
+        "34"
+      ]
+    ],
+    "roomString": "G26(1), G27(34)",
+    "total": 35
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "MZS",
+    "section": "72_S",
+    "rooms": [
+      [
+        "G27",
+        "2"
+      ],
+      [
+        "517A",
+        "24"
+      ],
+      [
+        "501A-L",
+        "25"
+      ]
+    ],
+    "roomString": "G27(2), 517A(24), 501A-L(25)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "MZS",
+    "section": "72_T",
+    "rooms": [
+      [
+        "501B-L",
+        "25"
+      ],
+      [
+        "503L",
+        "24"
+      ]
+    ],
+    "roomString": "501B-L(25), 503L(24)",
+    "total": 49
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "B",
+    "courseCode": "ENG102",
+    "courseTitle": "Writing and Comprehension",
+    "teacher": "MZS",
+    "section": "72_U",
+    "rooms": [
+      [
+        "503L",
+        "1"
+      ],
+      [
+        "504L",
+        "18"
+      ]
+    ],
+    "roomString": "503L(1), 504L(18)",
+    "total": 19
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE323",
+    "courseTitle": "Operating Systems",
+    "teacher": "NJO",
+    "section": "66_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "9"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE323",
+    "courseTitle": "Operating Systems",
+    "teacher": "RAK",
+    "section": "66_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "15"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "12"
+      ]
+    ],
+    "roomString": "ANX1-103(15), ANX1-201(24), ANX1-202(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE323",
+    "courseTitle": "Operating Systems",
+    "teacher": "TAA",
+    "section": "66_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "14"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "21"
+      ]
+    ],
+    "roomString": "ANX1-202(14), ANX1-203(16), ANX1-204(21)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE323",
+    "courseTitle": "Operating Systems",
+    "teacher": "RAK",
+    "section": "66_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "3"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "24"
+      ]
+    ],
+    "roomString": "ANX1-204(3), ANX1-207(24), ANX1-208(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE323",
+    "courseTitle": "Operating Systems",
+    "teacher": "TAS",
+    "section": "66_E",
+    "rooms": [
+      [
+        "208",
+        "27"
+      ],
+      [
+        "213",
+        "24"
+      ]
+    ],
+    "roomString": "208(27), 213(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE323",
+    "courseTitle": "Operating Systems",
+    "teacher": "SAP",
+    "section": "66_F",
+    "rooms": [
+      [
+        "216",
+        "24"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "3"
+      ]
+    ],
+    "roomString": "216(24), 217(24), 218(3)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE323",
+    "courseTitle": "Operating Systems",
+    "teacher": "HMK",
+    "section": "66_G",
+    "rooms": [
+      [
+        "218",
+        "21"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "6"
+      ]
+    ],
+    "roomString": "218(21), 219(24), 220(6)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE323",
+    "courseTitle": "Operating Systems",
+    "teacher": "FRN",
+    "section": "66_H",
+    "rooms": [
+      [
+        "220",
+        "18"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "9"
+      ]
+    ],
+    "roomString": "220(18), 221(24), 222(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE323",
+    "courseTitle": "Operating Systems",
+    "teacher": "MAS",
+    "section": "66_I",
+    "rooms": [
+      [
+        "222",
+        "15"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "12"
+      ]
+    ],
+    "roomString": "222(15), 223(24), 224(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE323",
+    "courseTitle": "Operating Systems",
+    "teacher": "RAK",
+    "section": "66_J",
+    "rooms": [
+      [
+        "224",
+        "12"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "305",
+        "15"
+      ]
+    ],
+    "roomString": "224(12), 303(24), 305(15)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE323",
+    "courseTitle": "Operating Systems",
+    "teacher": "MAS",
+    "section": "66_K",
+    "rooms": [
+      [
+        "305",
+        "9"
+      ],
+      [
+        "304",
+        "24"
+      ],
+      [
+        "306",
+        "18"
+      ]
+    ],
+    "roomString": "305(9), 304(24), 306(18)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE323",
+    "courseTitle": "Operating Systems",
+    "teacher": "FRN",
+    "section": "66_L",
+    "rooms": [
+      [
+        "306",
+        "6"
+      ],
+      [
+        "307",
+        "28"
+      ],
+      [
+        "318A",
+        "17"
+      ]
+    ],
+    "roomString": "306(6), 307(28), 318A(17)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE323",
+    "courseTitle": "Operating Systems",
+    "teacher": "MRM",
+    "section": "66_M",
+    "rooms": [
+      [
+        "318A",
+        "7"
+      ],
+      [
+        "318B",
+        "24"
+      ],
+      [
+        "320",
+        "20"
+      ]
+    ],
+    "roomString": "318A(7), 318B(24), 320(20)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE323",
+    "courseTitle": "Operating Systems",
+    "teacher": "SAP",
+    "section": "66_N",
+    "rooms": [
+      [
+        "320",
+        "27"
+      ],
+      [
+        "514",
+        "24"
+      ]
+    ],
+    "roomString": "320(27), 514(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE323",
+    "courseTitle": "Operating Systems",
+    "teacher": "MRM",
+    "section": "66_O",
+    "rooms": [
+      [
+        "515",
+        "24"
+      ],
+      [
+        "516",
+        "24"
+      ],
+      [
+        "518",
+        "3"
+      ]
+    ],
+    "roomString": "515(24), 516(24), 518(3)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE323",
+    "courseTitle": "Operating Systems",
+    "teacher": "TAA",
+    "section": "66_P",
+    "rooms": [
+      [
+        "518",
+        "36"
+      ],
+      [
+        "G26",
+        "15"
+      ]
+    ],
+    "roomString": "518(36), G26(15)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE317",
+    "courseTitle": "Microprocessor and Microcontrollers",
+    "teacher": "MRR",
+    "section": "67_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "2"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(2)",
+    "total": 44
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE317",
+    "courseTitle": "Microprocessor and Microcontrollers",
+    "teacher": "MRR",
+    "section": "67_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "22"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "3"
+      ]
+    ],
+    "roomString": "ANX1-103(22), ANX1-201(24), ANX1-202(3)",
+    "total": 49
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE317",
+    "courseTitle": "Microprocessor and Microcontrollers",
+    "teacher": "ROZ",
+    "section": "67_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "23"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ]
+    ],
+    "roomString": "ANX1-202(23), ANX1-203(16)",
+    "total": 39
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE317",
+    "courseTitle": "Microprocessor and Microcontrollers",
+    "teacher": "ADK",
+    "section": "67_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "24"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "3"
+      ]
+    ],
+    "roomString": "ANX1-204(24), ANX1-207(24), ANX1-208(3)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE317",
+    "courseTitle": "Microprocessor and Microcontrollers",
+    "teacher": "MRR",
+    "section": "67_E",
+    "rooms": [
+      [
+        "ANX1-208",
+        "21"
+      ],
+      [
+        "ANX1-209",
+        "24"
+      ],
+      [
+        "ANX1-210",
+        "6"
+      ]
+    ],
+    "roomString": "ANX1-208(21), ANX1-209(24), ANX1-210(6)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE317",
+    "courseTitle": "Microprocessor and Microcontrollers",
+    "teacher": "MRR",
+    "section": "67_F",
+    "rooms": [
+      [
+        "208",
+        "18"
+      ],
+      [
+        "213",
+        "24"
+      ],
+      [
+        "216",
+        "3"
+      ]
+    ],
+    "roomString": "208(18), 213(24), 216(3)",
+    "total": 45
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE317",
+    "courseTitle": "Microprocessor and Microcontrollers",
+    "teacher": "ADK",
+    "section": "67_G",
+    "rooms": [
+      [
+        "216",
+        "21"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "4"
+      ]
+    ],
+    "roomString": "216(21), 217(24), 218(4)",
+    "total": 49
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE317",
+    "courseTitle": "Microprocessor and Microcontrollers",
+    "teacher": "ROZ",
+    "section": "67_H",
+    "rooms": [
+      [
+        "218",
+        "20"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "4"
+      ]
+    ],
+    "roomString": "218(20), 219(24), 220(4)",
+    "total": 48
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE317",
+    "courseTitle": "Microprocessor and Microcontrollers",
+    "teacher": "SZ",
+    "section": "67_I",
+    "rooms": [
+      [
+        "220",
+        "20"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "4"
+      ]
+    ],
+    "roomString": "220(20), 221(24), 222(4)",
+    "total": 48
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE317",
+    "courseTitle": "Microprocessor and Microcontrollers",
+    "teacher": "CSA",
+    "section": "67_J",
+    "rooms": [
+      [
+        "222",
+        "20"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "6"
+      ]
+    ],
+    "roomString": "222(20), 223(24), 224(6)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE317",
+    "courseTitle": "Microprocessor and Microcontrollers",
+    "teacher": "MSA",
+    "section": "67_K",
+    "rooms": [
+      [
+        "224",
+        "18"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "305",
+        "9"
+      ]
+    ],
+    "roomString": "224(18), 303(24), 305(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE317",
+    "courseTitle": "Microprocessor and Microcontrollers",
+    "teacher": "CSA",
+    "section": "67_L",
+    "rooms": [
+      [
+        "305",
+        "15"
+      ],
+      [
+        "304",
+        "24"
+      ],
+      [
+        "306",
+        "11"
+      ]
+    ],
+    "roomString": "305(15), 304(24), 306(11)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE317",
+    "courseTitle": "Microprocessor and Microcontrollers",
+    "teacher": "MSA",
+    "section": "67_M",
+    "rooms": [
+      [
+        "306",
+        "13"
+      ],
+      [
+        "307",
+        "20"
+      ],
+      [
+        "318A",
+        "17"
+      ]
+    ],
+    "roomString": "306(13), 307(20), 318A(17)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE317",
+    "courseTitle": "Microprocessor and Microcontrollers",
+    "teacher": "RYS",
+    "section": "67_N",
+    "rooms": [
+      [
+        "318A",
+        "7"
+      ],
+      [
+        "318B",
+        "24"
+      ],
+      [
+        "320",
+        "20"
+      ]
+    ],
+    "roomString": "318A(7), 318B(24), 320(20)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE317",
+    "courseTitle": "Microprocessor and Microcontrollers",
+    "teacher": "RYS",
+    "section": "67_O",
+    "rooms": [
+      [
+        "320",
+        "11"
+      ],
+      [
+        "514",
+        "24"
+      ],
+      [
+        "515",
+        "16"
+      ]
+    ],
+    "roomString": "320(11), 514(24), 515(16)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-02",
+    "slot": "C",
+    "courseCode": "CSE323",
+    "courseTitle": "Operating Systems",
+    "teacher": "RYS",
+    "section": "67_P",
+    "rooms": [
+      [
+        "515",
+        "8"
+      ],
+      [
+        "516",
+        "24"
+      ],
+      [
+        "518",
+        "16"
+      ]
+    ],
+    "roomString": "515(8), 516(24), 518(16)",
+    "total": 48
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "BNS101",
+    "courseTitle": "Bangladesh Studies (History of Independence and Contemporary Issues)",
+    "teacher": "SMN",
+    "section": "70_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "9"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "BNS101",
+    "courseTitle": "Bangladesh Studies (History of Independence and Contemporary Issues)",
+    "teacher": "SMN",
+    "section": "70_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "15"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "12"
+      ]
+    ],
+    "roomString": "ANX1-103(15), ANX1-201(24), ANX1-202(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "BNS101",
+    "courseTitle": "Bangladesh Studies (History of Independence and Contemporary Issues)",
+    "teacher": "SMN",
+    "section": "70_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "14"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "21"
+      ]
+    ],
+    "roomString": "ANX1-202(14), ANX1-203(16), ANX1-204(21)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "BNS101",
+    "courseTitle": "Bangladesh Studies (History of Independence and Contemporary Issues)",
+    "teacher": "SMN",
+    "section": "70_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "3"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "24"
+      ]
+    ],
+    "roomString": "ANX1-204(3), ANX1-207(24), ANX1-208(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "BNS101",
+    "courseTitle": "Bangladesh Studies (History of Independence and Contemporary Issues)",
+    "teacher": "MAA",
+    "section": "70_E",
+    "rooms": [
+      [
+        "208",
+        "27"
+      ],
+      [
+        "213",
+        "24"
+      ]
+    ],
+    "roomString": "208(27), 213(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "BNS101",
+    "courseTitle": "Bangladesh Studies (History of Independence and Contemporary Issues)",
+    "teacher": "MAA",
+    "section": "70_F",
+    "rooms": [
+      [
+        "216",
+        "24"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "2"
+      ]
+    ],
+    "roomString": "216(24), 217(24), 218(2)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "BNS101",
+    "courseTitle": "Bangladesh Studies (History of Independence and Contemporary Issues)",
+    "teacher": "ARH",
+    "section": "70_G",
+    "rooms": [
+      [
+        "218",
+        "22"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "5"
+      ]
+    ],
+    "roomString": "218(22), 219(24), 220(5)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "BNS101",
+    "courseTitle": "Bangladesh Studies (History of Independence and Contemporary Issues)",
+    "teacher": "ARH",
+    "section": "70_H",
+    "rooms": [
+      [
+        "220",
+        "19"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "8"
+      ]
+    ],
+    "roomString": "220(19), 221(24), 222(8)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "BNS101",
+    "courseTitle": "Bangladesh Studies (History of Independence and Contemporary Issues)",
+    "teacher": "ALK",
+    "section": "70_I",
+    "rooms": [
+      [
+        "222",
+        "16"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "11"
+      ]
+    ],
+    "roomString": "222(16), 223(24), 224(11)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "BNS101",
+    "courseTitle": "Bangladesh Studies (History of Independence and Contemporary Issues)",
+    "teacher": "ALK",
+    "section": "70_J",
+    "rooms": [
+      [
+        "224",
+        "13"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "305",
+        "14"
+      ]
+    ],
+    "roomString": "224(13), 303(24), 305(14)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "BNS101",
+    "courseTitle": "Bangladesh Studies (History of Independence and Contemporary Issues)",
+    "teacher": "MAA",
+    "section": "70_K",
+    "rooms": [
+      [
+        "305",
+        "10"
+      ],
+      [
+        "304",
+        "24"
+      ],
+      [
+        "306",
+        "16"
+      ]
+    ],
+    "roomString": "305(10), 304(24), 306(16)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "BNS101",
+    "courseTitle": "Bangladesh Studies (History of Independence and Contemporary Issues)",
+    "teacher": "MAA",
+    "section": "70_L",
+    "rooms": [
+      [
+        "ANX1-209",
+        "24"
+      ],
+      [
+        "ANX1-210",
+        "20"
+      ]
+    ],
+    "roomString": "ANX1-209(24), ANX1-210(20)",
+    "total": 44
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "BNS101",
+    "courseTitle": "Bangladesh Studies (History of Independence and Contemporary Issues)",
+    "teacher": "ALK",
+    "section": "70_M",
+    "rooms": [
+      [
+        "306",
+        "8"
+      ],
+      [
+        "307",
+        "28"
+      ],
+      [
+        "318A",
+        "13"
+      ]
+    ],
+    "roomString": "306(8), 307(28), 318A(13)",
+    "total": 49
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "BNS101",
+    "courseTitle": "Bangladesh Studies (History of Independence and Contemporary Issues)",
+    "teacher": "ALK",
+    "section": "70_N",
+    "rooms": [
+      [
+        "318A",
+        "11"
+      ],
+      [
+        "318B",
+        "24"
+      ],
+      [
+        "320",
+        "16"
+      ]
+    ],
+    "roomString": "318A(11), 318B(24), 320(16)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "BNS101",
+    "courseTitle": "Bangladesh Studies (History of Independence and Contemporary Issues)",
+    "teacher": "ARH",
+    "section": "70_O",
+    "rooms": [
+      [
+        "320",
+        "31"
+      ],
+      [
+        "514",
+        "20"
+      ]
+    ],
+    "roomString": "320(31), 514(20)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "BNS101",
+    "courseTitle": "Bangladesh Studies (History of Independence and Contemporary Issues)",
+    "teacher": "ARH",
+    "section": "70_P",
+    "rooms": [
+      [
+        "514",
+        "4"
+      ],
+      [
+        "515",
+        "24"
+      ],
+      [
+        "516",
+        "23"
+      ]
+    ],
+    "roomString": "514(4), 515(24), 516(23)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "BNS101",
+    "courseTitle": "Bangladesh Studies (History of Independence and Contemporary Issues)",
+    "teacher": "ANS",
+    "section": "70_Q",
+    "rooms": [
+      [
+        "516",
+        "1"
+      ],
+      [
+        "518",
+        "39"
+      ],
+      [
+        "G26",
+        "9"
+      ]
+    ],
+    "roomString": "516(1), 518(39), G26(9)",
+    "total": 49
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "CSE115",
+    "courseTitle": "Introduction to Biology and Chemistry for Computation",
+    "teacher": "ANS",
+    "section": "70_R",
+    "rooms": [
+      [
+        "G26",
+        "23"
+      ],
+      [
+        "G27",
+        "25"
+      ]
+    ],
+    "roomString": "G26(23), G27(25)",
+    "total": 48
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "CSE115",
+    "courseTitle": "Introduction to Biology and Chemistry for Computation",
+    "teacher": "AUA",
+    "section": "73_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "9"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "CSE115",
+    "courseTitle": "Introduction to Biology and Chemistry for Computation",
+    "teacher": "AUA",
+    "section": "73_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "15"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "12"
+      ]
+    ],
+    "roomString": "ANX1-103(15), ANX1-201(24), ANX1-202(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "CSE115",
+    "courseTitle": "Introduction to Biology and Chemistry for Computation",
+    "teacher": "PDS",
+    "section": "73_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "14"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "21"
+      ]
+    ],
+    "roomString": "ANX1-202(14), ANX1-203(16), ANX1-204(21)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "CSE115",
+    "courseTitle": "Introduction to Biology and Chemistry for Computation",
+    "teacher": "IJN",
+    "section": "73_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "3"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "24"
+      ]
+    ],
+    "roomString": "ANX1-204(3), ANX1-207(24), ANX1-208(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "CSE115",
+    "courseTitle": "Introduction to Biology and Chemistry for Computation",
+    "teacher": "IJN",
+    "section": "73_E",
+    "rooms": [
+      [
+        "208",
+        "18"
+      ],
+      [
+        "213",
+        "24"
+      ],
+      [
+        "216",
+        "9"
+      ]
+    ],
+    "roomString": "208(18), 213(24), 216(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "CSE115",
+    "courseTitle": "Introduction to Biology and Chemistry for Computation",
+    "teacher": "PDS",
+    "section": "73_F",
+    "rooms": [
+      [
+        "216",
+        "15"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "12"
+      ]
+    ],
+    "roomString": "216(15), 217(24), 218(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "CSE115",
+    "courseTitle": "Introduction to Biology and Chemistry for Computation",
+    "teacher": "IJN",
+    "section": "73_G",
+    "rooms": [
+      [
+        "218",
+        "12"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "15"
+      ]
+    ],
+    "roomString": "218(12), 219(24), 220(15)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "CSE115",
+    "courseTitle": "Introduction to Biology and Chemistry for Computation",
+    "teacher": "GR",
+    "section": "73_H",
+    "rooms": [
+      [
+        "220",
+        "9"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "18"
+      ]
+    ],
+    "roomString": "220(9), 221(24), 222(18)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "CSE115",
+    "courseTitle": "Introduction to Biology and Chemistry for Computation",
+    "teacher": "GR",
+    "section": "73_I",
+    "rooms": [
+      [
+        "222",
+        "6"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "21"
+      ]
+    ],
+    "roomString": "222(6), 223(24), 224(21)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "CSE115",
+    "courseTitle": "Introduction to Biology and Chemistry for Computation",
+    "teacher": "GR",
+    "section": "73_J",
+    "rooms": [
+      [
+        "224",
+        "3"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "305",
+        "24"
+      ]
+    ],
+    "roomString": "224(3), 303(24), 305(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "CSE115",
+    "courseTitle": "Introduction to Biology and Chemistry for Computation",
+    "teacher": "NSL",
+    "section": "73_K",
+    "rooms": [
+      [
+        "304",
+        "24"
+      ],
+      [
+        "306",
+        "24"
+      ],
+      [
+        "307",
+        "3"
+      ]
+    ],
+    "roomString": "304(24), 306(24), 307(3)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "CSE115",
+    "courseTitle": "Introduction to Biology and Chemistry for Computation",
+    "teacher": "NJO",
+    "section": "73_L",
+    "rooms": [
+      [
+        "307",
+        "17"
+      ],
+      [
+        "318A",
+        "24"
+      ],
+      [
+        "318B",
+        "10"
+      ]
+    ],
+    "roomString": "307(17), 318A(24), 318B(10)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "CSE115",
+    "courseTitle": "Introduction to Biology and Chemistry for Computation",
+    "teacher": "NSL",
+    "section": "73_M",
+    "rooms": [
+      [
+        "318B",
+        "14"
+      ],
+      [
+        "320",
+        "31"
+      ],
+      [
+        "514",
+        "6"
+      ]
+    ],
+    "roomString": "318B(14), 320(31), 514(6)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "CSE115",
+    "courseTitle": "Introduction to Biology and Chemistry for Computation",
+    "teacher": "NJO",
+    "section": "73_N",
+    "rooms": [
+      [
+        "514",
+        "18"
+      ],
+      [
+        "515",
+        "24"
+      ],
+      [
+        "516",
+        "9"
+      ]
+    ],
+    "roomString": "514(18), 515(24), 516(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "CSE115",
+    "courseTitle": "Introduction to Biology and Chemistry for Computation",
+    "teacher": "MSJ",
+    "section": "73_O",
+    "rooms": [
+      [
+        "516",
+        "15"
+      ],
+      [
+        "518",
+        "26"
+      ],
+      [
+        "G26",
+        "10"
+      ]
+    ],
+    "roomString": "516(15), 518(26), G26(10)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "CSE115",
+    "courseTitle": "Introduction to Biology and Chemistry for Computation",
+    "teacher": "MSJ",
+    "section": "73_P",
+    "rooms": [
+      [
+        "G26",
+        "30"
+      ],
+      [
+        "G27",
+        "20"
+      ]
+    ],
+    "roomString": "G26(30), G27(20)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "A",
+    "courseCode": "CSE115",
+    "courseTitle": "Introduction to Biology and Chemistry for Computation",
+    "teacher": "MSJ",
+    "section": "73_Q",
+    "rooms": [
+      [
+        "ANX1-209",
+        "24"
+      ],
+      [
+        "ANX1-210",
+        "2"
+      ]
+    ],
+    "roomString": "ANX1-209(24), ANX1-210(2)",
+    "total": 26
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "CSE227",
+    "courseTitle": "System Analysis and Design",
+    "teacher": "NS",
+    "section": "68_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "9"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "CSE227",
+    "courseTitle": "System Analysis and Design",
+    "teacher": "SH",
+    "section": "68_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "15"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "10"
+      ]
+    ],
+    "roomString": "ANX1-103(15), ANX1-201(24), ANX1-202(10)",
+    "total": 49
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "CSE227",
+    "courseTitle": "System Analysis and Design",
+    "teacher": "NS",
+    "section": "68_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "16"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "19"
+      ]
+    ],
+    "roomString": "ANX1-202(16), ANX1-203(16), ANX1-204(19)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "CSE227",
+    "courseTitle": "System Analysis and Design",
+    "teacher": "SH",
+    "section": "68_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "5"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "22"
+      ]
+    ],
+    "roomString": "ANX1-204(5), ANX1-207(24), ANX1-208(22)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "CSE227",
+    "courseTitle": "System Analysis and Design",
+    "teacher": "HH",
+    "section": "68_E",
+    "rooms": [
+      [
+        "208",
+        "18"
+      ],
+      [
+        "213",
+        "24"
+      ],
+      [
+        "216",
+        "9"
+      ]
+    ],
+    "roomString": "208(18), 213(24), 216(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "CSE227",
+    "courseTitle": "System Analysis and Design",
+    "teacher": "SNA",
+    "section": "68_F",
+    "rooms": [
+      [
+        "216",
+        "15"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "12"
+      ]
+    ],
+    "roomString": "216(15), 217(24), 218(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "CSE227",
+    "courseTitle": "System Analysis and Design",
+    "teacher": "HH",
+    "section": "68_G",
+    "rooms": [
+      [
+        "218",
+        "12"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "15"
+      ]
+    ],
+    "roomString": "218(12), 219(24), 220(15)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "CSE227",
+    "courseTitle": "System Analysis and Design",
+    "teacher": "MUR",
+    "section": "68_H",
+    "rooms": [
+      [
+        "220",
+        "9"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "18"
+      ]
+    ],
+    "roomString": "220(9), 221(24), 222(18)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "CSE227",
+    "courseTitle": "System Analysis and Design",
+    "teacher": "SNA",
+    "section": "68_I",
+    "rooms": [
+      [
+        "222",
+        "6"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "21"
+      ]
+    ],
+    "roomString": "222(6), 223(24), 224(21)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "CSE227",
+    "courseTitle": "System Analysis and Design",
+    "teacher": "MUR",
+    "section": "68_J",
+    "rooms": [
+      [
+        "224",
+        "3"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "305",
+        "24"
+      ]
+    ],
+    "roomString": "224(3), 303(24), 305(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "CSE227",
+    "courseTitle": "System Analysis and Design",
+    "teacher": "ZZM",
+    "section": "68_K",
+    "rooms": [
+      [
+        "304",
+        "24"
+      ],
+      [
+        "306",
+        "24"
+      ],
+      [
+        "307",
+        "3"
+      ]
+    ],
+    "roomString": "304(24), 306(24), 307(3)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "CSE227",
+    "courseTitle": "System Analysis and Design",
+    "teacher": "RKH",
+    "section": "68_L",
+    "rooms": [
+      [
+        "307",
+        "17"
+      ],
+      [
+        "318A",
+        "24"
+      ],
+      [
+        "318B",
+        "10"
+      ]
+    ],
+    "roomString": "307(17), 318A(24), 318B(10)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "CSE227",
+    "courseTitle": "System Analysis and Design",
+    "teacher": "SNK",
+    "section": "68_M",
+    "rooms": [
+      [
+        "318B",
+        "14"
+      ],
+      [
+        "320",
+        "31"
+      ],
+      [
+        "514",
+        "6"
+      ]
+    ],
+    "roomString": "318B(14), 320(31), 514(6)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "CSE227",
+    "courseTitle": "System Analysis and Design",
+    "teacher": "ZZM",
+    "section": "68_N",
+    "rooms": [
+      [
+        "514",
+        "18"
+      ],
+      [
+        "515",
+        "24"
+      ],
+      [
+        "516",
+        "9"
+      ]
+    ],
+    "roomString": "514(18), 515(24), 516(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "CSE227",
+    "courseTitle": "System Analysis and Design",
+    "teacher": "SH",
+    "section": "68_O",
+    "rooms": [
+      [
+        "516",
+        "15"
+      ],
+      [
+        "518",
+        "26"
+      ],
+      [
+        "G26",
+        "10"
+      ]
+    ],
+    "roomString": "516(15), 518(26), G26(10)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "SNK",
+    "section": "68_P",
+    "rooms": [
+      [
+        "ANX1-208",
+        "2"
+      ],
+      [
+        "ANX1-209",
+        "24"
+      ],
+      [
+        "ANX1-210",
+        "15"
+      ]
+    ],
+    "roomString": "ANX1-208(2), ANX1-209(24), ANX1-210(15)",
+    "total": 41
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "Not provided",
+    "section": "72_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "9"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "MAK",
+    "section": "72_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "15"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "12"
+      ]
+    ],
+    "roomString": "ANX1-103(15), ANX1-201(24), ANX1-202(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "Not provided",
+    "section": "72_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "14"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "21"
+      ]
+    ],
+    "roomString": "ANX1-202(14), ANX1-203(16), ANX1-204(21)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "MAK",
+    "section": "72_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "3"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "24"
+      ]
+    ],
+    "roomString": "ANX1-204(3), ANX1-207(24), ANX1-208(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "AAS",
+    "section": "72_E",
+    "rooms": [
+      [
+        "208",
+        "27"
+      ],
+      [
+        "213",
+        "22"
+      ]
+    ],
+    "roomString": "208(27), 213(22)",
+    "total": 49
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "AAS",
+    "section": "72_F",
+    "rooms": [
+      [
+        "213",
+        "2"
+      ],
+      [
+        "216",
+        "24"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "1"
+      ]
+    ],
+    "roomString": "213(2), 216(24), 217(24), 218(1)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "SSK",
+    "section": "72_G",
+    "rooms": [
+      [
+        "218",
+        "23"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "4"
+      ]
+    ],
+    "roomString": "218(23), 219(24), 220(4)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "SSK",
+    "section": "72_H",
+    "rooms": [
+      [
+        "220",
+        "20"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "7"
+      ]
+    ],
+    "roomString": "220(20), 221(24), 222(7)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "AEE",
+    "section": "72_I",
+    "rooms": [
+      [
+        "222",
+        "17"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "10"
+      ]
+    ],
+    "roomString": "222(17), 223(24), 224(10)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "AEE",
+    "section": "72_J",
+    "rooms": [
+      [
+        "224",
+        "14"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "305",
+        "13"
+      ]
+    ],
+    "roomString": "224(14), 303(24), 305(13)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "SSK",
+    "section": "72_K",
+    "rooms": [
+      [
+        "305",
+        "11"
+      ],
+      [
+        "304",
+        "24"
+      ],
+      [
+        "306",
+        "15"
+      ]
+    ],
+    "roomString": "305(11), 304(24), 306(15)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "SSK",
+    "section": "72_L",
+    "rooms": [
+      [
+        "306",
+        "9"
+      ],
+      [
+        "307",
+        "28"
+      ],
+      [
+        "318A",
+        "14"
+      ]
+    ],
+    "roomString": "306(9), 307(28), 318A(14)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "AAR",
+    "section": "72_M",
+    "rooms": [
+      [
+        "318A",
+        "10"
+      ],
+      [
+        "318B",
+        "24"
+      ],
+      [
+        "320",
+        "17"
+      ]
+    ],
+    "roomString": "318A(10), 318B(24), 320(17)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "MAM",
+    "section": "72_N",
+    "rooms": [
+      [
+        "320",
+        "30"
+      ],
+      [
+        "514",
+        "20"
+      ]
+    ],
+    "roomString": "320(30), 514(20)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "AAR",
+    "section": "72_O",
+    "rooms": [
+      [
+        "514",
+        "4"
+      ],
+      [
+        "515",
+        "24"
+      ],
+      [
+        "516",
+        "23"
+      ]
+    ],
+    "roomString": "514(4), 515(24), 516(23)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "MRI",
+    "section": "72_P",
+    "rooms": [
+      [
+        "516",
+        "1"
+      ],
+      [
+        "518",
+        "39"
+      ],
+      [
+        "G26",
+        "11"
+      ]
+    ],
+    "roomString": "516(1), 518(39), G26(11)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "MRI",
+    "section": "72_Q",
+    "rooms": [
+      [
+        "G26",
+        "29"
+      ],
+      [
+        "G27",
+        "22"
+      ]
+    ],
+    "roomString": "G26(29), G27(22)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "Not provided",
+    "section": "72_R",
+    "rooms": [
+      [
+        "G27",
+        "14"
+      ],
+      [
+        "517A",
+        "24"
+      ],
+      [
+        "501A-L",
+        "13"
+      ]
+    ],
+    "roomString": "G27(14), 517A(24), 501A-L(13)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "Not provided",
+    "section": "72_S",
+    "rooms": [
+      [
+        "501A-L",
+        "12"
+      ],
+      [
+        "501B-L",
+        "25"
+      ],
+      [
+        "503L",
+        "14"
+      ]
+    ],
+    "roomString": "501A-L(12), 501B-L(25), 503L(14)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "MRI",
+    "section": "72_T",
+    "rooms": [
+      [
+        "503L",
+        "11"
+      ],
+      [
+        "504L",
+        "25"
+      ],
+      [
+        "510L",
+        "13"
+      ]
+    ],
+    "roomString": "503L(11), 504L(25), 510L(13)",
+    "total": 49
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "B",
+    "courseCode": "PHY101",
+    "courseTitle": "Physics - I",
+    "teacher": "MRI",
+    "section": "72_U",
+    "rooms": [
+      [
+        "ANX1-209",
+        "22"
+      ]
+    ],
+    "roomString": "ANX1-209(22)",
+    "total": 22
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "CSE328",
+    "courseTitle": "Introduction to Data Science",
+    "teacher": "NNM",
+    "section": "66_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "9"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "CSE328",
+    "courseTitle": "Introduction to Data Science",
+    "teacher": "MAH",
+    "section": "66_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "15"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "12"
+      ]
+    ],
+    "roomString": "ANX1-103(15), ANX1-201(24), ANX1-202(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "CSE328",
+    "courseTitle": "Introduction to Data Science",
+    "teacher": "NNM",
+    "section": "66_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "14"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "21"
+      ]
+    ],
+    "roomString": "ANX1-202(14), ANX1-203(16), ANX1-204(21)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "CSE328",
+    "courseTitle": "Introduction to Data Science",
+    "teacher": "FH",
+    "section": "66_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "3"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "24"
+      ]
+    ],
+    "roomString": "ANX1-204(3), ANX1-207(24), ANX1-208(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "CSE328",
+    "courseTitle": "Introduction to Data Science",
+    "teacher": "AHN",
+    "section": "66_E",
+    "rooms": [
+      [
+        "208",
+        "27"
+      ],
+      [
+        "213",
+        "24"
+      ]
+    ],
+    "roomString": "208(27), 213(24)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "CSE328",
+    "courseTitle": "Introduction to Data Science",
+    "teacher": "FH",
+    "section": "66_F",
+    "rooms": [
+      [
+        "216",
+        "24"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "3"
+      ]
+    ],
+    "roomString": "216(24), 217(24), 218(3)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "CSE328",
+    "courseTitle": "Introduction to Data Science",
+    "teacher": "FH",
+    "section": "66_G",
+    "rooms": [
+      [
+        "218",
+        "21"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "6"
+      ]
+    ],
+    "roomString": "218(21), 219(24), 220(6)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "CSE328",
+    "courseTitle": "Introduction to Data Science",
+    "teacher": "MAH",
+    "section": "66_H",
+    "rooms": [
+      [
+        "220",
+        "18"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "9"
+      ]
+    ],
+    "roomString": "220(18), 221(24), 222(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "CSE328",
+    "courseTitle": "Introduction to Data Science",
+    "teacher": "AHAK",
+    "section": "66_I",
+    "rooms": [
+      [
+        "222",
+        "15"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "12"
+      ]
+    ],
+    "roomString": "222(15), 223(24), 224(12)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "CSE328",
+    "courseTitle": "Introduction to Data Science",
+    "teacher": "SNS",
+    "section": "66_J",
+    "rooms": [
+      [
+        "224",
+        "12"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "305",
+        "14"
+      ]
+    ],
+    "roomString": "224(12), 303(24), 305(14)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "CSE328",
+    "courseTitle": "Introduction to Data Science",
+    "teacher": "KNA",
+    "section": "66_K",
+    "rooms": [
+      [
+        "305",
+        "10"
+      ],
+      [
+        "304",
+        "24"
+      ],
+      [
+        "306",
+        "17"
+      ]
+    ],
+    "roomString": "305(10), 304(24), 306(17)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "CSE328",
+    "courseTitle": "Introduction to Data Science",
+    "teacher": "AHAK",
+    "section": "66_L",
+    "rooms": [
+      [
+        "306",
+        "7"
+      ],
+      [
+        "307",
+        "28"
+      ],
+      [
+        "318A",
+        "16"
+      ]
+    ],
+    "roomString": "306(7), 307(28), 318A(16)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "CSE328",
+    "courseTitle": "Introduction to Data Science",
+    "teacher": "KNA",
+    "section": "66_M",
+    "rooms": [
+      [
+        "318A",
+        "8"
+      ],
+      [
+        "318B",
+        "24"
+      ],
+      [
+        "320",
+        "19"
+      ]
+    ],
+    "roomString": "318A(8), 318B(24), 320(19)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "CSE328",
+    "courseTitle": "Introduction to Data Science",
+    "teacher": "YI",
+    "section": "66_N",
+    "rooms": [
+      [
+        "320",
+        "28"
+      ],
+      [
+        "514",
+        "24"
+      ]
+    ],
+    "roomString": "320(28), 514(24)",
+    "total": 52
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "CSE328",
+    "courseTitle": "Introduction to Data Science",
+    "teacher": "YI",
+    "section": "66_O",
+    "rooms": [
+      [
+        "515",
+        "24"
+      ],
+      [
+        "516",
+        "24"
+      ],
+      [
+        "518",
+        "3"
+      ]
+    ],
+    "roomString": "515(24), 516(24), 518(3)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "CSE328",
+    "courseTitle": "Introduction to Data Science",
+    "teacher": "SNS",
+    "section": "66_P",
+    "rooms": [
+      [
+        "518",
+        "36"
+      ],
+      [
+        "G26",
+        "15"
+      ]
+    ],
+    "roomString": "518(36), G26(15)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "ACT327",
+    "courseTitle": "Financial and Managerial Accounting",
+    "teacher": "IK",
+    "section": "67_A",
+    "rooms": [
+      [
+        "ANX1-101",
+        "26"
+      ],
+      [
+        "ANX1-102",
+        "16"
+      ],
+      [
+        "ANX1-103",
+        "4"
+      ]
+    ],
+    "roomString": "ANX1-101(26), ANX1-102(16), ANX1-103(4)",
+    "total": 46
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "ACT327",
+    "courseTitle": "Financial and Managerial Accounting",
+    "teacher": "IK",
+    "section": "67_B",
+    "rooms": [
+      [
+        "ANX1-103",
+        "20"
+      ],
+      [
+        "ANX1-201",
+        "24"
+      ],
+      [
+        "ANX1-202",
+        "6"
+      ]
+    ],
+    "roomString": "ANX1-103(20), ANX1-201(24), ANX1-202(6)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "ACT327",
+    "courseTitle": "Financial and Managerial Accounting",
+    "teacher": "MALP",
+    "section": "67_C",
+    "rooms": [
+      [
+        "ANX1-202",
+        "20"
+      ],
+      [
+        "ANX1-203",
+        "16"
+      ],
+      [
+        "ANX1-204",
+        "4"
+      ]
+    ],
+    "roomString": "ANX1-202(20), ANX1-203(16), ANX1-204(4)",
+    "total": 40
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "ACT327",
+    "courseTitle": "Financial and Managerial Accounting",
+    "teacher": "MALP",
+    "section": "67_D",
+    "rooms": [
+      [
+        "ANX1-204",
+        "20"
+      ],
+      [
+        "ANX1-207",
+        "24"
+      ],
+      [
+        "ANX1-208",
+        "7"
+      ]
+    ],
+    "roomString": "ANX1-204(20), ANX1-207(24), ANX1-208(7)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "ACT327",
+    "courseTitle": "Financial and Managerial Accounting",
+    "teacher": "IK",
+    "section": "67_E",
+    "rooms": [
+      [
+        "ANX1-208",
+        "17"
+      ],
+      [
+        "ANX1-209",
+        "24"
+      ],
+      [
+        "ANX1-210",
+        "9"
+      ]
+    ],
+    "roomString": "ANX1-208(17), ANX1-209(24), ANX1-210(9)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "ACT327",
+    "courseTitle": "Financial and Managerial Accounting",
+    "teacher": "IK",
+    "section": "67_F",
+    "rooms": [
+      [
+        "208",
+        "18"
+      ],
+      [
+        "213",
+        "24"
+      ],
+      [
+        "216",
+        "9"
+      ]
+    ],
+    "roomString": "208(18), 213(24), 216(9)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "ACT327",
+    "courseTitle": "Financial and Managerial Accounting",
+    "teacher": "SA",
+    "section": "67_G",
+    "rooms": [
+      [
+        "216",
+        "15"
+      ],
+      [
+        "217",
+        "24"
+      ],
+      [
+        "218",
+        "10"
+      ]
+    ],
+    "roomString": "216(15), 217(24), 218(10)",
+    "total": 49
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "ACT327",
+    "courseTitle": "Financial and Managerial Accounting",
+    "teacher": "SA",
+    "section": "67_H",
+    "rooms": [
+      [
+        "218",
+        "14"
+      ],
+      [
+        "219",
+        "24"
+      ],
+      [
+        "220",
+        "10"
+      ]
+    ],
+    "roomString": "218(14), 219(24), 220(10)",
+    "total": 48
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "ACT327",
+    "courseTitle": "Financial and Managerial Accounting",
+    "teacher": "MALP",
+    "section": "67_I",
+    "rooms": [
+      [
+        "220",
+        "14"
+      ],
+      [
+        "221",
+        "24"
+      ],
+      [
+        "222",
+        "13"
+      ]
+    ],
+    "roomString": "220(14), 221(24), 222(13)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "ACT327",
+    "courseTitle": "Financial and Managerial Accounting",
+    "teacher": "MALP",
+    "section": "67_J",
+    "rooms": [
+      [
+        "222",
+        "11"
+      ],
+      [
+        "223",
+        "24"
+      ],
+      [
+        "224",
+        "15"
+      ]
+    ],
+    "roomString": "222(11), 223(24), 224(15)",
+    "total": 50
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "ACT327",
+    "courseTitle": "Financial and Managerial Accounting",
+    "teacher": "NN",
+    "section": "67_K",
+    "rooms": [
+      [
+        "224",
+        "9"
+      ],
+      [
+        "303",
+        "24"
+      ],
+      [
+        "305",
+        "18"
+      ]
+    ],
+    "roomString": "224(9), 303(24), 305(18)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "ACT327",
+    "courseTitle": "Financial and Managerial Accounting",
+    "teacher": "NN",
+    "section": "67_L",
+    "rooms": [
+      [
+        "305",
+        "6"
+      ],
+      [
+        "304",
+        "24"
+      ],
+      [
+        "306",
+        "21"
+      ]
+    ],
+    "roomString": "305(6), 304(24), 306(21)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "ACT327",
+    "courseTitle": "Financial and Managerial Accounting",
+    "teacher": "SA",
+    "section": "67_M",
+    "rooms": [
+      [
+        "306",
+        "3"
+      ],
+      [
+        "307",
+        "20"
+      ],
+      [
+        "318A",
+        "24"
+      ],
+      [
+        "318B",
+        "4"
+      ]
+    ],
+    "roomString": "306(3), 307(20), 318A(24), 318B(4)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "ACT327",
+    "courseTitle": "Financial and Managerial Accounting",
+    "teacher": "SA",
+    "section": "67_N",
+    "rooms": [
+      [
+        "318B",
+        "20"
+      ],
+      [
+        "320",
+        "31"
+      ]
+    ],
+    "roomString": "318B(20), 320(31)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "ACT327",
+    "courseTitle": "Financial and Managerial Accounting",
+    "teacher": "NN",
+    "section": "67_O",
+    "rooms": [
+      [
+        "514",
+        "24"
+      ],
+      [
+        "515",
+        "24"
+      ],
+      [
+        "516",
+        "3"
+      ]
+    ],
+    "roomString": "514(24), 515(24), 516(3)",
+    "total": 51
+  },
+  {
+    "date": "2026-11-04",
+    "slot": "C",
+    "courseCode": "CSE328",
+    "courseTitle": "Introduction to Data Science",
+    "teacher": "NN",
+    "section": "67_P",
+    "rooms": [
+      [
+        "516",
+        "21"
+      ],
+      [
+        "518",
+        "26"
+      ],
+      [
+        "G26",
+        "3"
+      ]
+    ],
+    "roomString": "516(21), 518(26), G26(3)",
+    "total": 50
+  }
+]

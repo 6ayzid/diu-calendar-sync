@@ -2096,7 +2096,7 @@ export function TimetableGrid({
                                               {roomPrefix}
                                             </span>
                                           )}
-                                          <span className="text-[10px] sm:text-[10.5px] font-normal tracking-tight whitespace-nowrap">
+                                          <span className="text-[10px] sm:text-[10.5px] font-normal tracking-tight truncate max-w-full" title={ev.room}>
                                             {roomNumber}
                                           </span>
                                         </div>
@@ -2246,7 +2246,7 @@ export function TimetableGrid({
                                             {roomPrefix}
                                           </span>
                                         )}
-                                        <span className="text-[10px] sm:text-[10.5px] font-normal tracking-tight whitespace-nowrap">
+                                        <span className="text-[10px] sm:text-[10.5px] font-normal tracking-tight truncate max-w-full" title={c.room}>
                                           {roomNumber}
                                         </span>
                                       </div>
@@ -2413,7 +2413,7 @@ export function TimetableGrid({
                                             {roomPrefix}
                                           </span>
                                         )}
-                                        <span className="text-[10px] sm:text-[10.5px] font-normal tracking-tight whitespace-nowrap">
+                                        <span className="text-[10px] sm:text-[10.5px] font-normal tracking-tight truncate max-w-full" title={c.room}>
                                           {roomNumber}
                                         </span>
                                       </div>
@@ -2670,7 +2670,7 @@ export function TimetableGrid({
                                             {roomPrefix}
                                           </span>
                                         )}
-                                        <span className="text-[10px] sm:text-[10.5px] font-normal tracking-tight whitespace-nowrap">
+                                        <span className="text-[10px] sm:text-[10.5px] font-normal tracking-tight truncate max-w-full" title={c.room}>
                                           {roomNumber}
                                         </span>
                                       </div>
@@ -3118,7 +3118,7 @@ export function TimetableGrid({
                                   </div>
 
                                   {/* Line 2: Single Compact Meta Row: Time • Room • Faculty/Section */}
-                                  <div className="flex items-center gap-2 text-xs font-mono">
+                                  <div className="flex items-center flex-wrap gap-x-2 gap-y-1 text-xs font-mono">
                                     <div className="flex items-center gap-1 shrink-0 font-medium opacity-95">
                                       <Clock className="h-3 w-3 opacity-75" />
                                       <span>

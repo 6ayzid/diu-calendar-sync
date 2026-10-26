@@ -306,6 +306,15 @@ export function parseRoomParts(rawRoom?: string): RoomParts {
     if (ktIndex > 0) cleaned = cleaned.slice(ktIndex);
   }
 
+  // If this is a multi-room seat plan (e.g. "218(13), 219(12)" or "ANX1-101(26), ANX1-102(16)"),
+  // return as a unified room number string without separating arbitrary prefix parts.
+  if (cleaned.includes(',') || cleaned.includes('(')) {
+    return {
+      prefix: '',
+      number: cleaned,
+    };
+  }
+
   // Match building prefix and room number separated by hyphens or spaces, e.g. "KT-217" -> prefix "KT", number "217"
   const match = cleaned.match(/^([A-Za-z0-9]+)[-\s]+(.+)$/);
   if (match) {
