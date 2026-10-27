@@ -62,7 +62,8 @@ export async function getEventOverridesForSection(
     map.set(ev.id, ev);
   }
 
-  return Array.from(map.values());
+  // Filter out any events after semester end (December 15, 2026)
+  return Array.from(map.values()).filter((ev) => !ev.date || ev.date.trim() <= '2026-12-15');
 }
 
 /**
@@ -77,5 +78,5 @@ export async function getAllEventOverrides(): Promise<ClassEventOverride[]> {
   for (const ev of allMidterm) {
     map.set(ev.id, ev);
   }
-  return Array.from(map.values());
+  return Array.from(map.values()).filter((ev) => !ev.date || ev.date.trim() <= '2026-12-15');
 }

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { DayOfWeek, RoutineClass, SectionMeta } from '@/types/schedule';
 import { Badge } from '@/components/ui';
-import { getDhakaClock } from '@/lib/time-utils';
+import { getDhakaClock, isAfterSemesterClassEnd } from '@/lib/time-utils';
 
 interface ClassRadarProps {
   classes: RoutineClass[];
@@ -35,8 +35,16 @@ export function ClassRadar({
   // Compute current Dhaka day & minutes
   const dhakaInfo = useMemo(() => {
     const day = (clock.day || (clock.isFriday ? 'FRIDAY' : 'SATURDAY')) as DayOfWeek | 'FRIDAY';
+    const isoDate = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Dhaka',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+
     return {
       day,
+      isoDate,
       currentMinutes: clock.minuteInt,
       time12Str: clock.formatted12,
       weekdayPart: String(day),
@@ -45,7 +53,7 @@ export function ClassRadar({
 
   // Today's classes for active section
   const todayClasses =
-    dhakaInfo.day === 'FRIDAY'
+    dhakaInfo.day === 'FRIDAY' || isAfterSemesterClassEnd(dhakaInfo.isoDate)
       ? []
       : classes
           .filter((c) => c.dayOfWeek === dhakaInfo.day)

@@ -46,8 +46,9 @@ DTSTART:19700101T000000
 END:STANDARD
 END:VTIMEZONE`;
 
-// End of Semester (Fall/Autumn term ending Jan 31, 2027, in UTC for RFC 5545 UNTIL compliance)
-const SEMESTER_END_DATE = new Date(Date.UTC(2027, 0, 31, 17, 59, 59));
+// End of Semester classes (Fall 2026 semester classes conclude on December 15, 2026, in UTC for RFC 5545 UNTIL compliance)
+// 23:59:59 Asia/Dhaka on Dec 15, 2026 corresponds to 17:59:59 UTC on Dec 15, 2026
+const SEMESTER_END_DATE = new Date(Date.UTC(2026, 11, 15, 17, 59, 59));
 
 export interface BuildCalendarOptions {
   sectionId?: string;
@@ -259,6 +260,11 @@ export function buildCalendarFeed(
       // Filter subsection-specific overrides when feed is scoped to subsection '1' or '2'
       const overrideSub = extractSubSectionId(override, sectionLetter);
       if (!faculty && (subSection === '1' || subSection === '2') && overrideSub && overrideSub !== subSection) {
+        continue;
+      }
+
+      // No classes or overrides after December 15 this semester
+      if (override.date && override.date.trim() > '2026-12-15') {
         continue;
       }
 

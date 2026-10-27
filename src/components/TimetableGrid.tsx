@@ -21,7 +21,7 @@ import {
 import { getFacultyByCode, registerDynamicFaculty } from '@/data/faculty';
 import { getCourseShortTitle, getLabSubsectionBadge, parseRoomParts, extractSubSectionId } from '@/lib/course-utils';
 import { COURSE_CATALOG } from '@/lib/courses';
-import { formatTime12, getDhakaClock, DhakaClockState, getUpcomingDays, getCurrentWeekScheduleDays, WeekScheduleDay, ContinuousScheduleDay, getContinuousScheduleDays, timeToMinutes } from '@/lib/time-utils';
+import { formatTime12, getDhakaClock, DhakaClockState, getUpcomingDays, getCurrentWeekScheduleDays, WeekScheduleDay, ContinuousScheduleDay, getContinuousScheduleDays, timeToMinutes, isAfterSemesterClassEnd } from '@/lib/time-utils';
 import { HOURLY_MARKS, layoutDayEvents, getCurrentTimeTopPercent, PositionedEvent, TIMELINE_START_HOUR, TIMELINE_END_HOUR } from '@/lib/timeline-layout';
 import { getTimelinePercentForInterval, getTargetLabel } from '@/lib/compare-utils';
 import { VersionBadge } from './VersionBadge';
@@ -1140,7 +1140,7 @@ export function TimetableGrid({
     > = {};
 
     for (const d of continuousDays) {
-      if (d.isFriday || getDepartmentHoliday(d.isoDate)) {
+      if (d.isFriday || getDepartmentHoliday(d.isoDate) || isAfterSemesterClassEnd(d.isoDate)) {
         map[d.globalDayIndex] = { positionedEvents: [], offGridOverrides: [] };
         continue;
       }
@@ -2784,13 +2784,14 @@ export function TimetableGrid({
 
             const holiday = getDepartmentHoliday(d.isoDate);
             const isExamPeriod = isMidtermExamPeriod(d.isoDate);
+            const isAfterSemesterEnd = isAfterSemesterClassEnd(d.isoDate);
 
-            const regularClasses = (d.isFriday || holiday || isExamPeriod)
+            const regularClasses = (d.isFriday || holiday || isExamPeriod || isAfterSemesterEnd)
               ? []
               : classes.filter((c) => c.dayOfWeek === d.dayKey);
 
             // Standalone overrides (e.g. online/makeup classes not matching a regular routine slot)
-            const standaloneOverrides = (holiday ? [] : (eventOverrides || [])).filter((ev) => {
+            const standaloneOverrides = (holiday || isAfterSemesterEnd ? [] : (eventOverrides || [])).filter((ev) => {
               if (ev.status === 'CANCELLED') return false;
               if (ev.date) {
                 const matchesIso = d.isoDate && ev.date.trim() === d.isoDate.trim();

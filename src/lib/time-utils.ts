@@ -582,3 +582,13 @@ export const ACADEMIC_DAYS: DayOfWeek[] = [
 export function dayOfWeekToApiDay(day: DayOfWeek): string {
   return day.charAt(0) + day.slice(1).toLowerCase();
 }
+/**
+ * Fall 2026 Semester Schedule Concludes on December 15, 2026.
+ * No classes occur after December 15, 2026.
+ */
+export const SEMESTER_CLASS_END_DATE = '2026-12-15';
+
+export function isAfterSemesterClassEnd(isoDate?: string | null): boolean {
+  if (!isoDate) return false;
+  return isoDate.trim() > SEMESTER_CLASS_END_DATE;
+}
