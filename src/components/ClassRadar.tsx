@@ -10,6 +10,7 @@ import {
 import { DayOfWeek, RoutineClass, SectionMeta } from '@/types/schedule';
 import { Badge } from '@/components/ui';
 import { getDhakaClock, isAfterSemesterClassEnd } from '@/lib/time-utils';
+import { getDepartmentHoliday } from '@/data/holidays';
 
 interface ClassRadarProps {
   classes: RoutineClass[];
@@ -53,7 +54,7 @@ export function ClassRadar({
 
   // Today's classes for active section
   const todayClasses =
-    dhakaInfo.day === 'FRIDAY' || isAfterSemesterClassEnd(dhakaInfo.isoDate)
+    dhakaInfo.day === 'FRIDAY' || isAfterSemesterClassEnd(dhakaInfo.isoDate) || getDepartmentHoliday(dhakaInfo.isoDate)
       ? []
       : classes
           .filter((c) => c.dayOfWeek === dhakaInfo.day)
@@ -61,6 +62,17 @@ export function ClassRadar({
 
   // Analyze class radar status
   const radarStatus = (() => {
+    const holiday = getDepartmentHoliday(dhakaInfo.isoDate);
+    if (holiday) {
+      return {
+        type: 'NO_CLASSES_TODAY' as const,
+        title: holiday.name,
+        subtitle: 'No classes scheduled today.',
+        activeClass: null,
+        nextClass: null,
+      };
+    }
+
     if (dhakaInfo.day === 'FRIDAY') {
       return {
         type: 'WEEKEND' as const,

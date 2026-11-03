@@ -10,7 +10,7 @@ import { getSectionById } from '@/data/sections';
 import { getFacultyByCode } from '@/data/faculty';
 import { getCourseShortTitle, extractSubSectionId } from '@/lib/course-utils';
 import { COURSE_CATALOG } from '@/lib/courses';
-import { DEPARTMENT_HOLIDAYS } from '@/data/holidays';
+import { DEPARTMENT_HOLIDAYS, getDepartmentHoliday } from '@/data/holidays';
 import { MIDTERM_EXAM_DATES } from '@/data/midterm-exams';
 
 // First occurrence dates of the semester effective week (Effective: Sept 09, 2026)
@@ -265,6 +265,11 @@ export function buildCalendarFeed(
 
       // No classes or overrides after December 15 this semester
       if (override.date && override.date.trim() > '2026-12-15') {
+        continue;
+      }
+
+      // No classes or overrides on department/public holidays
+      if (override.date && getDepartmentHoliday(override.date)) {
         continue;
       }
 

@@ -19,6 +19,15 @@ export const DEPARTMENT_HOLIDAYS: DepartmentHoliday[] = [
     endDate: '2026-10-22',
     dates: ['2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22'],
   },
+  {
+    id: 'public-holiday-2026-11-07',
+    name: 'Public Holiday',
+    title: 'Public Holiday',
+    description: 'Public Holiday - No classes scheduled.',
+    startDate: '2026-11-07',
+    endDate: '2026-11-07',
+    dates: ['2026-11-07'],
+  },
 ];
 
 /**

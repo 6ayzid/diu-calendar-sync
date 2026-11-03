@@ -1938,11 +1938,11 @@ export function TimetableGrid({
 
                   {/* Floating Event Blocks (Google Calendar Style) + Shared Free Time Highlights */}
                   <div className="absolute inset-0">
-                    {/* Subtle campus closed watermark for holidays without scheduled overrides */}
+                    {/* Subtle holiday watermark for holidays without scheduled overrides */}
                     {holiday && positionedEvents.length === 0 && dayOffGridOverrides.length === 0 && (
                       <div className="absolute top-4 inset-x-1 text-center pointer-events-none select-none z-0">
-                        <span className="text-[9px] font-mono font-bold text-amber-600/40 dark:text-amber-400/30 uppercase tracking-widest">
-                          Campus Closed
+                        <span className="text-[9px] font-mono font-bold text-amber-600/40 dark:text-amber-400/30 uppercase tracking-wider">
+                          {holiday.name}
                         </span>
                       </div>
                     )}
@@ -2894,7 +2894,7 @@ export function TimetableGrid({
                   )}
                   {holiday && (
                     <span className="mt-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300/60 dark:border-amber-700/60 px-1 py-0.2 text-[8px] font-mono font-bold tracking-tight">
-                      HOLIDAY
+                      OFF
                     </span>
                   )}
                 </div>
@@ -2912,18 +2912,11 @@ export function TimetableGrid({
                   )}
 
                   {holiday ? (
-                    <div className="py-1.5">
-                      <div className="flex items-center justify-between gap-2 rounded-xl border border-amber-300/60 bg-amber-50/70 dark:border-amber-500/30 dark:bg-amber-950/20 px-3.5 py-2 shadow-2xs">
-                        <div className="flex items-center gap-2">
-                          <span className="h-2 w-2 rounded-full bg-amber-500 shrink-0" />
-                          <span className="font-bold text-xs text-amber-900 dark:text-amber-100">
-                            {holiday.name}
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-mono font-semibold text-amber-700 dark:text-amber-300 uppercase tracking-wide">
-                          University Closed
-                        </span>
-                      </div>
+                    <div className="py-1 flex items-center">
+                      <span className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200/80 bg-amber-50/70 px-2.5 py-0.5 text-[11px] font-mono font-medium text-amber-800 dark:border-amber-800/80 dark:bg-amber-950/40 dark:text-amber-300">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                        <span>{holiday.name}</span>
+                      </span>
                     </div>
                   ) : d.isFriday ? (
                     <div className="py-1 flex items-center">
