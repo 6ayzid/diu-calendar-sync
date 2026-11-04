@@ -1365,11 +1365,11 @@ export function TimetableGrid({
                       setExpandedCard(null);
                       if (targetSec) onOpenSectionInfo?.(targetSec);
                     }}
-                    title={`Click to view routine for ${secBadge}`}
+                    title={`View ${secBadge}`}
                     className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded font-mono text-[9.5px] font-bold bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-700/60 hover:underline cursor-pointer"
                   >
                     <GraduationCap className="h-2.5 w-2.5 shrink-0 opacity-80" />
-                    <span>Section {secBadge}</span>
+                    <span>{secBadge}</span>
                   </button>
                 );
               })()
@@ -1379,7 +1379,7 @@ export function TimetableGrid({
               if (!labBadge) return null;
               return (
                 <span className="px-1.5 py-0.2 rounded font-mono text-[9.5px] font-bold bg-amber-400 text-amber-950 border border-amber-500/60 shadow-2xs">
-                  Lab {labBadge}
+                  {labBadge}
                 </span>
               );
             })()}
@@ -1425,7 +1425,7 @@ export function TimetableGrid({
               {(() => {
                 if (!item.room) return 'TBA';
                 const { prefix, number } = parseRoomParts(item.room);
-                return prefix ? `Room ${prefix} ${number}` : `Room ${number}`;
+                return prefix ? `${prefix} ${number}` : number;
               })()}
             </span>
           </div>
@@ -1435,7 +1435,7 @@ export function TimetableGrid({
         {isLiveNow && (
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-[10px] font-mono font-medium">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shrink-0" />
-            <span>Class in session now</span>
+            <span>Live now</span>
           </div>
         )}
 
@@ -1448,18 +1448,11 @@ export function TimetableGrid({
               ? 'border-blue-300 dark:border-blue-800 bg-blue-50/90 dark:bg-blue-950/40 text-blue-900 dark:text-blue-200'
               : 'border-sky-200 dark:border-sky-800 bg-sky-50/70 dark:bg-sky-950/40 text-slate-700 dark:text-slate-300'
           }`}>
-            <span className="font-bold block mb-0.5">
-              {override.type === 'cancelled'
-                ? '⚠️ NOTICE:'
-                : override.type === 'exam'
-                ? '📝 MIDTERM EXAMINATION:'
-                : 'ANNOUNCEMENT:'}
-            </span>
             {override.description}
           </div>
         )}
 
-        {/* Footer info: For faculty view show student Section with View Routine button; for student view show faculty info with Profile button */}
+        {/* Footer info: For faculty view show student Section with Routine button; for student view show faculty info with Profile button */}
         {isFaculty ? (
           (() => {
             const secBadge = item.sectionId && item.sectionId !== 'Common'
@@ -1473,7 +1466,6 @@ export function TimetableGrid({
               <div className="flex items-center justify-between gap-1.5 pt-1.5 border-t border-slate-200/80 dark:border-slate-800 text-[10.5px] font-mono">
                 <div className="min-w-0 flex items-center gap-1.5 truncate">
                   <GraduationCap className="h-3 w-3 text-slate-400 shrink-0" />
-                  <span className="text-slate-500 dark:text-slate-400 shrink-0">Section:</span>
                   <span className="font-bold text-slate-900 dark:text-slate-100 truncate">
                     {secBadge}
                   </span>
@@ -1489,7 +1481,7 @@ export function TimetableGrid({
                     }}
                     className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[10px] font-semibold text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors shrink-0 cursor-pointer"
                   >
-                    <span>View Routine</span>
+                    <span>Routine</span>
                     <ArrowUpRight className="h-2.5 w-2.5" />
                   </button>
                 )}
@@ -1683,13 +1675,16 @@ export function TimetableGrid({
             </span>
           ) : section ? (
             <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-mono font-medium text-slate-500 dark:text-slate-400 max-w-[280px] sm:max-w-none transition-all duration-500 ease-out">
-              <span className="truncate">{section.displayName}</span>
+              <span className="truncate">
+                {section.id}
+                {subSection && subSection !== 'all' ? ` (${section.sectionLetter}${subSection})` : ''}
+              </span>
               {onOpenSectionInfo && (
                 <button
                   type="button"
                   onClick={() => onOpenSectionInfo(section.id)}
-                  title={`View details for ${section.displayName}`}
-                  aria-label={`View details for ${section.displayName}`}
+                  title={`Section ${section.id} info`}
+                  aria-label={`Section ${section.id} info`}
                   className="inline-flex items-center justify-center p-0.5 rounded text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
                 >
                   <Info className="h-3.5 w-3.5" />
@@ -1737,15 +1732,11 @@ export function TimetableGrid({
 
       {/* Informative notice if faculty member has 0 classes scheduled in active routine */}
       {isFaculty && classes.length === 0 && (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/80 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60 flex items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2.5 text-slate-700 dark:text-slate-300">
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-900/60 flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
             <Info className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             <span>
-              No active classes scheduled for{' '}
-              <strong>
-                {faculty?.name || activeTarget?.faculty.name} ({activeTarget?.faculty.code})
-              </strong>{' '}
-              in routine version <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">{cleanVersion}</span>.
+              No classes for <strong>{faculty?.code || activeTarget?.faculty.code}</strong> in <span className="font-mono font-bold text-emerald-700 dark:text-emerald-400">{cleanVersion}</span>.
             </span>
           </div>
         </div>
@@ -2930,7 +2921,7 @@ export function TimetableGrid({
                       {isExamPeriod ? (
                         <span className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200/80 bg-blue-50/70 px-2.5 py-0.5 text-[11px] font-mono font-medium text-blue-700 dark:border-blue-800/80 dark:bg-blue-950/40 dark:text-blue-300">
                           <span className="h-1.5 w-1.5 rounded-full bg-blue-500 shrink-0" />
-                          <span>No exam today (Midterm Week)</span>
+                          <span>No exam today</span>
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/80 bg-slate-100/70 px-2.5 py-0.5 text-[11px] font-mono font-medium text-slate-500 dark:border-slate-800/80 dark:bg-slate-900/60 dark:text-slate-400">

@@ -1026,16 +1026,10 @@ export default function Home() {
 
         {/* Offline cached notification banner */}
         {isOfflineCached && (
-          <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 text-xs sm:text-sm font-medium shadow-xs">
+          <div className="flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 text-xs font-medium shadow-xs">
             <div className="flex items-center gap-2">
-              <WifiOff className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
-              <span>
-                You are currently offline. Showing saved routine for{' '}
-                <strong className="font-semibold">
-                  {activeTarget?.type === 'faculty' ? activeTarget.faculty.name : activeTarget?.section.id}
-                </strong>
-                .
-              </span>
+              <WifiOff className="w-3.5 h-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+              <span>Offline · Saved routine</span>
             </div>
             <button
               onClick={() => setReloadTrigger((prev) => prev + 1)}
@@ -1049,15 +1043,15 @@ export default function Home() {
 
         {/* Fetch failure when no cached routine is available */}
         {fetchError && currentSchedule.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-8 sm:p-12 text-center rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xs my-6">
-            <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center text-amber-600 dark:text-amber-400 mb-4">
-              <WifiOff className="w-6 h-6" />
+          <div className="flex flex-col items-center justify-center p-8 sm:p-10 text-center rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-xs my-6">
+            <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center text-amber-600 dark:text-amber-400 mb-3">
+              <WifiOff className="w-5 h-5" />
             </div>
-            <h2 className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-200 mb-1">
-              Unable to Load Routine
+            <h2 className="text-base font-bold text-slate-800 dark:text-slate-200 mb-1">
+              Couldn&apos;t Load Routine
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mb-5 leading-relaxed">
-              We couldn&apos;t reach the server and no previously cached routine was found for this selection. Check your internet connection and try again.
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs mb-4">
+              Check your connection and retry.
             </p>
             <button
               onClick={() => {
@@ -1065,10 +1059,10 @@ export default function Home() {
                 setIsScheduleLoading(true);
                 setReloadTrigger((prev) => prev + 1);
               }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs sm:text-sm font-semibold shadow-sm shadow-emerald-600/20 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-sm shadow-emerald-600/20 transition-all cursor-pointer"
             >
-              <RefreshCw className="w-4 h-4" />
-              Try Again
+              <RefreshCw className="w-3.5 h-3.5" />
+              Retry
             </button>
           </div>
         ) : !isInitialized || !hasSavedPreference || (isScheduleLoading && currentSchedule.length === 0) ? (
@@ -1248,11 +1242,11 @@ export default function Home() {
       />
 
       {/* App Footer */}
-      <footer className="mt-8 border-t border-slate-200/80 bg-slate-100/50 py-6 text-center text-xs text-slate-500 dark:border-slate-800/80 dark:bg-slate-950/50 dark:text-slate-400 print:hidden">
-        <div className="mx-auto max-w-2xl px-4 space-y-3">
+      <footer className="mt-8 border-t border-slate-200/80 bg-slate-100/50 py-5 text-center text-xs text-slate-500 dark:border-slate-800/80 dark:bg-slate-950/50 dark:text-slate-400 print:hidden">
+        <div className="mx-auto max-w-2xl px-4 space-y-2.5">
           <div className="flex items-center justify-center gap-4 text-[11px]">
             <Link href="/docs" className="hover:text-emerald-600 dark:hover:text-emerald-400 underline transition-colors">
-              Docs &amp; Calendar Setup
+              Setup Guide
             </Link>
             <button
               type="button"
@@ -1262,18 +1256,12 @@ export default function Home() {
               }}
               className="hover:text-emerald-600 dark:hover:text-emerald-400 underline transition-colors cursor-pointer"
             >
-              Change Routine (/)
+              Change Routine
             </button>
           </div>
 
-          {/* Subtle keyword context for search crawlers without front-page visual clutter */}
-          <p className="text-[11px] text-slate-400 dark:text-slate-500 max-w-lg mx-auto leading-relaxed">
-            Live DIU routine scrapper and calendar sync for Daffodil International University. View your routine diu schedule or export your DIU class routine directly to Google Calendar and Apple Calendar.
-          </p>
-
           {/* Developer Attribution Tag */}
-          <div className="pt-3 border-t border-slate-200/80 dark:border-slate-800/80 flex flex-wrap items-center justify-center gap-3 text-xs">
-            <span className="text-slate-500 dark:text-slate-400">Developed by</span>
+          <div className="pt-2.5 border-t border-slate-200/80 dark:border-slate-800/80 flex flex-wrap items-center justify-center gap-3 text-xs">
             <a
               href="https://github.com/6ayzid"
               target="_blank"

@@ -352,7 +352,7 @@ export function RoomFinderModal({
 
       return {
         isFree: false,
-        label: clockInfo.isFriday ? 'Friday weekend' : 'Classes ended for today',
+        label: clockInfo.isFriday ? 'Weekend' : 'After hours',
       };
     },
     [clockInfo, weekData]
@@ -381,7 +381,7 @@ export function RoomFinderModal({
       }}
     >
       {/* Main Container Card — on-theme with SectionSelector and FacultyInfoModal */}
-      <div className="relative w-full max-w-2xl flex flex-col max-h-[92vh] sm:max-h-[88vh] rounded-2xl border border-slate-200 bg-white p-4 sm:p-6 shadow-2xl space-y-3 dark:border-slate-800 dark:bg-slate-900 overflow-hidden text-slate-900 dark:text-slate-100">
+      <div className="relative w-full max-w-2xl flex flex-col max-h-[92vh] sm:max-h-[88vh] rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-2xl space-y-3 dark:border-slate-800 dark:bg-slate-900 overflow-hidden text-slate-900 dark:text-slate-100">
         
         {/* ─── Header ──────────────────────────────────────────────────────── */}
         <div className="flex items-start justify-between gap-4 pb-3 border-b border-slate-200 dark:border-slate-800 shrink-0">
@@ -392,10 +392,10 @@ export function RoomFinderModal({
                 size="sm"
                 onClick={handleBackToList}
                 className="shrink-0"
-                aria-label="Back to all rooms"
+                aria-label="Back to rooms"
               >
                 <ArrowLeft className="h-4 w-4 mr-1" />
-                <span>All Rooms</span>
+                <span>Back</span>
               </Button>
             ) : (
               <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 border border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400">
@@ -405,12 +405,12 @@ export function RoomFinderModal({
 
             <div className="min-w-0">
               <h2 id="room-modal-title" className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight truncate">
-                {selectedRoom ? formatRoomDisplay(selectedRoom) : 'Empty Room Finder'}
+                {selectedRoom ? formatRoomDisplay(selectedRoom) : 'Empty Rooms'}
               </h2>
               <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-mono">
                 <span className="flex items-center gap-1">
                   <Clock className="h-3 w-3 text-slate-400 dark:text-slate-500 shrink-0" />
-                  <span>{clockInfo.timeLabel} BDT</span>
+                  <span>{clockInfo.timeLabel}</span>
                 </span>
               </div>
             </div>
@@ -436,7 +436,7 @@ export function RoomFinderModal({
                 type="text"
                 value={roomSearch}
                 onChange={(e) => setRoomSearch(e.target.value)}
-                placeholder="Search any room (e.g. 201, KT-502, ANX1, Lab)..."
+                placeholder="Search room (e.g. 201, KT-502, Lab)..."
                 aria-label="Search campus rooms"
                 className="w-full rounded-xl border border-slate-300 bg-slate-50 pl-10 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 placeholder-slate-400 font-mono transition-colors outline-none focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 min-h-[44px] dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:placeholder-slate-500 dark:focus:border-emerald-500"
               />
@@ -497,29 +497,18 @@ export function RoomFinderModal({
             /* ─────────────────────────────────────────────────────────────────
                VIEW A: ROOM OCCUPANCY & FULL SCHEDULE VIEW
             ─────────────────────────────────────────────────────────────────── */
-            <div className="space-y-4 pt-1 pb-2">
-              <div className="flex items-center justify-between pb-1 flex-wrap gap-2">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-base sm:text-lg font-bold font-mono tracking-tight text-slate-900 dark:text-white">
-                      {formatRoomDisplay(selectedRoom)}
-                    </span>
-                    {occupancy && (
-                      <span className="text-xs font-mono text-slate-400 dark:text-slate-500">
-                        {occupancy.freeSlots} free • {occupancy.occupiedSlots} busy
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                    Schedule for {DAY_NAMES[activeDay]} (all 6 time slots)
-                  </p>
+            <div className="space-y-3 pt-1 pb-2">
+              {occupancy && (
+                <div className="flex items-center justify-between pb-1 text-xs font-mono text-slate-400 dark:text-slate-500">
+                  <span>{DAY_NAMES[activeDay]}</span>
+                  <span>{occupancy.freeSlots} free • {occupancy.occupiedSlots} busy</span>
                 </div>
-              </div>
+              )}
 
               {loadingOccupancy ? (
-                <div className="flex flex-col items-center justify-center py-16 gap-2 text-slate-400 text-xs font-mono">
+                <div className="flex flex-col items-center justify-center py-12 gap-2 text-slate-400 text-xs font-mono">
                   <Loader2 className="h-5 w-5 animate-spin text-emerald-500" />
-                  <span>Loading schedule for {formatRoomDisplay(selectedRoom)}...</span>
+                  <span>Loading...</span>
                 </div>
               ) : occupancy?.schedule ? (
                 <div className="space-y-2">
@@ -546,7 +535,7 @@ export function RoomFinderModal({
                               </span>
                               {isCurrentSlot && (
                                 <Badge variant="emerald" dot pulse mono size="sm">
-                                  CURRENT
+                                  NOW
                                 </Badge>
                               )}
                             </div>
@@ -567,9 +556,9 @@ export function RoomFinderModal({
                                         }
                                       }}
                                       className="px-2 py-0.5 rounded-md text-xs font-mono font-semibold bg-sky-50 text-sky-800 border border-sky-200/80 hover:bg-sky-100 dark:bg-sky-950/50 dark:text-sky-300 dark:border-sky-800/60 transition-colors cursor-pointer"
-                                      title={`View section ${slotItem.section} routine`}
+                                      title={`View ${slotItem.section}`}
                                     >
-                                      Sec {slotItem.section}
+                                      {slotItem.section}
                                     </button>
                                   )}
                                   {slotItem.teacher && (
@@ -582,7 +571,7 @@ export function RoomFinderModal({
                                         }
                                       }}
                                       className="px-2 py-0.5 rounded-md text-xs font-mono font-semibold bg-amber-50 text-amber-900 border border-amber-200/80 hover:bg-amber-100 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800/60 transition-colors cursor-pointer"
-                                      title={`View teacher ${slotItem.teacher} routine`}
+                                      title={`View ${slotItem.teacher}`}
                                     >
                                       {slotItem.teacher}
                                     </button>
@@ -597,7 +586,7 @@ export function RoomFinderModal({
                             ) : (
                               <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                Vacant &amp; Available
+                                Vacant
                               </span>
                             )}
                           </div>
@@ -608,7 +597,7 @@ export function RoomFinderModal({
                               mono
                               size="sm"
                             >
-                              {slotItem.occupied ? 'Occupied' : 'Free'}
+                              {slotItem.occupied ? 'Busy' : 'Free'}
                             </Badge>
                           </div>
                         </div>
@@ -618,7 +607,7 @@ export function RoomFinderModal({
                 </div>
               ) : (
                 <div className="py-12 text-center text-xs font-mono text-slate-400">
-                  No schedule information found for this room.
+                  No schedule found.
                 </div>
               )}
             </div>
@@ -629,14 +618,14 @@ export function RoomFinderModal({
             <div className="py-1 space-y-2.5">
               <div className="flex items-center justify-between text-xs text-slate-400 dark:text-slate-500 pb-0.5">
                 <span>
-                  Found <strong className="text-slate-700 dark:text-slate-300">{searchResults.length}</strong> matching room{searchResults.length !== 1 ? 's' : ''}
+                  <strong className="text-slate-700 dark:text-slate-300">{searchResults.length}</strong> room{searchResults.length !== 1 ? 's' : ''}
                 </span>
                 <span className="font-mono">{DAY_SHORTS[activeDay]}</span>
               </div>
 
               {searchResults.length === 0 ? (
                 <div className="py-12 text-center text-xs text-slate-400 dark:text-slate-500">
-                  No campus rooms match your search query. Try &ldquo;201&rdquo;, &ldquo;KT-502&rdquo;, &ldquo;ANX&rdquo;, or &ldquo;Lab&rdquo;.
+                  No rooms found.
                 </div>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -680,9 +669,9 @@ export function RoomFinderModal({
                VIEW C: ALL DAYS SCROLLABLE TIMELINE WITH STICKY DAY INDEX
             ─────────────────────────────────────────────────────────────────── */
             loadingWeek ? (
-              <div className="flex flex-col items-center justify-center py-16 gap-2 text-slate-400 text-xs font-mono">
+              <div className="flex flex-col items-center justify-center py-12 gap-2 text-slate-400 text-xs font-mono">
                 <Loader2 className="h-5 w-5 animate-spin text-emerald-500" />
-                <span>Checking vacant rooms across all days...</span>
+                <span>Loading rooms...</span>
               </div>
             ) : weekData ? (
               <div className="space-y-6 py-1">
@@ -706,7 +695,7 @@ export function RoomFinderModal({
                       }}
                       className="space-y-3 scroll-mt-14"
                     >
-                      {/* Day Section Header (clean neutral numbers, no accent colors) */}
+                      {/* Day Section Header */}
                       <div className="flex items-center justify-between pb-1.5 border-b border-slate-200/80 dark:border-slate-800">
                         <div className="flex items-center gap-2">
                           <h3 className="text-sm font-bold font-mono text-slate-900 dark:text-white">
@@ -744,7 +733,7 @@ export function RoomFinderModal({
                                   : 'border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-950'
                               }`}
                             >
-                              {/* Slot Header (Neutral count, no accent color) */}
+                              {/* Slot Header */}
                               <div className="flex items-center justify-between px-3.5 py-2 border-b border-slate-100 dark:border-slate-800/80">
                                 <div className="flex items-center gap-2">
                                   <span className="text-xs sm:text-sm font-mono font-bold text-slate-900 dark:text-white">
@@ -754,7 +743,7 @@ export function RoomFinderModal({
                                   {isCurrentSlot && (
                                     <span
                                       className="h-2 w-2 rounded-full bg-emerald-500 shrink-0"
-                                      title="Current time slot"
+                                      title="Current slot"
                                     />
                                   )}
                                 </div>
@@ -764,11 +753,11 @@ export function RoomFinderModal({
                                 </span>
                               </div>
 
-                              {/* Slot Rooms: Grouped by Building (KT -> Annex -> Labs -> Other) without noisy building titles */}
+                              {/* Slot Rooms */}
                               <div className="p-2.5 sm:p-3">
                                 {totalFree === 0 ? (
                                   <p className="text-xs text-slate-400 dark:text-slate-500 italic py-1 font-mono">
-                                    No vacant rooms reported.
+                                    No free rooms.
                                   </p>
                                 ) : (
                                   <div className="space-y-2">
@@ -787,7 +776,7 @@ export function RoomFinderModal({
                                                 type="button"
                                                 onClick={() => handleInspectRoom(roomName)}
                                                 className="group inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50/80 hover:border-emerald-400 hover:bg-emerald-50/40 text-slate-800 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-emerald-500/50 dark:hover:bg-slate-800 dark:text-slate-200 text-xs font-mono font-medium transition-colors cursor-pointer"
-                                                title={`Click to view ${roomName} schedule`}
+                                                title={`${roomName} schedule`}
                                               >
                                                 <span>{displayName}</span>
                                                 <ChevronRight className="h-3 w-3 text-slate-400 group-hover:text-emerald-500 dark:text-slate-500 dark:group-hover:text-emerald-400 transition-colors" />
@@ -810,27 +799,10 @@ export function RoomFinderModal({
               </div>
             ) : (
               <div className="py-12 text-center text-xs font-mono text-slate-400">
-                Failed to load room data. Please check your connection and try again.
+                Couldn&apos;t load rooms.
               </div>
             )
           )}
-        </div>
-
-        {/* ─── Footer ──────────────────────────────────────────────────────── */}
-        <div className="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 shrink-0">
-          <span className="font-mono truncate">
-            {selectedRoom
-              ? `Inspecting ${formatRoomDisplay(selectedRoom)} (${DAY_SHORTS[activeDay]})`
-              : `Viewing ${DAY_NAMES[activeDay]}`}
-          </span>
-
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={onClose}
-          >
-            Done
-          </Button>
         </div>
       </div>
     </div>

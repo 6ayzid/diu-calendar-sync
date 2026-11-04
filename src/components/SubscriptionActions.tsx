@@ -7,9 +7,7 @@ import {
   ExternalLink,
   Calendar,
   Download,
-  Info,
   X,
-  Zap,
 } from 'lucide-react';
 import { SectionMeta, ActiveRoutineTarget } from '@/types/schedule';
 import { detectDevice, DeviceType, DeviceInfo } from '@/lib/device-detection';
@@ -79,6 +77,7 @@ export function SubscriptionActions({
   onClose,
 }: SubscriptionActionsProps) {
   const [copied, setCopied] = useState(false);
+  const [videoExpanded, setVideoExpanded] = useState(false);
   const [origin, setOrigin] = useState('');
   const [selectedTab, setSelectedTab] = useState<DeviceType>('android');
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null);
@@ -184,6 +183,7 @@ export function SubscriptionActions({
   };
 
   const handleCopyAndOpenGoogle = async () => {
+    setVideoExpanded(true);
     await handleCopy();
     window.open(googleSettingsUrl, '_blank', 'noopener,noreferrer');
   };
@@ -307,21 +307,24 @@ export function SubscriptionActions({
 
           {/* Simple 2-step guide */}
           <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 p-3 text-xs text-slate-700 dark:text-slate-300 space-y-1.5">
-            <span className="font-bold text-slate-900 dark:text-white block">
-              2 quick steps:
-            </span>
-            <ol className="list-decimal ml-4 space-y-1 text-slate-600 dark:text-slate-400">
+            <ol className="list-decimal ml-4 space-y-1.5 text-slate-600 dark:text-slate-400 leading-relaxed">
               <li>
-                Paste into <strong className="text-slate-900 dark:text-white">&quot;URL of calendar&quot;</strong> &rarr; tap <strong className="text-slate-900 dark:text-white">&quot;Add calendar&quot;</strong>.
+                Paste into <strong className="text-slate-900 dark:text-white">&quot;URL of calendar&quot;</strong> &rarr; tap{' '}
+                <span className="inline-block rounded-full bg-[#a8c7fa] text-[#062e6f] px-2.5 py-0.5 text-[11px] font-semibold leading-tight select-none">
+                  Add calendar
+                </span>
+                <span className="block text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  Use logged-in Chrome &bull; No box? Tap <strong className="font-mono text-slate-700 dark:text-slate-300">⋮</strong> &rarr; <strong className="text-slate-700 dark:text-slate-300">Desktop site</strong>.
+                </span>
               </li>
               <li>
-                In Google Calendar app: switch <strong className="text-emerald-700 dark:text-emerald-400 font-bold">Sync to ON</strong>.
+                Open <strong className="text-slate-900 dark:text-white">Google Calendar app</strong> &rarr; <strong className="font-mono text-slate-900 dark:text-white">☰</strong> &rarr; <strong className="text-slate-900 dark:text-white">Settings</strong> &rarr; tap <strong className="text-slate-900 dark:text-white">&quot;Show more&quot;</strong> under your email &rarr; tap <strong className="text-slate-900 dark:text-white">DIU Routine</strong> &rarr; turn <strong className="text-emerald-700 dark:text-emerald-400 font-bold">Sync ON</strong>.
               </li>
             </ol>
           </div>
 
-          {/* Sync video walkthrough - minimal thumbnail */}
-          <SyncVideoGuide defaultExpanded={false} />
+          {/* Sync video walkthrough - auto-expands when user clicks Copy & Open */}
+          <SyncVideoGuide defaultExpanded={videoExpanded} />
 
           {/* Offline / Samsung fallback */}
           <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200 dark:border-slate-800">
@@ -403,7 +406,7 @@ export function SubscriptionActions({
           </a>
 
           {/* Sync walkthrough for phone notifications */}
-          <SyncVideoGuide defaultExpanded={false} />
+          <SyncVideoGuide defaultExpanded={videoExpanded} />
 
           <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-200 dark:border-slate-800">
             <a

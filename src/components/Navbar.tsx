@@ -60,9 +60,6 @@ export function Navbar({
             <span className="font-bold tracking-tight text-slate-900 dark:text-white text-xs sm:text-base truncate block">
               DIU Routine
             </span>
-            <span className="text-[10px] text-slate-400 hidden sm:block font-mono">
-              CSE Department
-            </span>
           </div>
         </Link>
 
@@ -105,30 +102,28 @@ export function Navbar({
                   onClick={onOpenSectionPicker}
                   aria-label={
                     isFaculty && faculty
-                      ? `Search and change routine target, currently Faculty ${faculty.name} (${faculty.code})`
-                      : `Search and change academic section, currently ${selectedSection?.displayName || 'none'}`
+                      ? `Change routine, currently ${faculty.name} (${faculty.code})`
+                      : `Change section, currently ${selectedSection?.id || 'none'}`
                   }
-                  title="Search & change routine (Click to open)"
+                  title="Change routine"
                   className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200/80 hover:border-emerald-400/60 dark:border-slate-800 dark:bg-slate-900/70 dark:hover:bg-slate-800/80 dark:hover:border-emerald-500/50 px-2.5 sm:px-3 py-1.5 transition-all cursor-pointer min-h-[40px] group shadow-2xs"
                 >
                   <Search className="h-3.5 w-3.5 text-slate-400 group-hover:text-emerald-600 dark:text-slate-500 dark:group-hover:text-emerald-400 shrink-0 transition-colors" />
 
                   {isFaculty && faculty ? (
                     <div className="flex items-center gap-1.5 font-mono text-xs">
-                      <span className="text-slate-400 font-sans hidden md:inline">Faculty:</span>
                       <strong className="text-emerald-700 dark:text-emerald-300 font-bold bg-white dark:bg-slate-800 border border-emerald-300/80 dark:border-emerald-600/50 px-2 py-0.5 rounded shadow-2xs">
                         {faculty.code}
                       </strong>
                     </div>
                   ) : (
                     <div className="flex items-center gap-1.5 font-mono text-xs">
-                      <span className="text-slate-400 font-sans hidden md:inline">Section:</span>
                       <strong className="text-slate-900 dark:text-white font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded shadow-2xs">
                         {selectedSection?.id || '—'}
                       </strong>
                       {selectedSubSection !== 'all' && (
                         <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">
-                          • Lab {selectedSubSection}
+                          • {selectedSection?.sectionLetter}{selectedSubSection}
                         </span>
                       )}
                     </div>
@@ -146,7 +141,7 @@ export function Navbar({
                   className="flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100/80 dark:border-emerald-700/60 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 px-3 py-1.5 transition-colors cursor-pointer min-h-[40px] text-emerald-800 dark:text-emerald-300 font-semibold text-xs group shadow-2xs"
                 >
                   <Search className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span>Search Section</span>
+                  <span>Search</span>
                 </button>
               )}
 
@@ -204,11 +199,11 @@ export function Navbar({
           <button
             type="button"
             onClick={onOpenSyncModal}
-            aria-label="Open Calendar Subscription Sheet"
+            aria-label="Sync Calendar"
             className="hidden sm:flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:text-emerald-950 px-3 sm:px-3.5 py-2 text-xs font-bold transition-colors cursor-pointer min-h-[40px] shadow-sm border border-emerald-500/30 dark:border-emerald-400/30 shrink-0"
           >
             <Calendar className="h-3.5 w-3.5" />
-            <span>Sync Calendar</span>
+            <span>Sync</span>
           </button>
         </div>
       </div>

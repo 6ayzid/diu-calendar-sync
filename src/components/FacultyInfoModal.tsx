@@ -241,12 +241,12 @@ export function FacultyInfoModal({
               className="inline-flex items-center gap-1.5 text-xs font-mono font-bold text-slate-500 hover:text-emerald-600 dark:text-slate-400 dark:hover:text-emerald-400 cursor-pointer transition-colors"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
-              <span>Back to Section {returnSectionId}</span>
+              <span>{returnSectionId}</span>
             </button>
           </div>
         )}
 
-        {/* Faculty Header: Avatar + Copyable Full Name + Designation + Dept. of CSE */}
+        {/* Faculty Header: Avatar + Copyable Full Name + Designation + CSE */}
         <div className="flex items-start gap-3.5 pr-6">
           {!imageError ? (
             <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 shadow-2xs shrink-0 bg-slate-100 dark:bg-slate-800">
@@ -273,8 +273,8 @@ export function FacultyInfoModal({
               <button
                 type="button"
                 onClick={() => handleCopy(currentFac.name, 'name')}
-                title="Copy full name"
-                aria-label="Copy full name"
+                title="Copy name"
+                aria-label="Copy name"
                 className="p-1 rounded-md text-slate-400 hover:text-emerald-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
               >
                 {copiedKey === 'name' ? (
@@ -285,30 +285,27 @@ export function FacultyInfoModal({
               </button>
             </div>
             <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-snug">
-              {currentFac.designation || 'Faculty Member'}
-            </p>
-            <p className="text-xs text-slate-400 font-mono">
-              {currentFac.department ? `Dept. of ${currentFac.department}` : 'Dept. of CSE'}
+              {currentFac.designation || 'Faculty'} • <span className="font-mono text-slate-400">{currentFac.department || 'CSE'}</span>
             </p>
           </div>
         </div>
 
-          {/* Contact Details Grid (Room, Phone, Email — no duplicated full name, no find room button) */}
+          {/* Contact Details Grid (Room, Phone, Email) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
-            {/* 1. Assigned Room */}
+            {/* 1. Room */}
             <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/50 p-2.5 space-y-1">
               <div className="text-[10px] font-mono uppercase tracking-wider font-semibold text-slate-400">
-                Assigned Room
+                Room
               </div>
               <div className="flex items-center justify-between gap-2">
                 <span className="font-mono text-xs font-semibold text-slate-900 dark:text-slate-100 select-all">
-                  {currentFac.room || (loading ? 'Loading...' : 'Not specified')}
+                  {currentFac.room || (loading ? 'Loading...' : '—')}
                 </span>
                 {currentFac.room && (
                   <button
                     type="button"
                     onClick={() => handleCopy(currentFac.room!, 'room')}
-                    title="Copy room number"
+                    title="Copy room"
                     className="p-1 rounded-md text-slate-400 hover:text-emerald-600 hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
                   >
                     {copiedKey === 'room' ? (
@@ -321,10 +318,10 @@ export function FacultyInfoModal({
               </div>
             </div>
 
-            {/* 2. Phone / Mobile */}
+            {/* 2. Phone */}
             <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/50 p-2.5 space-y-1">
               <div className="text-[10px] font-mono uppercase tracking-wider font-semibold text-slate-400">
-                Phone / Mobile
+                Phone
               </div>
               <div className="flex items-center justify-between gap-2">
                 {(() => {
@@ -332,7 +329,7 @@ export function FacultyInfoModal({
                   return (
                     <>
                       <span className="font-mono text-xs font-semibold text-slate-900 dark:text-slate-100 select-all truncate">
-                        {hasValidPhone ? currentFac.phone : (loading ? 'Loading...' : 'Not listed')}
+                        {hasValidPhone ? currentFac.phone : (loading ? 'Loading...' : '—')}
                       </span>
                       {hasValidPhone && (
                         <div className="flex items-center gap-1 shrink-0">
@@ -370,7 +367,7 @@ export function FacultyInfoModal({
               </div>
               <div className="flex items-center justify-between gap-2">
                 <span className="font-mono text-xs font-semibold text-slate-900 dark:text-slate-100 select-all truncate">
-                  {currentFac.email || (loading ? 'Loading...' : 'Not listed')}
+                  {currentFac.email || (loading ? 'Loading...' : '—')}
                 </span>
                 <div className="flex items-center gap-1 shrink-0">
                   {currentFac.email && (
