@@ -110,8 +110,8 @@ export interface UpstreamScheduleResult {
 const cache = new Map<string, { timestamp: number; data: RoutineClass[]; version: string }>();
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
-let lastKnownVersion = '4.1';
-let lastKnownUpdatedAt = '2026-10-02 09:28:00';
+let lastKnownVersion = '5.1';
+let lastKnownUpdatedAt = '07 Nov, 2026,  06:20 PM';
 let lastKnownSyncedAt = '';
 let lastVersionCheckTime = 0;
 const VERSION_CHECK_INTERVAL_MS = 5 * 60 * 1000; // Check for routine updates every 5 min
@@ -138,13 +138,17 @@ export async function checkAndInvalidateOnNewRoutineVersion(force = false): Prom
       const data = await res.json();
       if (data.success && data.version) {
         const upstreamVer = String(data.version).trim();
+        const upstreamSynced = data.synced_at ? String(data.synced_at).trim() : '';
         if (data.updated_at) lastKnownUpdatedAt = String(data.updated_at).trim();
-        if (data.synced_at) lastKnownSyncedAt = String(data.synced_at).trim();
-        if (upstreamVer !== lastKnownVersion) {
+        if (
+          upstreamVer !== lastKnownVersion ||
+          (upstreamSynced && lastKnownSyncedAt && upstreamSynced !== lastKnownSyncedAt)
+        ) {
           console.info(`[Routine Gateway] Upstream routine version updated from ${lastKnownVersion} to ${upstreamVer}. Clearing schedule cache.`);
           cache.clear();
           lastKnownVersion = upstreamVer;
         }
+        if (upstreamSynced) lastKnownSyncedAt = upstreamSynced;
       }
     }
   } catch (err) {

@@ -47,7 +47,16 @@ export async function getScheduleWithMeta(
   const officialClasses = (officialRoutine.sections as Record<string, RoutineClass[]>)[normalizedId];
   try {
     const liveResult = await fetchLiveScheduleFromUpstream(normalizedId);
-    if (liveResult && liveResult.classes.length > 0) {
+    const liveDaysCount = liveResult ? new Set(liveResult.classes.map((c) => c.dayOfWeek)).size : 0;
+    const officialDaysCount = officialClasses ? new Set(officialClasses.map((c) => c.dayOfWeek)).size : 0;
+    const hasDayCollapseAnomaly =
+      Boolean(liveResult && liveResult.classes.length >= 4 && liveDaysCount === 1 && officialDaysCount > 1);
+
+    if (hasDayCollapseAnomaly) {
+      console.warn(`[Schedule] Detected single-day collapse anomaly from upstream for ${normalizedId}; using verified snapshot.`);
+    }
+
+    if (liveResult && liveResult.classes.length > 0 && !hasDayCollapseAnomaly) {
       const enriched = liveResult.classes.map((c) => {
         const cleanC = c.courseCode.split('(')[0].trim().toUpperCase();
         const rawT = (c.courseTitle || '').trim();

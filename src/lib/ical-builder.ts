@@ -127,6 +127,8 @@ export function buildCalendarFeed(
 
   const verMatch = routineVersion.match(/\bv?([0-9]+(?:\.[0-9]+)?)\b/i);
   const formattedVersion = verMatch ? `v${verMatch[1]}` : (routineVersion.startsWith('v') ? routineVersion : `v${routineVersion}`);
+  const versionSequence = verMatch ? Math.max(1, Math.round(parseFloat(verMatch[1]) * 10)) : 1;
+  const seenUids = new Map<string, string>();
 
   for (const item of activeClasses) {
     const baseDate = WEEKDAY_DATE_MAP[item.dayOfWeek];
@@ -155,9 +157,22 @@ export function buildCalendarFeed(
       ? (itemSub ? `${item.sectionId}${itemSub}` : item.sectionId)
       : (item.batch && item.section ? `${item.batch}_${item.section}` : 'All');
 
-    const deterministicUid = faculty
+    const baseUid = faculty
       ? `slot-faculty-${faculty.code}-${cleanCourseCode}-${sectionBadge}-${item.dayOfWeek}-${item.startTime.replace(':', '')}@${sourceDomain}`
       : `slot-${item.sectionId}-${item.courseCode.replace(/[^a-zA-Z0-9]/g, '')}-${subIdentifier}-${item.dayOfWeek}-${item.startTime.replace(':', '')}@${sourceDomain}`;
+
+    let deterministicUid = baseUid;
+    if (seenUids.has(baseUid)) {
+      if (seenUids.get(baseUid) === cleanRoom) {
+        // Skip exact duplicate slot
+        continue;
+      }
+      deterministicUid = baseUid.replace(
+        `@${sourceDomain}`,
+        `-${cleanRoom.replace(/[^a-zA-Z0-9]/g, '')}@${sourceDomain}`
+      );
+    }
+    seenUids.set(baseUid, cleanRoom);
 
     // 1. Title format: Site short title then course code. Nothing else.
     // e.g., "SAD (CSE227)" or "SAD CSE227"
@@ -235,6 +250,7 @@ export function buildCalendarFeed(
       summary,
       description,
       location: item.room,
+      sequence: versionSequence,
       repeating: {
         freq: ICalEventRepeatingFreq.WEEKLY,
         byDay: [ICAL_WEEKDAY_MAP[item.dayOfWeek]],
@@ -437,7 +453,7 @@ export function buildCalendarFeed(
           summary,
           description,
           location: targetRoom,
-          sequence: isRegular ? 2 : 1,
+          sequence: versionSequence + (isRegular ? 2 : 1),
         });
 
         if (isCancelled) {

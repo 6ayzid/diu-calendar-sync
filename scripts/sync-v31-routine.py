@@ -85,7 +85,12 @@ def main():
             # Parse code and subsection e.g. CSE114(72_O2)
             m = re.match(r"^([A-Z0-9]+)\(([0-9]+)_([A-Za-z]+)([12])?\)", course_raw)
             course_code = m.group(1) if m else course_raw.split("(")[0].strip()
-            sub_sec = m.group(4) if (m and m.group(4)) else None
+            direct_sub = item.get("sub_section") or item.get("subsection") or item.get("sub")
+            sub_sec = str(direct_sub) if direct_sub in ("1", "2", 1, 2) else (m.group(4) if (m and m.group(4)) else None)
+            if not sub_sec and item.get("batch"):
+                bm = re.match(r"^(?:[0-9]+[_-]?)?[A-Za-z]+([12])$", str(item.get("batch")).strip())
+                if bm:
+                    sub_sec = bm.group(1)
 
             time_raw = item.get("time_slot", "08:30-10:00")
             start_raw, end_raw = (time_raw.split("-") if "-" in time_raw else ("08:30", "10:00"))

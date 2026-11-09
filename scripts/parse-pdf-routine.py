@@ -33,19 +33,26 @@ def parse_pdf_routine(pdf_path: str, output_path: str):
         print(f"Scanning {total_pages} pages...")
 
         for page_idx, page in enumerate(pdf.pages):
-            text = page.extract_text() or ''
-            for d in days:
-                if re.search(r'\b' + d + r'\b', text):
-                    current_day = d
-                    break
-
             tables = page.extract_tables()
             for table in tables:
                 for row in table:
-                    if not row or len(row) < 18:
+                    if not row or len(row) < 3:
                         continue
-                    row_str = ' '.join(str(c) for c in row if c)
-                    if 'Class Routine' in row_str or 'Effective From' in row_str or 'Room' in row_str or 'SATURDAY' in row_str:
+                    non_empty = [str(c).strip() for c in row if c is not None and str(c).strip() != '']
+                    if not non_empty:
+                        continue
+                    row_str = ' '.join(non_empty)
+                    row_upper = row_str.upper()
+
+                    if len(non_empty) <= 2:
+                        matched_day = next((d for d in days if re.search(r'\b' + d + r'\b', row_upper)), None)
+                        if matched_day:
+                            current_day = matched_day
+                            continue
+
+                    if len(row) < 18:
+                        continue
+                    if 'Class Routine' in row_str or 'Effective From' in row_str or '08:30-10:00' in row_str or row_upper.startswith('ROOM'):
                         continue
 
                     for slot_idx in range(6):
