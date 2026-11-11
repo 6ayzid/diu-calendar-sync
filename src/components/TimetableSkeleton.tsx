@@ -10,8 +10,8 @@ interface TimetableSkeletonProps {
 export function TimetableSkeleton({ viewMode = 'matrix', isLoading = false }: TimetableSkeletonProps) {
   return (
     <div
-      className={`w-full space-y-3 sm:space-y-4 select-none ${
-        isLoading ? 'animate-skeleton-fast' : ''
+      className={`w-full space-y-3 sm:space-y-4 select-none${
+        isLoading ? ' animate-skeleton-fast' : ''
       }`}
       aria-busy={isLoading ? 'true' : 'false'}
       aria-label={isLoading ? 'Loading timetable schedule' : 'Timetable placeholder'}

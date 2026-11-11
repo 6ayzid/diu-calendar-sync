@@ -151,17 +151,7 @@ export default function Home() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isScheduleLoading, setIsScheduleLoading] = useState(false);
   const [liveSchedule, setLiveSchedule] = useState<RoutineClass[] | null>(null);
-  const [routineVersion, setRoutineVersion] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem(SYNCED_VERSION_KEY);
-        if (saved && saved.trim()) return saved.trim();
-      } catch {
-        // Ignore
-      }
-    }
-    return 'v4.1';
-  });
+  const [routineVersion, setRoutineVersion] = useState<string>('v4.1');
   const [isOfflineCached, setIsOfflineCached] = useState(false);
   const [fetchError, setFetchError] = useState(false);
   const [reloadTrigger, setReloadTrigger] = useState(0);
@@ -267,6 +257,12 @@ export default function Home() {
             }
           }
         }
+      }
+
+      // Load saved version from storage
+      const savedVersion = localStorage.getItem(SYNCED_VERSION_KEY);
+      if (savedVersion && savedVersion.trim()) {
+        setRoutineVersion(savedVersion.trim());
       }
 
       if (resolvedTarget) {
