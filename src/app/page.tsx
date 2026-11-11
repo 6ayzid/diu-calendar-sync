@@ -25,6 +25,7 @@ import {
 import { ClassEventOverride } from '@/types/events';
 import {
   calculateSharedFreeTime,
+  getTotalSharedFreeHours,
   parseTargetParam,
   targetToParamString,
   isSameEntity,
@@ -176,7 +177,7 @@ export default function Home() {
   }>({
     active: false,
     secondaryTarget: null,
-    priority: 'primary',
+    priority: 'secondary', // latest added routine has highest priority to show most info
     secondaryVisibility: 'block',
     showFreeTimeHighlight: true,
   });
@@ -286,7 +287,7 @@ export default function Home() {
             ...prev,
             active: true,
             secondaryTarget: parsedCompare,
-            priority: 'primary',
+            priority: 'secondary',
             secondaryVisibility: 'block',
             showFreeTimeHighlight: true,
           }));
@@ -340,12 +341,16 @@ export default function Home() {
     setLiveSchedule(null);
     setHasSavedPreference(true);
 
-    // If previously in compare mode and user selected a routine from normal search, exit compare mode
-    if (compareSettings.active) {
+    const isConflictWithCompare =
+      compareState.active &&
+      compareState.secondaryTarget &&
+      isSameEntity(compareState.secondaryTarget, newTarget);
+
+    if (isConflictWithCompare) {
       setCompareSettings({
         active: false,
         secondaryTarget: null,
-        priority: 'primary',
+        priority: 'secondary',
         secondaryVisibility: 'block',
         showFreeTimeHighlight: true,
       });
@@ -366,8 +371,12 @@ export default function Home() {
           newUrl.searchParams.delete('sub');
         }
         newUrl.searchParams.set('section', newSec.id);
-        newUrl.searchParams.delete('compare');
-        newUrl.searchParams.delete('c');
+        if (compareState.active && compareState.secondaryTarget && !isConflictWithCompare) {
+          newUrl.searchParams.set('compare', targetToParamString(compareState.secondaryTarget));
+        } else {
+          newUrl.searchParams.delete('compare');
+          newUrl.searchParams.delete('c');
+        }
         window.history.replaceState({}, '', newUrl.toString());
       }
     } catch (e) {
@@ -410,12 +419,16 @@ export default function Home() {
     setLiveSchedule(null);
     setHasSavedPreference(true);
 
-    // If previously in compare mode and user selected a routine from normal search, exit compare mode
-    if (compareSettings.active) {
+    const isConflictWithCompare =
+      compareState.active &&
+      compareState.secondaryTarget &&
+      isSameEntity(compareState.secondaryTarget, newTarget);
+
+    if (isConflictWithCompare) {
       setCompareSettings({
         active: false,
         secondaryTarget: null,
-        priority: 'primary',
+        priority: 'secondary',
         secondaryVisibility: 'block',
         showFreeTimeHighlight: true,
       });
@@ -431,8 +444,12 @@ export default function Home() {
         newUrl.searchParams.delete('s');
         newUrl.searchParams.delete('sub');
         newUrl.searchParams.set('teacher', newFaculty.code);
-        newUrl.searchParams.delete('compare');
-        newUrl.searchParams.delete('c');
+        if (compareState.active && compareState.secondaryTarget && !isConflictWithCompare) {
+          newUrl.searchParams.set('compare', targetToParamString(compareState.secondaryTarget));
+        } else {
+          newUrl.searchParams.delete('compare');
+          newUrl.searchParams.delete('c');
+        }
         window.history.replaceState({}, '', newUrl.toString());
       }
     } catch (e) {
@@ -901,6 +918,15 @@ export default function Home() {
     return calculateSharedFreeTime(currentSchedule, secondarySchedule, 30);
   }, [compareState.active, compareState.secondaryTarget, currentSchedule, secondarySchedule]);
 
+  const { sharedFreeHours, totalFreeSlots } = useMemo(() => {
+    if (!compareState.active) return { sharedFreeHours: '0h', totalFreeSlots: 0 };
+    const stats = getTotalSharedFreeHours(sharedFreeSlotsMap);
+    return {
+      sharedFreeHours: stats.formattedHours,
+      totalFreeSlots: stats.slotCount,
+    };
+  }, [compareState.active, sharedFreeSlotsMap]);
+
   // Add target to compare
   const handleSelectCompareTarget = (target: ActiveRoutineTarget) => {
     if (activeTarget && isSameEntity(activeTarget, target)) {
@@ -911,7 +937,7 @@ export default function Home() {
     setCompareSettings({
       active: true,
       secondaryTarget: target,
-      priority: 'primary',
+      priority: 'secondary', // newly added routine has highest priority to show most info
       secondaryVisibility: 'block',
       showFreeTimeHighlight: true,
     });
@@ -951,85 +977,32 @@ export default function Home() {
     }
   };
 
-  // Swap primary and secondary routines with instant state & cache exchange
+  // Swap priority routine
   const handleSwapPriority = () => {
-    if (!compareSettings.active || !compareSettings.secondaryTarget || !activeTarget) {
-      return;
-    }
-
-    const oldPrimary = activeTarget;
-    const oldSecondary = compareSettings.secondaryTarget;
-
-    // Cache current schedules so swap has zero loading lag
-    if (liveSchedule) {
-      try {
-        localStorage.setItem(
-          getCacheKey(oldPrimary, routineVersion),
-          JSON.stringify({ classes: liveSchedule, version: routineVersion, cachedAt: Date.now() })
-        );
-      } catch {}
-    }
-    if (secondaryLiveSchedule) {
-      try {
-        localStorage.setItem(
-          getCacheKey(oldSecondary, routineVersion),
-          JSON.stringify({ classes: secondaryLiveSchedule, version: routineVersion, cachedAt: Date.now() })
-        );
-      } catch {}
-    }
-
-    // 1. Swap activeTarget and secondaryTarget
-    setActiveTarget(oldSecondary);
     setCompareSettings((prev) => ({
       ...prev,
-      secondaryTarget: oldPrimary,
-      priority: 'primary',
+      priority: prev.priority === 'secondary' ? 'primary' : 'secondary',
     }));
+  };
 
-    // 2. Swap cached live schedules in memory
-    setLiveSchedule(secondaryLiveSchedule);
-    setSecondaryLiveSchedule(liveSchedule);
+  // Toggle secondary routine visibility (block mode vs completely hidden)
+  const handleToggleSecondaryVisibility = () => {
+    setCompareSettings((prev) => ({
+      ...prev,
+      secondaryVisibility: prev.secondaryVisibility === 'block' ? 'hidden' : 'block',
+    }));
+  };
 
-    // 3. Update localStorage and URL for new primary & secondary
-    try {
-      if (oldSecondary.type === 'section') {
-        localStorage.setItem('diu_routine_selected_type', 'section');
-        localStorage.setItem('diu_routine_selected_section', oldSecondary.section.id);
-        localStorage.setItem('diu_routine_selected_subsection', oldSecondary.subSection);
-      } else {
-        localStorage.setItem('diu_routine_selected_type', 'faculty');
-        localStorage.setItem('diu_routine_selected_faculty', oldSecondary.faculty.code);
-      }
-
-      if (typeof window !== 'undefined') {
-        const newUrl = new URL(window.location.href);
-        if (oldSecondary.type === 'section') {
-          newUrl.searchParams.delete('teacher');
-          newUrl.searchParams.delete('t');
-          newUrl.searchParams.set('section', oldSecondary.section.id);
-          if (oldSecondary.subSection !== 'all') {
-            newUrl.searchParams.set('sub', oldSecondary.subSection);
-          } else {
-            newUrl.searchParams.delete('sub');
-          }
-        } else {
-          newUrl.searchParams.delete('section');
-          newUrl.searchParams.delete('s');
-          newUrl.searchParams.delete('sub');
-          newUrl.searchParams.set('teacher', oldSecondary.faculty.code);
-        }
-
-        // Secondary target is now oldPrimary
-        newUrl.searchParams.set('compare', targetToParamString(oldPrimary));
-        window.history.replaceState({}, '', newUrl.toString());
-      }
-    } catch (e) {
-      console.warn('LocalStorage / URL swap error:', e);
-    }
+  // Toggle free time highlight on the timetable
+  const handleToggleFreeTimeHighlight = () => {
+    setCompareSettings((prev) => ({
+      ...prev,
+      showFreeTimeHighlight: !prev.showFreeTimeHighlight,
+    }));
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 dark:bg-[#080d1a] dark:text-slate-100 antialiased pb-20 sm:pb-0 print:pb-0 relative transition-colors duration-150">
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#080d1a] dark:text-slate-100 antialiased pb-28 sm:pb-8 print:pb-0 relative transition-colors duration-150">
       {/* Background Ambience */}
       <div
         className="fixed inset-0 pointer-events-none -z-10 bg-[radial-gradient(ellipse_80%_50%_at_50%_-10%,rgba(16,185,129,0.06),rgba(14,165,233,0.03),transparent_60%)] dark:bg-[radial-gradient(ellipse_80%_60%_at_50%_-15%,rgba(16,185,129,0.08),rgba(14,165,233,0.04),transparent_70%)] print:hidden"
@@ -1051,14 +1024,13 @@ export default function Home() {
           setIsComparePickerOpen(true);
           setIsSectionPickerOpen(true);
         }}
-        onSwapPriority={handleSwapPriority}
         onRemoveCompare={handleRemoveCompare}
         onOpenSyncModal={() => setIsSyncModalOpen(true)}
         onOpenRoomFinder={() => handleOpenRoomFinder()}
       />
 
       {/* Official Academic Print Header */}
-      <div className="hidden print:block mx-auto max-w-7xl 2xl:max-w-[1600px] px-4 pt-4 mb-3 border-b-2 border-slate-900 pb-2">
+      <div className="hidden print:block mx-auto max-w-7xl px-4 pt-4 mb-3 border-b-2 border-slate-900 pb-2">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-slate-900">
@@ -1086,9 +1058,22 @@ export default function Home() {
         </div>
       </div>
 
-      <main id="main-content" className="flex-1 w-full mx-auto max-w-7xl 2xl:max-w-[1600px] px-2 sm:px-6 pt-2 sm:pt-4 space-y-3 sm:space-y-4 print:py-0 print:px-2">
+      <main id="main-content" className="mx-auto max-w-7xl px-2 sm:px-6 pt-2 sm:pt-4 space-y-3 sm:space-y-4 print:py-0 print:px-2">
         {/* Semantic H1 matching exact title and brand query */}
         <h1 className="sr-only">DIU Routine Calendar Sync | Daffodil International University</h1>
+
+        {/* Routine Compare Bar HUD - Only shown in Week View */}
+        {compareState.active && viewMode === 'matrix' && (
+          <CompareBar
+            compareState={compareState}
+            onRemoveCompare={handleRemoveCompare}
+            onSwapPriority={handleSwapPriority}
+            onToggleSecondaryVisibility={handleToggleSecondaryVisibility}
+            onToggleFreeTimeHighlight={handleToggleFreeTimeHighlight}
+            sharedFreeHours={sharedFreeHours}
+            totalFreeSlots={totalFreeSlots}
+          />
+        )}
 
         {/* Offline cached notification banner */}
         {isOfflineCached && (
@@ -1168,10 +1153,8 @@ export default function Home() {
         }}
         onOpenComparePicker={() => {
           setIsComparePickerOpen(true);
-          setIsSectionPickerOpen(true);
+          setIsSectionPickerOpen(false);
         }}
-        onSwapPriority={handleSwapPriority}
-        onRemoveCompare={handleRemoveCompare}
         onOpenSyncModal={() => setIsSyncModalOpen(true)}
         onOpenRoomFinder={() => handleOpenRoomFinder()}
       />
@@ -1310,7 +1293,7 @@ export default function Home() {
       />
 
       {/* App Footer */}
-      <footer className="mt-auto w-full border-t border-slate-200/80 bg-slate-100/50 py-5 text-center text-xs text-slate-500 dark:border-slate-800/80 dark:bg-slate-950/50 dark:text-slate-400 print:hidden">
+      <footer className="mt-8 border-t border-slate-200/80 bg-slate-100/50 py-5 text-center text-xs text-slate-500 dark:border-slate-800/80 dark:bg-slate-950/50 dark:text-slate-400 print:hidden">
         <div className="mx-auto max-w-2xl px-4 space-y-2.5">
           <div className="flex items-center justify-center gap-4 text-[11px]">
             <Link href="/docs" className="hover:text-emerald-600 dark:hover:text-emerald-400 underline transition-colors">
