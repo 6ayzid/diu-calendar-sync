@@ -70,6 +70,7 @@ export const metadata: Metadata = {
   verification: {
     google: "google49d1d0d24a1985a3.html",
   },
+  manifest: "/manifest.json",
   icons: {
     icon: [
       { url: "/icon.svg", type: "image/svg+xml" },
@@ -103,6 +104,11 @@ const themeInitScript = `
       root.setAttribute('data-theme', 'light');
     }
   } catch (e) {}
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('/sw.js').catch(function() {});
+    });
+  }
 })();
 `;
 
