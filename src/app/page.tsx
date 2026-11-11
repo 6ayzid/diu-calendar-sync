@@ -1039,6 +1039,8 @@ export default function Home() {
         activeTarget={activeTarget}
         compareState={compareState}
         hasSavedPreference={hasSavedPreference}
+        isOffline={isOfflineCached}
+        onRetryOffline={() => setReloadTrigger((prev) => prev + 1)}
         onOpenSectionPicker={() => {
           setIsComparePickerOpen(false);
           setIsSectionPickerOpen(true);
@@ -1085,23 +1087,6 @@ export default function Home() {
       <main id="main-content" className="flex-1 w-full mx-auto max-w-7xl 2xl:max-w-[1600px] px-2 sm:px-6 pt-2 sm:pt-4 space-y-3 sm:space-y-4 print:py-0 print:px-2">
         {/* Semantic H1 matching exact title and brand query */}
         <h1 className="sr-only">DIU Routine Calendar Sync | Daffodil International University</h1>
-
-        {/* Offline cached notification banner */}
-        {isOfflineCached && (
-          <div className="flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 text-xs font-medium shadow-xs">
-            <div className="flex items-center gap-2">
-              <WifiOff className="w-3.5 h-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
-              <span>Offline · Saved routine</span>
-            </div>
-            <button
-              onClick={() => setReloadTrigger((prev) => prev + 1)}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 dark:bg-amber-900/60 dark:hover:bg-amber-900 text-amber-900 dark:text-amber-100 text-xs font-semibold transition-colors shrink-0 cursor-pointer"
-            >
-              <RefreshCw className="w-3 h-3" />
-              Retry
-            </button>
-          </div>
-        )}
 
         {/* Fetch failure when no cached routine is available */}
         {fetchError && currentSchedule.length === 0 ? (

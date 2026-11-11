@@ -7,6 +7,7 @@ import {
   Calendar,
   BookOpen,
   DoorOpen,
+  WifiOff,
 } from 'lucide-react';
 import { SectionMeta, ActiveRoutineTarget, CompareState } from '@/types/schedule';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -19,6 +20,8 @@ interface NavbarProps {
   activeTarget?: ActiveRoutineTarget | null;
   compareState?: CompareState;
   hasSavedPreference?: boolean;
+  isOffline?: boolean;
+  onRetryOffline?: () => void;
   onOpenSectionPicker: () => void;
   onOpenComparePicker: () => void;
   onSwapPriority?: () => void;
@@ -33,6 +36,8 @@ export function Navbar({
   activeTarget,
   compareState,
   hasSavedPreference = true,
+  isOffline = false,
+  onRetryOffline,
   onOpenSectionPicker,
   onOpenComparePicker,
   onSwapPriority,
@@ -71,8 +76,21 @@ export function Navbar({
           />
         </div>
 
-        {/* Right: Rooms, Docs Link, Theme Toggle & 1-Tap Sync */}
+        {/* Right: Offline Indicator, Rooms, Docs Link, Theme Toggle & 1-Tap Sync */}
         <div className="flex items-center gap-1.5 sm:gap-2">
+          {isOffline && (
+            <Tooltip content="Offline (saved routine) · Click to retry" side="bottom">
+              <button
+                type="button"
+                onClick={onRetryOffline}
+                aria-label="Offline saved routine, click to retry"
+                className="flex h-8 w-8 items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-200 dark:hover:bg-slate-900 transition-colors cursor-pointer"
+              >
+                <WifiOff className="h-3.5 w-3.5" />
+              </button>
+            </Tooltip>
+          )}
+
           {/* Room Finder Button - Hidden on mobile where StickySyncBar dock has it, visible from sm up */}
           {onOpenRoomFinder && (
             <Tooltip content="Find empty rooms & room occupancy" side="bottom">
