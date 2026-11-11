@@ -31,8 +31,12 @@ Unlike static PDF routines or screenshot-based schedule sharing, this platform c
 - Capabilities:
   - Dynamic live `.ics` feeds via `/api/calendar/[sectionId]` with optional subsection filters (`?sub=1`, `?sub=2`).
   - Interactive grid timetable UI displaying periods, rooms, course codes, and teacher initials.
-  - Multi-platform subscription handlers: `webcal://` one-click subscription, direct Google Calendar web-add link, and copyable feed URL.
-  - Live data synchronization with Departmental Routine Gateway API with 15-minute caching and offline fallback fixtures.
+  - Interactive Routine Comparison mode: compare sections and faculty side-by-side with automatic mutual free time discovery and 1-tap chip swapping (`RoutineSwitcher.tsx`).
+  - Unified Routine & Faculty Search with clean batch hierarchy, keyboard shortcut (`/`), and top-anchored layout for mobile virtual keyboard stability.
+  - Real-time Empty Room Finder across 76 campus rooms (Knowledge Tower, Annex 1, Computing & Hardware Labs).
+  - Multi-platform subscription handlers: `webcal://` one-click subscription, direct Google Calendar web-add link with Android deep-link rescue, and copyable feed URL.
+  - Adaptive Skeleton Loader: calm static placeholder when waiting for user selection, transitioning to a snappy (0.85s) network-rate pulse during active loading.
+  - Live data synchronization with Departmental Routine Gateway API with caching and offline fallback fixtures.
 - Constraints:
   - Must strictly preserve `Asia/Dhaka` (UTC+6) timezone calibration to prevent calendar drift.
   - Lab sessions span multiple periods and must be properly merged visually and in calendar events.

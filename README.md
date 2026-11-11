@@ -35,10 +35,12 @@
 ## Features
 
 - **One-Click Calendar Subscription (`webcal://`)**: Subscribe directly in Apple Calendar (iOS/macOS), Google Calendar (Android/Web), or Microsoft Outlook.
+- **Interactive Routine Comparison & Shared Free Time**: Compare routines between two student sections, two teachers, or a student section and faculty member with fluid spring physics transitions (`motion/react`), 1-tap chip swapping (`⇄`), and automatic mutual free-window discovery.
 - **Section and Lab Group Filtering**: Theory lectures are shared by the full section, while lab periods are split into subgroups (D1, D2). Select your subsection to see only your active classes.
 - **Faculty Directory & Timetables**: Search CSE faculty members by name or initial to view office rooms, designations, contact details, and weekly teaching schedules.
-- **Empty Classroom Finder**: Quickly look up vacant classrooms across campus buildings (KT and ANX-1) during any time slot.
-- **Fast & Resilient**: In-memory caching layer ensures sub-second responses with fallback to curated routine data.
+- **Empty Classroom Finder**: Quickly look up vacant classrooms across campus buildings (Knowledge Tower & Annex 1) across 76 rooms during any university time slot or full-day schedules.
+- **Responsive Mobile First UX**: Search modals anchored to the top to eliminate virtual keyboard layout jumping, coupled with smart adaptive skeleton loaders (static when waiting for user input, brisk pulsing during active loads).
+- **Fast & Resilient**: In-memory caching layer ensures sub-second responses with offline bundle fallback and zero-configuration PWA support.
 
 ---
 

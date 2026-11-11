@@ -165,6 +165,17 @@ A rigid, high-density container model structured within an `mx-auto max-w-7xl px
 - **Unselected:** Neutral slate with subtle border (`border-slate-800 text-slate-400`).
 - **Selected:** Solid accent (`bg-emerald-950/30 text-emerald-200 border-emerald-500/50` or `border-sky-500/80 bg-slate-800 text-white`, `bg-amber-600` for Group 1, `bg-rose-600` for Group 2).
 
+### Routine Switcher & Compare Dock (Material 3 Expressive)
+- **Shape & Motion:** Pill capsule (`rounded-full`) with spring physics transitions powered by `motion/react` (`stiffness: 420, damping: 32, mass: 0.8`).
+- **Primary Chip:** Solid brand emerald (`bg-emerald-600 text-white dark:bg-emerald-500 dark:text-slate-950`). Tap to search and swap the primary routine.
+- **Secondary Chip:** Tonal emerald (`bg-emerald-50 text-emerald-950 dark:bg-slate-900 dark:text-emerald-300`). Tap to change secondary routine.
+- **Functional Swap Button:** Central `⇄` micro-tap button. Relies on layout spring interpolation for positional swap without decorative rotate gimmicks.
+- **Exit Action:** Micro-pill `✕` button with guaranteed `shrink-0` geometry to prevent overflow across mobile screen sizes.
+
+### Skeleton & Loading State
+- **Idle / User Selection State:** Completely static architectural wireframe without pulse animations. Avoids visual distraction while users browse batches or consider options.
+- **Active Loading State:** Snappy **`0.85s`** opacity pulse (`.animate-skeleton-fast`) synchronized with network query latency. Reduced motion automatically respected via media queries.
+
 ### Cards & Panels
 - **Corner Style:** 16px radius (`rounded-2xl`).
 - **Background:** Solid Hard Slate (`bg-slate-900`).

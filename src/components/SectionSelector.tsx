@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, X, Layers, GraduationCap, DoorOpen } from 'lucide-react';
+import { Search, X, Layers, GraduationCap, DoorOpen, Clock } from 'lucide-react';
 import { SectionMeta, FacultyMeta, ActiveRoutineTarget } from '@/types/schedule';
 import { BATCH_DEFINITIONS } from '@/data/sections';
 import { parseShorthandSectionQuery, ParsedSectionQuery } from '@/lib/section-parser';
-import { searchAndRankFaculty } from '@/data/faculty';
+import { searchAndRankFaculty, getFacultyByCode } from '@/data/faculty';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { isSameEntity } from '@/lib/compare-utils';
+import { isSameEntity, getTargetLabel } from '@/lib/compare-utils';
 
 interface SectionSelectorProps {
   sections: SectionMeta[];
@@ -147,6 +147,7 @@ export function SectionSelector({
   const [searchQuery, setSearchQuery] = useState('');
   const [prevCompareProp, setPrevCompareProp] = useState(isCompareMode);
   const [internalIsComparing, setInternalIsComparing] = useState(isCompareMode);
+  const [recents, setRecents] = useState<Array<{ type: 'section' | 'faculty'; id: string; sub?: string; name?: string }>>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   if (prevCompareProp !== isCompareMode) {
@@ -156,11 +157,34 @@ export function SectionSelector({
 
   const isComparing = internalIsComparing;
 
-  const handleToggleComparing = (val?: boolean) => {
-    const next = typeof val === 'boolean' ? val : !isComparing;
-    setInternalIsComparing(next);
-    onToggleCompareMode?.(next);
+  // Load recents on modal open
+  useEffect(() => {
+    if (isOpen) {
+      try {
+        const raw = localStorage.getItem('diu_recent_routines');
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            setRecents(parsed.slice(0, 5));
+          }
+        }
+      } catch {
+        // Ignore
+      }
+    }
+  }, [isOpen]);
+
+  const saveRecent = (item: { type: 'section' | 'faculty'; id: string; sub?: string; name?: string }) => {
+    try {
+      const next = [item, ...recents.filter((r) => r.id !== item.id || r.sub !== item.sub)].slice(0, 5);
+      setRecents(next);
+      localStorage.setItem('diu_recent_routines', JSON.stringify(next));
+    } catch {
+      // Ignore
+    }
   };
+
+
 
   // Keyboard auto-focus & clear previous input whenever the modal opens
   useEffect(() => {
@@ -321,6 +345,7 @@ export function SectionSelector({
   }, [searchQuery]);
 
   const handleApplySelection = (sec: SectionMeta, sub?: '1' | '2' | 'all') => {
+    saveRecent({ type: 'section', id: sec.id, sub: sub && sub !== 'all' ? sub : undefined });
     if (isComparing) {
       if (activeTarget && isSameEntity(activeTarget, { type: 'section', section: sec })) {
         return; // Prevent comparing section with itself!
@@ -336,6 +361,7 @@ export function SectionSelector({
   };
 
   const handleApplyFaculty = (fac: FacultyMeta) => {
+    saveRecent({ type: 'faculty', id: fac.code, name: fac.name });
     if (isComparing) {
       if (activeTarget && isSameEntity(activeTarget, { type: 'faculty', faculty: fac })) {
         return; // Prevent comparing faculty with itself!
@@ -381,372 +407,371 @@ export function SectionSelector({
   if (!isOpen) return null;
 
   const content = (
-    <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-2xl space-y-3 dark:border-slate-800 dark:bg-slate-900">
-      {/* ─── Modal Header ────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200/80 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 shrink-0">
-            {activeTarget?.type === 'faculty' ? (
-              <GraduationCap className="h-4 w-4" />
-            ) : (
-              <Layers className="h-4 w-4" />
-            )}
-          </div>
-          <div className="min-w-0">
-            <h2 id="section-modal-title" className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight truncate">
-              {isComparing ? 'Compare Routine' : 'Select Routine'}
-            </h2>
-            <p className="text-xs text-slate-400 dark:text-slate-500 font-mono truncate">
-              {activeTarget ? (
-                <>
-                  Current:{' '}
-                  {activeTarget.type === 'faculty' ? (
-                    <strong className="text-slate-700 dark:text-slate-300">
-                      {activeTarget.faculty.name} ({activeTarget.faculty.code})
-                    </strong>
-                  ) : (
-                    <strong className="text-slate-700 dark:text-slate-300">
-                      {selectedSection?.id}
-                      {selectedSubSection && selectedSubSection !== 'all' && selectedSection
-                        ? ` (${selectedSection.sectionLetter}${selectedSubSection})`
-                        : ''}
-                    </strong>
-                  )}
-                </>
+    <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900 flex flex-col max-h-[calc(100dvh-1rem)] sm:max-h-[85vh] overflow-hidden">
+      {/* ─── Pinned Header Area (Search, Title, Recents) ──────────────── */}
+      <div className="p-4 sm:p-5 pb-3 border-b border-slate-100 dark:border-slate-800/80 space-y-3 shrink-0 bg-white dark:bg-slate-900 z-10">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200/80 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400 shrink-0">
+              {activeTarget?.type === 'faculty' ? (
+                <GraduationCap className="h-4 w-4" />
               ) : (
-                <span className="text-slate-400 dark:text-slate-500 italic">No routine selected</span>
+                <Layers className="h-4 w-4" />
               )}
-            </p>
+            </div>
+            <div className="min-w-0">
+              <h2 id="section-modal-title" className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight truncate">
+                {isComparing
+                  ? `Compare with ${activeTarget ? getTargetLabel(activeTarget).badge : 'Routine'}`
+                  : 'Select Routine'}
+              </h2>
+              <p className="text-xs text-slate-400 dark:text-slate-500 font-mono truncate">
+                {activeTarget ? (
+                  <>
+                    Primary:{' '}
+                    {activeTarget.type === 'faculty' ? (
+                      <strong className="text-slate-700 dark:text-slate-300">
+                        {activeTarget.faculty.name} ({activeTarget.faculty.code})
+                      </strong>
+                    ) : (
+                      <strong className="text-slate-700 dark:text-slate-300">
+                        {selectedSection?.id}
+                        {selectedSubSection && selectedSubSection !== 'all' && selectedSection
+                          ? ` (${selectedSection.sectionLetter}${selectedSubSection})`
+                          : ''}
+                      </strong>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-slate-400 dark:text-slate-500 italic">No routine selected</span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 shrink-0">
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Close selector modal"
+                className="flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 shrink-0">
-          {/* Header Compare Mode Pill Toggle */}
-          <button
-            type="button"
-            onClick={() => handleToggleComparing()}
-            className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all border cursor-pointer ${
+        {/* Search Bar */}
+        <div className="relative w-full">
+          <Search className="absolute left-3.5 top-3 sm:top-3.5 h-4 w-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
+          <input
+            ref={searchInputRef}
+            autoFocus
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            placeholder={
               isComparing
-                ? 'bg-emerald-500 text-emerald-950 border-emerald-400 dark:bg-emerald-500 dark:text-emerald-950 shadow-2xs'
-                : 'bg-slate-100 text-slate-600 hover:text-slate-900 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700 dark:hover:text-white'
-            }`}
-            title={isComparing ? 'Switch to primary selection' : 'Enable routine comparison'}
-          >
-            {isComparing ? 'Comparing' : '+ Compare'}
-          </button>
-
-          {onClose && (
+                ? `Compare with (e.g. 66o2, 67e, MSR)...`
+                : "Search (e.g. 66o2, MSR, teacher, room)..."
+            }
+            aria-label="Search section, teacher, or room"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-10 py-2.5 sm:py-3 text-xs sm:text-sm text-slate-900 placeholder:text-slate-500 placeholder:font-sans font-mono transition-all duration-150 outline-none focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/30 focus:shadow-[0_0_12px_rgba(16,185,129,0.15)] min-h-[44px] dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:placeholder:text-slate-400"
+          />
+          {searchQuery && (
             <button
               type="button"
-              onClick={onClose}
-              aria-label="Close selector modal"
-              className="flex items-center justify-center h-8 w-8 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:text-slate-500 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              onClick={() => setSearchQuery('')}
+              aria-label="Clear search query"
+              className="absolute right-2.5 top-2.5 sm:top-3 h-6 w-6 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <X className="h-4 w-4" />
+              <X className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
-      </div>
 
-      {/* ─── Search Bar (The ONLY Primary Focus) ──────────────────────── */}
-      <div className="relative w-full">
-        <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
-        <input
-          ref={searchInputRef}
-          autoFocus
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          onKeyDown={handleSearchKeyDown}
-          placeholder={
-            isComparing
-              ? "Search routine to compare (e.g. 66o2, 67e, MSR)..."
-              : "Search routine (e.g. 66o2, 67e, MSR, or teacher name)..."
-          }
-          aria-label="Search section, teacher, or room"
-          className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-10 py-2.5 text-xs sm:text-sm text-slate-900 placeholder:text-slate-500 placeholder:font-sans font-mono transition-all duration-150 outline-none focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/30 focus:shadow-[0_0_12px_rgba(16,185,129,0.15)] min-h-[44px] dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200 dark:placeholder:text-slate-400"
-        />
-        {searchQuery && (
-          <button
-            type="button"
-            onClick={() => setSearchQuery('')}
-            aria-label="Clear search query"
-            className="absolute right-2.5 top-2.5 h-6 w-6 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 dark:hover:text-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
+        {/* Recents Bar */}
+        {recents.length > 0 && !searchQuery && (
+          <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 text-xs font-mono scrollbar-none">
+            <Clock className="h-3 w-3 text-slate-400 shrink-0" />
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase shrink-0">
+              Recent:
+            </span>
+            {recents.map((r) => (
+              <button
+                key={`${r.type}-${r.id}-${r.sub || ''}`}
+                type="button"
+                onClick={() => {
+                  if (r.type === 'faculty') {
+                    const fac = getFacultyByCode(r.id) || { code: r.id, name: r.name || r.id, department: 'CSE' };
+                    handleApplyFaculty(fac);
+                  } else {
+                    const sec = sections.find((s) => s.id === r.id);
+                    if (sec) handleApplySelection(sec, (r.sub as '1' | '2' | 'all') || 'all');
+                  }
+                }}
+                className="px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-300 dark:bg-slate-950 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-400 font-bold shrink-0 transition-colors cursor-pointer text-xs"
+              >
+                {r.id}{r.sub ? ` (${r.sub})` : ''}
+              </button>
+            ))}
+          </div>
         )}
       </div>
 
-      {/* ─── Content Area: Browsing Peek vs Search Results ───────────── */}
-      {!searchQuery ? (
-        /* ─────────────────────────────────────────────────────────────────
-           VIEW A: COMPACT BATCH BROWSING (Peek with scroll reveal)
-        ─────────────────────────────────────────────────────────────────── */
-        <div>
-          <div className="relative">
-            <div className="max-h-[240px] overflow-y-auto pr-1.5 scrollbar-thin">
-              {/* Empty spacer + divider scroll away with content */}
-              <div className="pt-4">
-                <div className="relative flex items-center py-1.5 mb-2">
-                  <div className="flex-grow border-t border-slate-200/80 dark:border-slate-800/80"></div>
-                  <span className="shrink-0 px-2.5 text-xs font-mono text-slate-400 dark:text-slate-500">
-                    or browse manually
-                  </span>
-                  <div className="flex-grow border-t border-slate-200/80 dark:border-slate-800/80"></div>
+      {/* ─── Scrollable Body Content (Batches or Search Results) ─────── */}
+      <div className="p-4 sm:p-5 pt-3.5 overflow-y-auto flex-1 scrollbar-thin overscroll-contain space-y-3">
+        {!searchQuery ? (
+          /* Direct Sections Batch List with generous breathing room */
+          <div className="space-y-3 sm:space-y-3.5">
+            {BATCH_DEFINITIONS.map((b) => (
+              <div key={b.batchNumber} className="flex items-start gap-2.5 py-0.5">
+                <span className="w-12 shrink-0 text-xs font-mono font-bold text-slate-400 dark:text-slate-500 pt-1.5">
+                  B-{b.batchNumber}
+                </span>
+                <div className="flex flex-wrap gap-1.5 flex-1">
+                  {b.letters.map((letter) => {
+                    const secId = `${b.batchNumber}_${letter}`;
+                    const isSelected = activeTarget && activeTarget.type !== 'faculty' && selectedSection?.id === secId;
+                    const isCurrentActiveInCompare =
+                      isComparing &&
+                      activeTarget?.type === 'section' &&
+                      activeTarget.section.id.toLowerCase() === secId.toLowerCase();
+
+                    return (
+                      <Tooltip
+                        key={secId}
+                        content={
+                          isCurrentActiveInCompare
+                            ? `Active routine: ${secId} (Cannot compare with itself)`
+                            : isComparing
+                            ? `Compare with section ${secId}`
+                            : `Select section ${secId}`
+                        }
+                        side="top"
+                      >
+                        <button
+                          type="button"
+                          disabled={isCurrentActiveInCompare}
+                          onClick={() => {
+                            if (isCurrentActiveInCompare) return;
+                            const sec = sections.find((s) => s.id === secId);
+                            if (sec) handleApplySelection(sec);
+                          }}
+                          className={`h-8 min-w-[2.1rem] sm:h-8.5 sm:min-w-[2.25rem] px-1.5 rounded-lg text-xs font-mono font-bold transition-all text-center cursor-pointer ${
+                            isCurrentActiveInCompare
+                              ? 'bg-slate-100 text-slate-400 border border-slate-200/60 dark:bg-slate-800/40 dark:text-slate-600 dark:border-slate-800/60 opacity-40 cursor-not-allowed line-through'
+                              : isSelected
+                              ? 'bg-emerald-500 text-emerald-950 border border-emerald-400 shadow-xs dark:bg-emerald-500 dark:text-emerald-950'
+                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900 border border-slate-200/80 dark:bg-slate-800/80 dark:text-slate-300 dark:border-slate-700/60 dark:hover:bg-slate-700 dark:hover:text-white'
+                          }`}
+                          aria-label={`Section ${secId}`}
+                        >
+                          {letter}
+                        </button>
+                      </Tooltip>
+                    );
+                  })}
                 </div>
               </div>
-              <div className="space-y-2">
-              {BATCH_DEFINITIONS.map((b) => (
-                <div key={b.batchNumber} className="flex items-start gap-2 py-0.5">
-                  <span className="w-12 shrink-0 text-xs font-mono font-semibold text-slate-400 dark:text-slate-500 pt-1">
-                    B-{b.batchNumber}
+            ))}
+          </div>
+        ) : (
+          /* Active Search Results (Shorthand, Rooms, Faculty, Sections) */
+          <div className="space-y-3">
+            {/* Shorthand Quick Match (e.g. 66o2) */}
+            {shorthandMatch && (
+              <button
+                type="button"
+                onClick={() => handleApplySelection(shorthandMatch.section, shorthandMatch.parsed.subSection)}
+                className="group w-full rounded-xl border border-slate-200/90 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900/80 hover:border-emerald-500/40 hover:bg-slate-100/80 dark:hover:border-emerald-500/30 dark:hover:bg-slate-800/60 p-2.5 flex items-center justify-between cursor-pointer transition-all shadow-xs text-left"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="h-6 w-6 rounded-md bg-slate-200/90 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 flex items-center justify-center font-mono font-semibold text-xs shrink-0 group-hover:border-emerald-500/40 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                    ↵
                   </span>
-                  <div className="flex flex-wrap gap-1 flex-1">
-                    {b.letters.map((letter) => {
-                      const secId = `${b.batchNumber}_${letter}`;
-                      const isSelected = activeTarget && activeTarget.type !== 'faculty' && selectedSection?.id === secId;
-                      const isCurrentActiveInCompare =
-                        isComparing &&
-                        activeTarget?.type === 'section' &&
-                        activeTarget.section.id.toLowerCase() === secId.toLowerCase();
-
-                      return (
-                        <Tooltip
-                          key={secId}
-                          content={
-                            isCurrentActiveInCompare
-                              ? `Active routine: ${secId} (Cannot compare with itself)`
-                              : isComparing
-                              ? `Compare with section ${secId}`
-                              : `Select section ${secId}`
-                          }
-                          side="top"
-                        >
-                          <button
-                            type="button"
-                            disabled={isCurrentActiveInCompare}
-                            onClick={() => {
-                              if (isCurrentActiveInCompare) return;
-                              const sec = sections.find((s) => s.id === secId);
-                              if (sec) handleApplySelection(sec);
-                            }}
-                            className={`h-7 min-w-[1.85rem] px-1 rounded-lg text-xs font-mono font-bold transition-all text-center cursor-pointer ${
-                              isCurrentActiveInCompare
-                                ? 'bg-slate-100 text-slate-400 border border-slate-200/60 dark:bg-slate-800/40 dark:text-slate-600 dark:border-slate-800/60 opacity-40 cursor-not-allowed line-through'
-                                : isSelected
-                                ? 'bg-emerald-500 text-emerald-950 border border-emerald-400 shadow-xs dark:bg-emerald-500 dark:text-emerald-950'
-                                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900 border border-slate-200/80 dark:bg-slate-800/80 dark:text-slate-300 dark:border-slate-700/60 dark:hover:bg-slate-700 dark:hover:text-white'
-                            }`}
-                            aria-label={`Section ${secId}`}
-                          >
-                            {letter}
-                          </button>
-                        </Tooltip>
-                      );
-                    })}
+                  <div className="flex items-center gap-1.5 font-mono truncate">
+                    <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
+                      {shorthandMatch.section.id}
+                    </span>
+                    {shorthandMatch.parsed.subSection !== 'all' && (
+                      <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20">
+                        Lab {shorthandMatch.parsed.subSection}
+                      </span>
+                    )}
                   </div>
                 </div>
-              ))}
-              </div>
-            </div>
-            {/* Subtle bottom fade hint indicating scrollable content */}
-            <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-white dark:from-slate-900 to-transparent" />
-          </div>
-
-          {/* Compact Inline Lab Group Selector (Only in student browsing mode when section is chosen) */}
-          {activeTarget && activeTarget.type !== 'faculty' && selectedSection && (
-            <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
-              <span className="font-mono text-slate-400 text-xs">
-                Lab group: <strong className="text-slate-800 dark:text-slate-200 font-semibold">{selectedSection.id}</strong>
-              </span>
-              <div className="flex items-center gap-1 font-mono">
-                <button
-                  type="button"
-                  onClick={() => onSelectSubSection('all')}
-                  className={`px-2.5 py-0.5 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
-                    selectedSubSection === 'all'
-                      ? 'bg-emerald-500 text-emerald-950 font-bold dark:bg-emerald-500 dark:text-emerald-950 shadow-2xs'
-                      : 'bg-slate-100 text-slate-600 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white'
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onSelectSubSection('1')}
-                  className={`px-2.5 py-0.5 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
-                    selectedSubSection === '1'
-                      ? 'bg-emerald-500 text-emerald-950 font-bold dark:bg-emerald-500 dark:text-emerald-950 shadow-2xs'
-                      : 'bg-slate-100 text-slate-600 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white'
-                  }`}
-                >
-                  {selectedSection.sectionLetter}1
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onSelectSubSection('2')}
-                  className={`px-2.5 py-0.5 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
-                    selectedSubSection === '2'
-                      ? 'bg-emerald-500 text-emerald-950 font-bold dark:bg-emerald-500 dark:text-emerald-950 shadow-2xs'
-                      : 'bg-slate-100 text-slate-600 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white'
-                  }`}
-                >
-                  {selectedSection.sectionLetter}2
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
-        /* ─────────────────────────────────────────────────────────────────
-           VIEW B: ACTIVE SEARCH RESULTS (Sections, Faculty & Rooms)
-        ─────────────────────────────────────────────────────────────────── */
-        <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1.5 scrollbar-thin">
-          {/* Shorthand Quick Match (e.g. 66o2) */}
-          {shorthandMatch && (
-            <button
-              type="button"
-              onClick={() => handleApplySelection(shorthandMatch.section, shorthandMatch.parsed.subSection)}
-              className="group w-full rounded-xl border border-slate-200/90 bg-slate-50/90 dark:border-slate-800 dark:bg-slate-900/80 hover:border-emerald-500/40 hover:bg-slate-100/80 dark:hover:border-emerald-500/30 dark:hover:bg-slate-800/60 p-2.5 flex items-center justify-between cursor-pointer transition-all shadow-xs text-left"
-            >
-              <div className="flex items-center gap-2.5 min-w-0">
-                <span className="h-6 w-6 rounded-md bg-slate-200/90 dark:bg-slate-800 border border-slate-300/80 dark:border-slate-700/80 text-slate-700 dark:text-slate-300 flex items-center justify-center font-mono font-semibold text-xs shrink-0 group-hover:border-emerald-500/40 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                  ↵
-                </span>
-                <div className="flex items-center gap-1.5 font-mono truncate">
-                  <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-slate-100">
-                    {shorthandMatch.section.id}
+                <div className="flex items-center gap-1.5 shrink-0 pl-2">
+                  <span className="text-xs font-mono text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
+                    Press Enter to select
                   </span>
-                  {shorthandMatch.parsed.subSection !== 'all' && (
-                    <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20">
-                      Lab {shorthandMatch.parsed.subSection}
-                    </span>
-                  )}
+                  <span className="text-xs font-mono text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform">
+                    →
+                  </span>
+                </div>
+              </button>
+            )}
+
+            {/* Room Inspection Match */}
+            {roomMatch && onOpenRoomFinder && (
+              <button
+                type="button"
+                onClick={() => {
+                  onOpenRoomFinder(roomMatch);
+                  if (onClose) onClose();
+                }}
+                className="w-full rounded-xl border border-sky-400/80 bg-sky-50/80 dark:bg-sky-950/40 dark:border-sky-500/60 p-2.5 flex items-center justify-between cursor-pointer hover:bg-sky-100/80 dark:hover:bg-sky-900/40 transition-colors shadow-2xs text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <DoorOpen className="h-4 w-4 text-sky-600 dark:text-sky-400 shrink-0" />
+                  <span className="font-bold text-xs sm:text-sm text-sky-950 dark:text-sky-100 font-mono">
+                    Room {roomMatch}
+                  </span>
+                </div>
+                <span className="text-xs font-mono font-bold text-sky-700 dark:text-sky-300">
+                  View Schedule →
+                </span>
+              </button>
+            )}
+
+            {/* Faculty Results */}
+            {filteredFacultyResults.length > 0 && (
+              <div className={`space-y-1 ${isFacultyTop ? 'order-first' : 'order-last'}`}>
+                <div className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-0.5">
+                  Faculty ({filteredFacultyResults.length})
+                </div>
+                <div className="space-y-1">
+                  {filteredFacultyResults.slice(0, 10).map(({ faculty: f }) => (
+                    <button
+                      key={f.code}
+                      type="button"
+                      onClick={() => handleApplyFaculty(f)}
+                      className="w-full flex items-center justify-between p-2 sm:p-2.5 rounded-xl border border-slate-200 bg-white hover:border-emerald-400 hover:bg-emerald-50/20 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-emerald-500/50 dark:hover:bg-slate-800/40 text-left transition-colors cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="shrink-0 px-2 py-0.5 rounded-md font-mono font-bold text-xs bg-emerald-100 text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-700/60">
+                          {f.code}
+                        </span>
+                        <div className="min-w-0">
+                          <span className="font-semibold text-xs sm:text-sm text-slate-900 dark:text-white truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                            {f.name}
+                          </span>
+                          <span className="text-xs text-slate-400 font-mono truncate block">
+                            {f.designation ? `${f.designation} • ` : ''}CSE
+                          </span>
+                        </div>
+                      </div>
+                      <span className="text-xs font-mono font-medium text-slate-400 group-hover:text-emerald-600 transition-colors shrink-0 ml-2">
+                        {isComparing ? 'Compare →' : 'Select →'}
+                      </span>
+                    </button>
+                  ))}
                 </div>
               </div>
-              <div className="flex items-center gap-1.5 shrink-0 pl-2">
-                <span className="text-xs font-mono text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors">
-                  Press Enter to select
-                </span>
-                <span className="text-xs font-mono text-slate-400 dark:text-slate-500 group-hover:translate-x-0.5 transition-transform">
-                  →
-                </span>
-              </div>
-            </button>
-          )}
+            )}
 
-          {/* Room Inspection Match */}
-          {roomMatch && onOpenRoomFinder && (
+            {/* Section Results */}
+            {filteredSections.length > 0 && (
+              <div className="space-y-1">
+                <div className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-0.5">
+                  Sections ({filteredSections.length})
+                </div>
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
+                  {filteredSections.slice(0, 24).map((s) => {
+                    const isSelected = activeTarget && activeTarget.type !== 'faculty' && selectedSection?.id === s.id;
+                    return (
+                      <Tooltip key={s.id} content={`Select section ${s.id}`} side="top">
+                        <button
+                          type="button"
+                          onClick={() => handleApplySelection(s)}
+                          className={`py-2 px-1.5 rounded-xl border text-center transition-colors cursor-pointer w-full ${
+                            isSelected
+                              ? 'bg-emerald-500 text-emerald-950 border-emerald-400 shadow-xs dark:bg-emerald-500 dark:text-emerald-950 font-bold'
+                              : 'bg-white border-slate-200 text-slate-800 hover:border-emerald-400 hover:bg-emerald-50/20 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-200 dark:hover:border-emerald-500/50'
+                          }`}
+                          aria-label={`Section ${s.id}`}
+                        >
+                          <span className="text-xs sm:text-sm font-bold font-mono block">
+                            {s.id}
+                          </span>
+                        </button>
+                      </Tooltip>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Empty Search State */}
+            {filteredFacultyResults.length === 0 && filteredSections.length === 0 && !roomMatch && (
+              <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500 space-y-2">
+                <p>No sections or teachers found matching &quot;{searchQuery}&quot;.</p>
+                {searchQuery.trim().length >= 2 && !/\d/.test(searchQuery.trim()) && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleApplyFaculty({
+                        code: searchQuery.trim().toUpperCase(),
+                        name: searchQuery.trim().toUpperCase(),
+                        department: 'CSE',
+                      })
+                    }
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs cursor-pointer"
+                  >
+                    Load teacher &quot;{searchQuery.trim().toUpperCase()}&quot; schedule
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ─── Pinned Bottom Bar: Lab Group Selector ───────────────────── */}
+      {!searchQuery && activeTarget && activeTarget.type !== 'faculty' && selectedSection && (
+        <div className="p-3 px-4 sm:px-5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs shrink-0 bg-slate-50/70 dark:bg-slate-950/50">
+          <span className="font-mono text-slate-500 dark:text-slate-400 text-xs">
+            Lab group: <strong className="text-slate-800 dark:text-slate-200 font-semibold">{selectedSection.id}</strong>
+          </span>
+          <div className="flex items-center gap-1.5 font-mono">
             <button
               type="button"
-              onClick={() => {
-                onOpenRoomFinder(roomMatch);
-                if (onClose) onClose();
-              }}
-              className="w-full rounded-xl border border-sky-400/80 bg-sky-50/80 dark:bg-sky-950/40 dark:border-sky-500/60 p-2.5 flex items-center justify-between cursor-pointer hover:bg-sky-100/80 dark:hover:bg-sky-900/40 transition-colors shadow-2xs text-left"
+              onClick={() => onSelectSubSection('all')}
+              className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                selectedSubSection === 'all'
+                  ? 'bg-emerald-500 text-emerald-950 font-bold dark:bg-emerald-500 dark:text-emerald-950 shadow-2xs'
+                  : 'bg-slate-200/70 text-slate-600 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white'
+              }`}
             >
-              <div className="flex items-center gap-2">
-                <DoorOpen className="h-4 w-4 text-sky-600 dark:text-sky-400 shrink-0" />
-                <span className="font-bold text-xs sm:text-sm text-sky-950 dark:text-sky-100 font-mono">
-                  Room {roomMatch}
-                </span>
-              </div>
-              <span className="text-xs font-mono font-bold text-sky-700 dark:text-sky-300">
-                View Schedule →
-              </span>
+              All
             </button>
-          )}
-
-          {/* Faculty Results */}
-          {filteredFacultyResults.length > 0 && (
-            <div className={`space-y-1 ${isFacultyTop ? 'order-first' : 'order-last'}`}>
-              <div className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-0.5">
-                Faculty ({filteredFacultyResults.length})
-              </div>
-              <div className="space-y-1">
-                {filteredFacultyResults.slice(0, 10).map(({ faculty: f }) => (
-                  <button
-                    key={f.code}
-                    type="button"
-                    onClick={() => handleApplyFaculty(f)}
-                    className="w-full flex items-center justify-between p-2 sm:p-2.5 rounded-xl border border-slate-200 bg-white hover:border-emerald-400 hover:bg-emerald-50/20 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-emerald-500/50 dark:hover:bg-slate-800/40 text-left transition-colors cursor-pointer group"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="shrink-0 px-2 py-0.5 rounded-md font-mono font-bold text-xs bg-emerald-100 text-emerald-900 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/60 dark:border-emerald-700/60">
-                        {f.code}
-                      </span>
-                      <div className="min-w-0">
-                        <span className="font-semibold text-xs sm:text-sm text-slate-900 dark:text-white truncate block group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                          {f.name}
-                        </span>
-                        <span className="text-xs text-slate-400 font-mono truncate block">
-                          {f.designation ? `${f.designation} • ` : ''}CSE
-                        </span>
-                      </div>
-                    </div>
-                    <span className="text-xs font-mono font-medium text-slate-400 group-hover:text-emerald-600 transition-colors shrink-0 ml-2">
-                      {isComparing ? 'Compare →' : 'Select →'}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Section Results */}
-          {filteredSections.length > 0 && (
-            <div className="space-y-1">
-              <div className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-0.5">
-                Sections ({filteredSections.length})
-              </div>
-              <div className="grid grid-cols-4 sm:grid-cols-6 gap-1.5">
-                {filteredSections.slice(0, 24).map((s) => {
-                  const isSelected = activeTarget && activeTarget.type !== 'faculty' && selectedSection?.id === s.id;
-                  return (
-                    <Tooltip key={s.id} content={`Select section ${s.id}`} side="top">
-                      <button
-                        type="button"
-                        onClick={() => handleApplySelection(s)}
-                        className={`py-2 px-1.5 rounded-xl border text-center transition-colors cursor-pointer w-full ${
-                          isSelected
-                            ? 'bg-emerald-500 text-emerald-950 border-emerald-400 shadow-xs dark:bg-emerald-500 dark:text-emerald-950 font-bold'
-                            : 'bg-white border-slate-200 text-slate-800 hover:border-emerald-400 hover:bg-emerald-50/20 dark:bg-slate-950 dark:border-slate-800 dark:text-slate-200 dark:hover:border-emerald-500/50'
-                        }`}
-                        aria-label={`Section ${s.id}`}
-                      >
-                        <span className="text-xs sm:text-sm font-bold font-mono block">
-                          {s.id}
-                        </span>
-                      </button>
-                    </Tooltip>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Empty Search State */}
-          {filteredFacultyResults.length === 0 && filteredSections.length === 0 && !roomMatch && (
-            <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500 space-y-2">
-              <p>No sections or teachers found matching &quot;{searchQuery}&quot;.</p>
-              {searchQuery.trim().length >= 2 && !/\d/.test(searchQuery.trim()) && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleApplyFaculty({
-                      code: searchQuery.trim().toUpperCase(),
-                      name: searchQuery.trim().toUpperCase(),
-                      department: 'CSE',
-                    })
-                  }
-                  className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs cursor-pointer"
-                >
-                  Load teacher &quot;{searchQuery.trim().toUpperCase()}&quot; schedule
-                </button>
-              )}
-            </div>
-          )}
+            <button
+              type="button"
+              onClick={() => onSelectSubSection('1')}
+              className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                selectedSubSection === '1'
+                  ? 'bg-emerald-500 text-emerald-950 font-bold dark:bg-emerald-500 dark:text-emerald-950 shadow-2xs'
+                  : 'bg-slate-200/70 text-slate-600 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              {selectedSection.sectionLetter}1
+            </button>
+            <button
+              type="button"
+              onClick={() => onSelectSubSection('2')}
+              className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-colors cursor-pointer ${
+                selectedSubSection === '2'
+                  ? 'bg-emerald-500 text-emerald-950 font-bold dark:bg-emerald-500 dark:text-emerald-950 shadow-2xs'
+                  : 'bg-slate-200/70 text-slate-600 hover:text-slate-900 dark:bg-slate-800 dark:text-slate-400 dark:hover:text-white'
+              }`}
+            >
+              {selectedSection.sectionLetter}2
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -755,7 +780,7 @@ export function SectionSelector({
   if (onClose) {
     return (
       <div
-        className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm p-4 overflow-y-auto print:hidden"
+        className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm p-2 sm:p-4 pt-2 sm:pt-6 overflow-y-auto overscroll-contain print:hidden"
         onClick={onClose}
         role="dialog"
         aria-modal="true"

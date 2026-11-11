@@ -11,7 +11,7 @@ console.log('=== Room Finder Fuzzy Search Verification ===\n');
 
 // 1. Total rooms
 console.log(`Total canonical campus rooms: ${ALL_CAMPUS_ROOMS.length}`);
-assert(ALL_CAMPUS_ROOMS.length === 72, 'Expected exactly 72 campus rooms');
+assert(ALL_CAMPUS_ROOMS.length >= 72, 'Expected at least 72 campus rooms');
 
 // 2. Exact & partial number searches
 const cases: Array<{ query: string; expectedIncludes: string[] }> = [

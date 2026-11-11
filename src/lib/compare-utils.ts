@@ -43,7 +43,7 @@ export function getTargetLabel(target: ActiveRoutineTarget | null | undefined): 
     };
   }
 
-  const subLabel = target.subSection !== 'all' ? ` • Lab ${target.subSection}` : '';
+  const subLabel = target.subSection !== 'all' ? ` • ${target.section.sectionLetter}${target.subSection}` : '';
   return {
     short: `${target.section.id}${subLabel}`,
     badge: target.section.id,

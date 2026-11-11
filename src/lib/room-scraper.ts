@@ -1,5 +1,5 @@
 import { UNIVERSITY_TIME_SLOTS, type UniversityTimeSlot, timeToMinutes } from './time-utils';
-import { RoutineClass } from '@/types/schedule';
+import { RoutineClass, DayOfWeek } from '@/types/schedule';
 import {
   BuildingZone,
   CategorizedRoom,
@@ -9,6 +9,7 @@ import {
   ALL_CAMPUS_ROOM_NAMES,
 } from '@/data/rooms';
 import officialRoutine from '@/data/official-routine.json';
+import { getAllEventOverrides } from './event-overrides';
 
 export type { BuildingZone, CategorizedRoom };
 export { categorizeRoom, getQueryRoomCode, resolveCanonicalRoomName };
@@ -93,6 +94,35 @@ export async function fetchFreeRooms(
   slot: UniversityTimeSlot
 ): Promise<Record<string, string[]>> {
   const allClasses = getAllRoutineClasses();
+  let overridesList: RoutineClass[] = [];
+  try {
+    const rawOverrides = await getAllEventOverrides();
+    overridesList = rawOverrides
+      .filter(
+        (ev): ev is typeof ev & { room: string; dayOfWeek: DayOfWeek; startTime: string; endTime: string } =>
+          ev.status !== 'CANCELLED' &&
+          ev.type !== 'cancelled' &&
+          Boolean(ev.room && ev.dayOfWeek && ev.startTime && ev.endTime)
+      )
+      .map((ev) => ({
+        id: ev.id,
+        courseCode: ev.courseCode,
+        courseTitle: ev.title || ev.courseCode,
+        sectionId: ev.sectionId,
+        batch: ev.sectionId.split('_')[0] || '66',
+        section: ev.sectionId.split('_')[1] || 'O',
+        type: (ev.type === 'makeup' && ev.title?.toLowerCase().includes('lab')) ? 'Lab' : 'Theory',
+        dayOfWeek: ev.dayOfWeek,
+        startTime: ev.startTime,
+        endTime: ev.endTime,
+        room: ev.room,
+        teacherCode: ev.description?.split(' ')[0] || 'TBA',
+      }));
+  } catch {
+    // Ignore override errors
+  }
+
+  const combinedClasses = [...allClasses, ...overridesList];
 
   // Track occupied canonical rooms per day for this slot
   const occupiedByDay: Record<string, Set<string>> = {};
@@ -100,7 +130,7 @@ export async function fetchFreeRooms(
     occupiedByDay[d] = new Set<string>();
   }
 
-  for (const c of allClasses) {
+  for (const c of combinedClasses) {
     if (!c.dayOfWeek || !c.room) continue;
     const dayCap = c.dayOfWeek.charAt(0).toUpperCase() + c.dayOfWeek.slice(1).toLowerCase();
     if (!occupiedByDay[dayCap]) continue;
@@ -135,8 +165,37 @@ export async function fetchRoomDaySchedule(
   const canonicalTarget = resolveCanonicalRoomName(roomNumber);
   const dayUpper = day.toUpperCase();
   const allClasses = getAllRoutineClasses();
+  let overridesList: RoutineClass[] = [];
+  try {
+    const rawOverrides = await getAllEventOverrides();
+    overridesList = rawOverrides
+      .filter(
+        (ev): ev is typeof ev & { room: string; dayOfWeek: DayOfWeek; startTime: string; endTime: string } =>
+          ev.status !== 'CANCELLED' &&
+          ev.type !== 'cancelled' &&
+          Boolean(ev.room && ev.dayOfWeek && ev.startTime && ev.endTime)
+      )
+      .map((ev) => ({
+        id: ev.id,
+        courseCode: ev.courseCode,
+        courseTitle: ev.title || ev.courseCode,
+        sectionId: ev.sectionId,
+        batch: ev.sectionId.split('_')[0] || '66',
+        section: ev.sectionId.split('_')[1] || 'O',
+        type: (ev.type === 'makeup' && ev.title?.toLowerCase().includes('lab')) ? 'Lab' : 'Theory',
+        dayOfWeek: ev.dayOfWeek,
+        startTime: ev.startTime,
+        endTime: ev.endTime,
+        room: ev.room,
+        teacherCode: ev.description?.split(' ')[0] || 'TBA',
+      }));
+  } catch {
+    // Ignore override errors
+  }
 
-  const roomClasses = allClasses.filter((c) => {
+  const combinedClasses = [...allClasses, ...overridesList];
+
+  const roomClasses = combinedClasses.filter((c) => {
     if (c.dayOfWeek?.toUpperCase() !== dayUpper) return false;
     return resolveCanonicalRoomName(c.room) === canonicalTarget;
   });

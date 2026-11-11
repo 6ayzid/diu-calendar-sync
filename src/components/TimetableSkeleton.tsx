@@ -4,11 +4,18 @@ import React from 'react';
 
 interface TimetableSkeletonProps {
   viewMode?: 'matrix' | 'agenda';
+  isLoading?: boolean;
 }
 
-export function TimetableSkeleton({ viewMode = 'matrix' }: TimetableSkeletonProps) {
+export function TimetableSkeleton({ viewMode = 'matrix', isLoading = false }: TimetableSkeletonProps) {
   return (
-    <div className="w-full space-y-3 sm:space-y-4 animate-pulse select-none" aria-busy="true" aria-label="Loading timetable schedule">
+    <div
+      className={`w-full space-y-3 sm:space-y-4 select-none ${
+        isLoading ? 'animate-skeleton-fast' : ''
+      }`}
+      aria-busy={isLoading ? 'true' : 'false'}
+      aria-label={isLoading ? 'Loading timetable schedule' : 'Timetable placeholder'}
+    >
       {/* Skeleton Top Header Bar */}
       <div className="flex items-center justify-between gap-2.5 print:hidden">
         <div className="flex items-center gap-2">

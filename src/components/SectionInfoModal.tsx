@@ -7,7 +7,6 @@ import {
   Check,
   ArrowLeftRight,
   CalendarDays,
-  Plus,
   ChevronRight,
   User,
 } from 'lucide-react';
@@ -368,8 +367,8 @@ export function SectionInfoModal({
           )}
         </div>
 
-        {/* Bottom Action Row: Exactly 3 balanced buttons (No double plus!) */}
-        <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-3 gap-2 shrink-0">
+        {/* Bottom Action Row: Compare and View Routine */}
+        <div className="pt-2.5 border-t border-slate-100 dark:border-slate-800/80 grid grid-cols-2 gap-2.5 shrink-0">
           {/* 1. Compare */}
           {(() => {
             const isCurrentActive =
@@ -389,10 +388,10 @@ export function SectionInfoModal({
                     onOpenComparePicker?.();
                   }}
                   title={`Compare ${section.id} with another routine`}
-                  className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 rounded-xl text-xs font-mono font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer shadow-xs truncate"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-mono font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer shadow-xs"
                 >
                   <ArrowLeftRight className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">Compare...</span>
+                  <span>Compare...</span>
                 </button>
               );
             }
@@ -406,10 +405,10 @@ export function SectionInfoModal({
                     onOpenComparePicker?.();
                   }}
                   title="Already comparing with this section. Click to change compare target."
-                  className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 rounded-xl text-xs font-mono font-bold bg-emerald-700/80 hover:bg-emerald-600 text-white transition-colors cursor-pointer shadow-xs truncate"
+                  className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-mono font-bold bg-emerald-700/80 hover:bg-emerald-600 text-white transition-colors cursor-pointer shadow-xs"
                 >
                   <ArrowLeftRight className="h-3.5 w-3.5 shrink-0" />
-                  <span className="truncate">Comparing</span>
+                  <span>Comparing</span>
                 </button>
               );
             }
@@ -422,29 +421,15 @@ export function SectionInfoModal({
                   onCompareWithSection?.(section);
                 }}
                 title={`Compare ${section.id} with current routine`}
-                className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 rounded-xl text-xs font-mono font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer shadow-xs truncate"
+                className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-mono font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors cursor-pointer shadow-xs"
               >
                 <ArrowLeftRight className="h-3.5 w-3.5 shrink-0" />
-                <span className="truncate">Compare</span>
+                <span>Compare</span>
               </button>
             );
           })()}
 
-          {/* 2. Add Compare: Single Plus icon + Add text */}
-          <button
-            type="button"
-            onClick={() => {
-              onClose();
-              onOpenComparePicker?.();
-            }}
-            title="Compare with another section or teacher routine"
-            className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 rounded-xl text-xs font-mono font-bold border border-slate-200 dark:border-slate-700 bg-slate-100 hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 transition-colors cursor-pointer shadow-xs truncate"
-          >
-            <Plus className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-            <span className="truncate">Add</span>
-          </button>
-
-          {/* 3. View */}
+          {/* 2. View Routine */}
           <button
             type="button"
             onClick={() => {
@@ -452,10 +437,10 @@ export function SectionInfoModal({
               onNavigateToSection?.(section);
             }}
             title={`View full routine for ${section.id}`}
-            className="inline-flex items-center justify-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-2 rounded-xl text-xs font-mono font-bold border border-slate-200 dark:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 transition-colors cursor-pointer shadow-xs truncate"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-mono font-bold border border-slate-200 dark:border-slate-700 bg-white hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200 transition-colors cursor-pointer shadow-xs"
           >
-            <CalendarDays className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate">View</span>
+            <CalendarDays className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400 shrink-0" />
+            <span>View Routine</span>
           </button>
         </div>
       </div>

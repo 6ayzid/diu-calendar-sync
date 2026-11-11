@@ -155,6 +155,17 @@ export const ALL_CAMPUS_ROOM_NAMES = [
 ] as const;
 
 /**
+ * Normalizes a room name by stripping lab descriptors and prefixes while preserving sub-room identifiers like (A), (B).
+ */
+export function stripLabSuffix(str: string): string {
+  return str
+    .replace(/\s*\((?:[^)]*(?:Lab|LAB|E\.C\.|COM LAB|COMPUTER LAB|Physics Lab)[^)]*)\)/gi, '')
+    .replace(/^(?:IOT\s*LAB\s*[-–]\s*|EMBED\s*LAB\s*[-–]\s*)/i, '')
+    .trim()
+    .toUpperCase();
+}
+
+/**
  * Resolves any raw room name, query string, or variant to its authoritative canonical room name in ALL_CAMPUS_ROOM_NAMES.
  */
 export function resolveCanonicalRoomName(rawName: string): string {
@@ -169,18 +180,10 @@ export function resolveCanonicalRoomName(rawName: string): string {
   }
 
   // 2. Strip lab descriptors and prefixes for normalized comparison
-  const cleanS = s
-    .replace(/\s*\([^)]*\)/g, '')
-    .replace(/^(?:IOT\s*LAB\s*[-–]\s*|EMBED\s*LAB\s*[-–]\s*)/i, '')
-    .trim()
-    .toUpperCase();
+  const cleanS = stripLabSuffix(s);
 
   for (const r of ALL_CAMPUS_ROOM_NAMES) {
-    const cleanR = r
-      .replace(/\s*\([^)]*\)/g, '')
-      .replace(/^(?:IOT\s*LAB\s*[-–]\s*|EMBED\s*LAB\s*[-–]\s*)/i, '')
-      .trim()
-      .toUpperCase();
+    const cleanR = stripLabSuffix(r);
     if (cleanS === cleanR) {
       return r;
     }
@@ -190,11 +193,7 @@ export function resolveCanonicalRoomName(rawName: string): string {
   if (/^\d{3}$/.test(cleanS)) {
     const candidate = `KT-${cleanS}`;
     for (const r of ALL_CAMPUS_ROOM_NAMES) {
-      const cleanR = r
-        .replace(/\s*\([^)]*\)/g, '')
-        .replace(/^(?:IOT\s*LAB\s*[-–]\s*|EMBED\s*LAB\s*[-–]\s*)/i, '')
-        .trim()
-        .toUpperCase();
+      const cleanR = stripLabSuffix(r);
       if (candidate === cleanR) {
         return r;
       }
@@ -211,7 +210,7 @@ export const ALL_CAMPUS_ROOMS: CampusRoom[] = ALL_CAMPUS_ROOM_NAMES.map((name) =
   const cat = categorizeRoom(name);
   const isLab = name.toLowerCase().includes('lab');
   const labMatch = name.match(/\(([^)]+Lab|COM LAB|E\.C\.[^)]*)\)/i);
-  const cleanName = name.replace(/\s*\([^)]*\)/g, '').trim();
+  const cleanName = stripLabSuffix(name);
 
   return {
     id: name,

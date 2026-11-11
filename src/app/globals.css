@@ -374,9 +374,25 @@ html.dark .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   will-change: opacity;
 }
 
+/* Snappy skeleton loading pulse at network loading rate (0.85s) */
+@keyframes skeletonPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.animate-skeleton-fast {
+  animation: skeletonPulse 0.85s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  will-change: opacity;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-faculty-grow,
-  .animate-faculty-shrink {
+  .animate-faculty-shrink,
+  .animate-skeleton-fast {
     animation: none !important;
     transform: none !important;
   }

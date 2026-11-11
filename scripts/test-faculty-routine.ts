@@ -83,15 +83,15 @@ async function runTests() {
   const icsText = serializeCalendarToIcs(cal);
 
   // Verify calendar title
-  if (!icsText.includes('CSE Faculty Routine')) {
-    throw new Error('Missing "CSE Faculty Routine" in calendar name');
+  if (!icsText.includes('DIU Routine — MSR')) {
+    throw new Error('Missing "DIU Routine — MSR" in calendar name');
   }
 
   // Verify RFC 5545 essentials
   const requiredSubstrings = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'X-WR-CALNAME:CSE Faculty Routine',
+    'X-WR-CALNAME:DIU Routine — MSR',
     'X-WR-TIMEZONE:Asia/Dhaka',
     'BEGIN:VTIMEZONE',
     'TZID:Asia/Dhaka',

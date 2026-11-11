@@ -6,15 +6,12 @@ import {
   CalendarDays,
   Calendar,
   BookOpen,
-  Plus,
-  X,
   DoorOpen,
-  Search,
 } from 'lucide-react';
 import { SectionMeta, ActiveRoutineTarget, CompareState } from '@/types/schedule';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { getTargetLabel } from '@/lib/compare-utils';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { RoutineSwitcher } from '@/components/RoutineSwitcher';
 
 interface NavbarProps {
   selectedSection?: SectionMeta | null;
@@ -24,6 +21,7 @@ interface NavbarProps {
   hasSavedPreference?: boolean;
   onOpenSectionPicker: () => void;
   onOpenComparePicker: () => void;
+  onSwapPriority?: () => void;
   onRemoveCompare?: () => void;
   onOpenSyncModal: () => void;
   onOpenRoomFinder?: () => void;
@@ -37,129 +35,40 @@ export function Navbar({
   hasSavedPreference = true,
   onOpenSectionPicker,
   onOpenComparePicker,
+  onSwapPriority,
   onRemoveCompare,
   onOpenSyncModal,
   onOpenRoomFinder,
 }: NavbarProps) {
-  const isFaculty = activeTarget?.type === 'faculty';
-  const faculty = isFaculty ? activeTarget.faculty : null;
-
   const isComparing = Boolean(compareState?.active && compareState.secondaryTarget);
-  const primaryLabel = isComparing && compareState ? getTargetLabel(compareState.primaryTarget) : null;
-  const secondaryLabel = isComparing && compareState ? getTargetLabel(compareState.secondaryTarget) : null;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white/95 dark:border-slate-800 dark:bg-slate-950/95 backdrop-blur-md transition-colors print:hidden">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-3 py-2 sm:px-6 gap-2">
+      <div className="mx-auto flex max-w-7xl 2xl:max-w-[1600px] items-center justify-between px-3 py-2 sm:px-6 gap-2 sm:gap-4">
         {/* Left: Brand Identity */}
-        <Link href="/" className="flex items-center gap-2 sm:gap-2.5 min-w-0 hover:opacity-90 transition-opacity">
+        <Link href="/" className="flex items-center gap-2 sm:gap-2.5 min-w-0 hover:opacity-90 transition-opacity shrink-0">
           <div className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-emerald-50 text-emerald-600 dark:border-slate-800 dark:bg-slate-900 dark:text-emerald-400">
             <CalendarDays className="h-4 w-4" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 hidden xs:block">
             <span className="font-bold tracking-tight text-slate-900 dark:text-white text-xs sm:text-base truncate block">
               DIU Routine
             </span>
           </div>
         </Link>
 
-        {/* Center: Section / Faculty Selector HUD Pill + Compare Plus Button */}
-        <div className="hidden sm:flex items-center gap-1.5">
-          {isComparing && primaryLabel && secondaryLabel ? (
-            <div className="flex items-center gap-1.5 rounded-xl border border-emerald-300/80 bg-emerald-50/50 dark:border-emerald-800 dark:bg-slate-900/80 p-1 shadow-2xs font-mono text-xs">
-              <button
-                type="button"
-                onClick={onOpenSectionPicker}
-                title={`Primary: ${primaryLabel.full} (tap to change)`}
-                className="flex items-center gap-1 px-2 py-1 rounded-lg font-bold bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-              >
-                <span>{primaryLabel.badge}</span>
-              </button>
-              <span className="text-[10px] font-sans font-bold text-slate-400 uppercase">vs</span>
-              <div className="flex items-center gap-1 px-2 py-1 rounded-lg font-bold bg-emerald-100 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-700/80 shadow-2xs">
-                <span>{secondaryLabel.badge}</span>
-                {onRemoveCompare && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRemoveCompare();
-                    }}
-                    title="Remove compared routine"
-                    aria-label="Remove compared routine"
-                    className="p-0.5 rounded text-emerald-700 hover:text-emerald-950 dark:text-emerald-300 dark:hover:text-white transition-colors cursor-pointer"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-            </div>
-          ) : (
-            <>
-              {hasSavedPreference ? (
-                <button
-                  type="button"
-                  onClick={onOpenSectionPicker}
-                  aria-label={
-                    isFaculty && faculty
-                      ? `Change routine, currently ${faculty.name} (${faculty.code})`
-                      : `Change section, currently ${selectedSection?.id || 'none'}`
-                  }
-                  title="Change routine"
-                  className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200/80 hover:border-emerald-400/60 dark:border-slate-800 dark:bg-slate-900/70 dark:hover:bg-slate-800/80 dark:hover:border-emerald-500/50 px-2.5 sm:px-3 py-1.5 transition-all cursor-pointer min-h-[40px] group shadow-2xs"
-                >
-                  <Search className="h-3.5 w-3.5 text-slate-400 group-hover:text-emerald-600 dark:text-slate-500 dark:group-hover:text-emerald-400 shrink-0 transition-colors" />
-
-                  {isFaculty && faculty ? (
-                    <div className="flex items-center gap-1.5 font-mono text-xs">
-                      <strong className="text-emerald-700 dark:text-emerald-300 font-bold bg-white dark:bg-slate-800 border border-emerald-300/80 dark:border-emerald-600/50 px-2 py-0.5 rounded shadow-2xs">
-                        {faculty.code}
-                      </strong>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1.5 font-mono text-xs">
-                      <strong className="text-slate-900 dark:text-white font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-2 py-0.5 rounded shadow-2xs">
-                        {selectedSection?.id || '—'}
-                      </strong>
-                      {selectedSubSection !== 'all' && (
-                        <span className="text-emerald-600 dark:text-emerald-400 font-bold text-[11px]">
-                          • {selectedSection?.sectionLetter}{selectedSubSection}
-                        </span>
-                      )}
-                    </div>
-                  )}
-
-                  <span className="text-[10px] font-sans font-medium text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-200 transition-colors hidden sm:inline-flex items-center px-1.5 py-0.5 rounded bg-slate-200/70 dark:bg-slate-800/80">
-                    Change
-                  </span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={onOpenSectionPicker}
-                  aria-label="Search section or teacher"
-                  className="flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100/80 dark:border-emerald-700/60 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 px-3 py-1.5 transition-colors cursor-pointer min-h-[40px] text-emerald-800 dark:text-emerald-300 font-semibold text-xs group shadow-2xs"
-                >
-                  <Search className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span>Search</span>
-                </button>
-              )}
-
-              {hasSavedPreference && (
-                <Tooltip content="Compare with another section or teacher routine" side="bottom">
-                  <button
-                    type="button"
-                    onClick={onOpenComparePicker}
-                    aria-label="Compare with another section or teacher routine"
-                    className="flex items-center justify-center h-[40px] px-2.5 rounded-xl border border-slate-200 bg-slate-100 hover:bg-slate-200/80 hover:border-emerald-400/60 text-slate-600 dark:border-slate-800 dark:bg-slate-900/70 dark:hover:bg-slate-800/80 dark:text-slate-300 transition-colors cursor-pointer gap-1 text-xs font-mono font-bold"
-                  >
-                    <Plus className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                    <span className="hidden lg:inline text-[11px]">Compare</span>
-                  </button>
-                </Tooltip>
-              )}
-            </>
-          )}
+        {/* Center: RoutineSwitcher (Unified Search & Compare Controller) */}
+        <div className="hidden sm:flex items-center justify-center flex-1 max-w-xl mx-2 lg:mx-6">
+          <RoutineSwitcher
+            primaryTarget={activeTarget || null}
+            secondaryTarget={isComparing ? compareState?.secondaryTarget || null : null}
+            isComparing={isComparing}
+            onOpenPrimaryPicker={onOpenSectionPicker}
+            onOpenComparePicker={onOpenComparePicker}
+            onSwap={onSwapPriority || (() => {})}
+            onExitCompare={onRemoveCompare || (() => {})}
+            variant="navbar"
+          />
         </div>
 
         {/* Right: Rooms, Docs Link, Theme Toggle & 1-Tap Sync */}

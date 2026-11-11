@@ -1950,8 +1950,8 @@ export function TimetableGrid({
                       </div>
                     )}
 
-                    {/* Shared Free Time Highlights (Option 1: Solid green with zero text, hover tooltip for details) */}
-                    {compareState?.active && compareState.showFreeTimeHighlight && (sharedFreeSlotsMap?.[d.dayKey as DayOfWeek] || []).map((fs, fIdx) => {
+                    {/* Shared Free Time Highlights - only rendered when there are active classes on this day */}
+                    {compareState?.active && compareState.showFreeTimeHighlight && positionedEvents.length > 0 && !d.isFriday && !getDepartmentHoliday(d.isoDate) && (sharedFreeSlotsMap?.[d.dayKey as DayOfWeek] || []).map((fs, fIdx) => {
                       const { topPercent, heightPercent } = getTimelinePercentForInterval(fs.startMinutes, fs.endMinutes);
                       const durationHours = Math.round((fs.durationMinutes / 60) * 10) / 10;
 
@@ -1959,7 +1959,7 @@ export function TimetableGrid({
                         <div
                           key={`free-${d.globalDayIndex}-${fIdx}`}
                           title={`Shared Free Time: ${fs.formattedRange} (${durationHours}h)`}
-                          className="absolute rounded-lg border border-emerald-700/20 bg-emerald-600 dark:border-emerald-500/30 dark:bg-emerald-600 z-0 flex items-center justify-center p-1 pointer-events-auto cursor-default transition-all shadow-xs"
+                          className="absolute rounded-lg border border-dashed border-emerald-500/40 bg-emerald-500/10 dark:bg-emerald-400/15 z-0 flex items-center justify-center p-1 pointer-events-auto cursor-default transition-all shadow-2xs"
                           style={{
                             top: `calc(${topPercent}% + 2px)`,
                             height: `calc(${heightPercent}% - 4px)`,
@@ -1967,8 +1967,8 @@ export function TimetableGrid({
                             right: '2px',
                           }}
                         >
-                          <span className="font-mono font-bold text-[9.5px] sm:text-[10px] text-white tracking-tight select-none">
-                            {durationHours}h
+                          <span className="font-mono font-bold text-[9px] sm:text-[9.5px] text-emerald-800 dark:text-emerald-300 tracking-tight select-none opacity-80">
+                            {durationHours}h free
                           </span>
                         </div>
                       );
@@ -2451,21 +2451,21 @@ export function TimetableGrid({
 
                       if (isComparing) {
                         if (pe.isPrimaryTarget) {
-                          // Entity 1: Clean washed out slate card with solid border (dark in dark mode!)
+                          // Primary Target: Signature solid brand emerald green
                           cardTheme =
-                            'bg-slate-200 hover:bg-slate-300 text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 shadow-2xs';
+                            'bg-emerald-600 hover:bg-emerald-500 text-white dark:bg-emerald-600 dark:hover:bg-emerald-500 dark:text-white border border-emerald-700/30 dark:border-emerald-500/40 shadow-xs';
                           buttonBadgeClass =
-                            'bg-black/10 hover:bg-black/15 text-slate-800 border-black/15 dark:bg-white/10 dark:hover:bg-white/20 dark:text-slate-200 dark:border-white/20 shadow-2xs';
+                            'bg-white/15 hover:bg-white/25 text-white/95 border-white/20 hover:border-white/30 backdrop-blur-xs';
                           subsectionBadgeClass =
-                            'bg-black/10 dark:bg-black/35 text-current border-black/15 dark:border-white/15';
+                            'bg-black/25 text-white border-white/20 dark:bg-black/30 dark:text-white dark:border-white/20';
                         } else {
-                          // Entity 2: Clean washed out light green card with solid border (dark muted green in dark mode!)
+                          // Secondary Target: Distinct contrasting tonal emerald with solid border
                           cardTheme =
-                            'bg-emerald-100 hover:bg-emerald-200 text-emerald-950 dark:bg-emerald-950 dark:hover:bg-emerald-900 dark:text-emerald-200 border border-emerald-400/70 dark:border-emerald-700/80 shadow-2xs';
+                            'bg-emerald-50 hover:bg-emerald-100 text-emerald-950 dark:bg-slate-900 dark:hover:bg-slate-800 dark:text-emerald-300 border-2 border-emerald-500/80 dark:border-emerald-400/80 shadow-xs';
                           buttonBadgeClass =
                             'bg-emerald-800/15 hover:bg-emerald-800/25 text-emerald-950 border-emerald-800/20 dark:bg-emerald-300/15 dark:hover:bg-emerald-300/25 dark:text-emerald-200 dark:border-emerald-300/25 shadow-2xs';
                           subsectionBadgeClass =
-                            'bg-black/10 dark:bg-black/35 text-current border-black/15 dark:border-white/15';
+                            'bg-emerald-900/15 dark:bg-emerald-400/20 text-current border-emerald-700/30 dark:border-emerald-500/30';
                         }
                       }
 
