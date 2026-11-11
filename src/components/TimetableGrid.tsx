@@ -17,6 +17,8 @@ import {
   User,
   ArrowUpRight,
   GraduationCap,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import { getFacultyByCode, registerDynamicFaculty } from '@/data/faculty';
 import { getCourseShortTitle, getLabSubsectionBadge, parseRoomParts, extractSubSectionId } from '@/lib/course-utils';
@@ -256,34 +258,33 @@ export function TimetableGrid({
     zoomDaysRef.current = zoomDays;
   }, [zoomDays]);
 
-  // Compression limit: allow viewing full 7 days (7 grids) on both mobile and desktop/tablet, just like Google Calendar
+  // Compression limit:
+  // On mobile (< 640px), limit to 7 days (1 week) so columns stay readable on phones.
+  // On tablet / desktop (>= 640px), dynamically compute maximum readable days based on container width:
+  // min readable column is ~70px.
+  // E.g. at 1200px width: (1200 - 68) / 70 ≈ 16 days (fits 14 days / 2 full weeks).
+  // At 1600px width (2K/4K): (1600 - 68) / 70 ≈ 21 days (3 full weeks).
   const getCompressionLimit = useCallback(() => {
-    return 7.0;
+    if (typeof window === 'undefined') return 7.0;
+    if (window.innerWidth < 640) return 7.0;
+    const el = matrixScrollRef.current;
+    const containerWidth = el?.clientWidth || window.innerWidth;
+    const timeWidth = window.innerWidth < 640 ? 38 : 68;
+    const dayAreaWidth = Math.max(1, containerWidth - timeWidth);
+    const maxDays = Math.floor(dayAreaWidth / 70);
+    return Math.max(7.0, Math.min(21.0, maxDays));
   }, []);
 
   const minZoomLimit = 1.0;
 
-  // Cached time column width to avoid expensive layout thrashing (querySelector + offsetWidth) during 60/120fps scrolling
-  const timeColWidthRef = useRef<number>(typeof window !== 'undefined' && window.innerWidth < 640 ? 38 : 68);
-
   const measureTimeColWidth = useCallback(() => {
     if (typeof window === 'undefined') return 68;
-    if (matrixScrollRef.current) {
-      const timeHeader = matrixScrollRef.current.querySelector<HTMLElement>(
-        'div[style*="grid-column: 1"], div[style*="gridColumn: 1"], div[style*="grid-column:1"]'
-      );
-      if (timeHeader && timeHeader.offsetWidth > 0) {
-        timeColWidthRef.current = timeHeader.offsetWidth;
-        return timeHeader.offsetWidth;
-      }
-    }
-    const val = window.innerWidth < 640 ? 38 : 68;
-    timeColWidthRef.current = val;
-    return val;
+    return window.innerWidth < 640 ? 38 : 68;
   }, []);
 
   const getTimeColWidth = useCallback(() => {
-    return timeColWidthRef.current;
+    if (typeof window === 'undefined') return 68;
+    return window.innerWidth < 640 ? 38 : 68;
   }, []);
 
   const ensureCardVisible = useCallback(
@@ -495,6 +496,31 @@ export function TimetableGrid({
     springRafRef.current = requestAnimationFrame(step);
   }, []);
 
+  // Step-wise Zoom Out (e.g., 1 -> 3 -> 5 -> 7 -> 10 -> 14 -> limit)
+  const handleZoomOut = useCallback(() => {
+    const limit = getCompressionLimit();
+    const current = zoomDaysRef.current;
+    if (current >= limit) return;
+    const steps = [1, 3, 5, 7, 10, 14, limit].filter((s) => s <= limit);
+    const nextStep = steps.find((s) => s > current + 0.25) ?? limit;
+    triggerSpringBounce(Math.min(limit, nextStep));
+  }, [getCompressionLimit, triggerSpringBounce]);
+
+  // Step-wise Zoom In (e.g., limit -> 14 -> 10 -> 7 -> 5 -> 3 -> 1)
+  const handleZoomIn = useCallback(() => {
+    const limit = getCompressionLimit();
+    const current = zoomDaysRef.current;
+    if (current <= minZoomLimit) return;
+    const steps = [minZoomLimit, 3, 5, 7, 10, 14, limit].filter((s) => s <= limit).reverse();
+    const prevStep = steps.find((s) => s < current - 0.25) ?? minZoomLimit;
+    triggerSpringBounce(Math.max(minZoomLimit, prevStep));
+  }, [getCompressionLimit, triggerSpringBounce, minZoomLimit]);
+
+  // Reset to default 1-week (7 days) view
+  const handleZoomReset = useCallback(() => {
+    triggerSpringBounce(7.0);
+  }, [triggerSpringBounce]);
+
   // Clean up spring animation on unmount
   useEffect(() => {
     return () => {
@@ -673,7 +699,7 @@ export function TimetableGrid({
 
         const delta = (e.deltaY / 100) * 0.4;
         const limit = getCompressionLimit();
-        const next = Math.max(0.8, Math.min(7.2, zoomDaysRef.current + delta));
+        const next = Math.max(0.8, Math.min(limit + 0.4, zoomDaysRef.current + delta));
         setZoomDays(Math.round(next * 100) / 100);
 
         if (wheelTimer) clearTimeout(wheelTimer);
@@ -750,7 +776,7 @@ export function TimetableGrid({
         if (rawZoom > limit) {
           const over = rawZoom - limit;
           nextZoom = limit + over * 0.45;
-          nextZoom = Math.min(7.2, nextZoom);
+          nextZoom = Math.min(limit + 0.4, nextZoom);
         } else if (rawZoom < minZoomLimit) {
           const under = minZoomLimit - rawZoom;
           nextZoom = minZoomLimit - under * 0.45;
@@ -1095,12 +1121,21 @@ export function TimetableGrid({
       } else if (effectiveViewMode === 'matrix' && (e.key === 't' || e.key === 'T')) {
         e.preventDefault();
         scrollToToday(true);
+      } else if (effectiveViewMode === 'matrix' && (e.key === '-' || e.key === '_')) {
+        e.preventDefault();
+        handleZoomOut();
+      } else if (effectiveViewMode === 'matrix' && (e.key === '+' || e.key === '=')) {
+        e.preventDefault();
+        handleZoomIn();
+      } else if (effectiveViewMode === 'matrix' && e.key === '0') {
+        e.preventDefault();
+        handleZoomReset();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [effectiveViewMode, setEffectiveViewMode, handleNext, handlePrev, scrollToToday]);
+  }, [effectiveViewMode, setEffectiveViewMode, handleNext, handlePrev, scrollToToday, handleZoomOut, handleZoomIn, handleZoomReset]);
 
 
 
@@ -1545,7 +1580,7 @@ export function TimetableGrid({
             <div
               className={`overflow-hidden transition-all duration-500 ease-out hidden sm:flex items-center gap-1.5 shrink-0 ${
                 effectiveViewMode === 'matrix'
-                  ? 'max-w-[260px] opacity-100'
+                  ? 'max-w-[500px] opacity-100'
                   : 'max-w-0 opacity-0 pointer-events-none'
               }`}
             >
@@ -1580,6 +1615,41 @@ export function TimetableGrid({
               >
                 Today
               </button>
+
+              {/* Zoom Out / Zoom In desktop controls */}
+              <div className="inline-flex items-center rounded-lg border border-slate-200/90 dark:border-slate-800 bg-slate-100/80 dark:bg-slate-950 p-0.5 shadow-2xs shrink-0">
+                <button
+                  type="button"
+                  onClick={handleZoomOut}
+                  title="Zoom Out to view more days / weeks (or press - / Ctrl+Scroll)"
+                  aria-label="Zoom Out"
+                  className="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer active:scale-95"
+                >
+                  <ZoomOut className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleZoomIn}
+                  title="Zoom In (or press + / Ctrl+Scroll)"
+                  aria-label="Zoom In"
+                  className="p-1 rounded-md text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-white dark:hover:bg-slate-800 transition-colors cursor-pointer active:scale-95"
+                >
+                  <ZoomIn className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Multi-week span indicator badge when zoomed out past 7 days */}
+              {zoomDays > 7.5 && (
+                <button
+                  type="button"
+                  onClick={handleZoomReset}
+                  title="Click to reset to 1-Week view (or press 0)"
+                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-mono font-medium text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 hover:bg-emerald-500/20 transition-colors cursor-pointer select-none whitespace-nowrap active:scale-95"
+                >
+                  <span>{Math.round(zoomDays)}d</span>
+                  <span className="opacity-70">({Math.round((zoomDays / 7) * 10) / 10}w)</span>
+                </button>
+              )}
 
               {/* Relative week badge when not on current week */}
               <div
@@ -2098,7 +2168,7 @@ export function TimetableGrid({
                                       const { prefix: roomPrefix, number: roomNumber } = parseRoomParts(ev.room);
                                       return (
                                         <div className="flex flex-wrap items-baseline gap-x-1 font-ui leading-none min-w-0">
-                                          {roomPrefix && (
+                                          {roomPrefix && zoomDays <= 11 && (
                                             <span className="text-[9px] sm:text-[9.5px] font-normal opacity-70 tracking-tight shrink-0 select-none">
                                               {roomPrefix}
                                             </span>
@@ -2248,7 +2318,7 @@ export function TimetableGrid({
                                     const { prefix: roomPrefix, number: roomNumber } = parseRoomParts(c.room);
                                     return (
                                       <div className="flex flex-wrap items-baseline gap-x-1 font-ui leading-none min-w-0">
-                                        {roomPrefix && (
+                                        {roomPrefix && zoomDays <= 11 && (
                                           <span className="text-[9px] sm:text-[9.5px] font-normal opacity-70 tracking-tight shrink-0 select-none">
                                             {roomPrefix}
                                           </span>
@@ -2415,7 +2485,7 @@ export function TimetableGrid({
                                     const { prefix: roomPrefix, number: roomNumber } = parseRoomParts(ev.room || c.room);
                                     return (
                                       <div className="flex flex-wrap items-baseline gap-x-1 font-ui leading-none min-w-0">
-                                        {roomPrefix && (
+                                        {roomPrefix && zoomDays <= 11 && (
                                           <span className="text-[9px] sm:text-[9.5px] font-normal opacity-70 tracking-tight shrink-0 select-none">
                                             {roomPrefix}
                                           </span>
@@ -2672,7 +2742,7 @@ export function TimetableGrid({
                                     const { prefix: roomPrefix, number: roomNumber } = parseRoomParts(c.room);
                                     return (
                                       <div className="flex flex-wrap items-baseline gap-x-1 font-ui leading-none min-w-0">
-                                        {roomPrefix && (
+                                        {roomPrefix && zoomDays <= 11 && (
                                           <span className="text-[9px] sm:text-[9.5px] font-normal opacity-70 tracking-tight shrink-0 select-none">
                                             {roomPrefix}
                                           </span>

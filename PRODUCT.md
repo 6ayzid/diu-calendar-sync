@@ -31,6 +31,7 @@ Unlike static PDF routines or screenshot-based schedule sharing, this platform c
 - Capabilities:
   - Dynamic live `.ics` feeds via `/api/calendar/[sectionId]` with optional subsection filters (`?sub=1`, `?sub=2`).
   - Interactive grid timetable UI displaying periods, rooms, course codes, and teacher initials.
+  - Multi-Week Desktop Zooming: Smooth continuous zoom out (`Ctrl+Scroll`, `-`/`+`/`0` keys, or UI zoom controls) fitting 1 to 3 continuous weeks (up to 21 days) on wide monitors while retaining readability (~70px minimum day width) and adaptive room numbering.
   - Interactive Routine Comparison mode: compare sections and faculty side-by-side with automatic mutual free time discovery and 1-tap chip swapping (`RoutineSwitcher.tsx`).
   - Unified Routine & Faculty Search with clean batch hierarchy, keyboard shortcut (`/`), and top-anchored layout for mobile virtual keyboard stability.
   - Real-time Empty Room Finder across 76 campus rooms (Knowledge Tower, Annex 1, Computing & Hardware Labs).

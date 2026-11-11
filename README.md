@@ -36,6 +36,7 @@
 
 - **One-Click Calendar Subscription (`webcal://`)**: Subscribe directly in Apple Calendar (iOS/macOS), Google Calendar (Android/Web), or Microsoft Outlook.
 - **Interactive Routine Comparison & Shared Free Time**: Compare routines between two student sections, two teachers, or a student section and faculty member with fluid spring physics transitions (`motion/react`), 1-tap chip swapping (`⇄`), and automatic mutual free-window discovery.
+- **Multi-Week Desktop Zooming & Broad Overview**: Zoom out effortlessly on desktop displays and large screens to fit 2 to 3 full weeks (14 to 21 continuous days) simultaneously. Features responsive minimum column width limits (~70px), dedicated desktop zoom buttons (`[ Zoom Out | Zoom In ]`), quick keyboard shortcuts (`-`, `+`, `0` reset), and adaptive room numbering.
 - **Section and Lab Group Filtering**: Theory lectures are shared by the full section, while lab periods are split into subgroups (D1, D2). Select your subsection to see only your active classes.
 - **Faculty Directory & Timetables**: Search CSE faculty members by name or initial to view office rooms, designations, contact details, and weekly teaching schedules.
 - **Empty Classroom Finder**: Quickly look up vacant classrooms across campus buildings (Knowledge Tower & Annex 1) across 76 rooms during any university time slot or full-day schedules.
