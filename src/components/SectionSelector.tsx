@@ -6,6 +6,7 @@ import { SectionMeta, FacultyMeta, ActiveRoutineTarget } from '@/types/schedule'
 import { BATCH_DEFINITIONS } from '@/data/sections';
 import { parseShorthandSectionQuery, ParsedSectionQuery } from '@/lib/section-parser';
 import { searchAndRankFaculty, getFacultyByCode } from '@/data/faculty';
+import { ALL_CAMPUS_ROOMS, fuzzyMatchRoom, formatRoomDisplay } from '@/data/rooms';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { isSameEntity, getTargetLabel } from '@/lib/compare-utils';
 
@@ -330,19 +331,31 @@ export function SectionSelector({
     return filteredFacultyResults[0].score >= 60 && !/\d/.test(searchQuery);
   }, [filteredFacultyResults, shorthandMatch, filteredSections, searchQuery]);
 
-  // Detect if query looks like a classroom search (e.g. "201", "KT-502", "ANX1")
-  const roomMatch = useMemo(() => {
-    const q = searchQuery.trim().toUpperCase();
-    if (!q) return null;
-    if (/^(KT|ANX|G1|LAB|ROOM)/i.test(q)) {
-      const cleaned = q.replace(/^ROOM\s*/i, '').trim();
-      return cleaned || q;
+  // Real Campus Rooms & Labs Matching
+  const filteredRooms = useMemo(() => {
+    const q = searchQuery.trim();
+    if (!q) return [];
+    if (/^(room|rooms|empty|vacant|free)$/i.test(q)) {
+      return [];
     }
-    if (/^\d{3}$/.test(q)) {
-      return `KT-${q}`;
-    }
-    return null;
+    return ALL_CAMPUS_ROOMS.filter((room) => fuzzyMatchRoom(q, room)).slice(0, 6);
   }, [searchQuery]);
+
+  const isGenericRoomQuery = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return /^(room|rooms|empty\s*room|vacant\s*room|free\s*room|campus\s*room)/i.test(q);
+  }, [searchQuery]);
+
+  const isRoomTop = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return false;
+    return (
+      /^(kt|anx|g1|sh|lab|com|phys|embed|iot)/.test(q) ||
+      /^\d{3}$/.test(q) ||
+      /^0\d{2}$/.test(q) ||
+      isGenericRoomQuery
+    );
+  }, [searchQuery, isGenericRoomQuery]);
 
   const handleApplySelection = (sec: SectionMeta, sub?: '1' | '2' | 'all') => {
     saveRecent({ type: 'section', id: sec.id, sub: sub && sub !== 'all' ? sub : undefined });
@@ -383,14 +396,20 @@ export function SectionSelector({
       e.preventDefault();
       if (shorthandMatch) {
         handleApplySelection(shorthandMatch.section, shorthandMatch.parsed.subSection);
+      } else if (isRoomTop && filteredRooms.length > 0 && onOpenRoomFinder) {
+        onOpenRoomFinder(filteredRooms[0].name);
+        if (onClose) onClose();
+      } else if (isGenericRoomQuery && onOpenRoomFinder) {
+        onOpenRoomFinder();
+        if (onClose) onClose();
       } else if (isFacultyTop && filteredFacultyResults.length > 0) {
         handleApplyFaculty(filteredFacultyResults[0].faculty);
       } else if (filteredSections.length > 0) {
         handleApplySelection(filteredSections[0]);
       } else if (filteredFacultyResults.length > 0) {
         handleApplyFaculty(filteredFacultyResults[0].faculty);
-      } else if (roomMatch && onOpenRoomFinder) {
-        onOpenRoomFinder(roomMatch);
+      } else if (filteredRooms.length > 0 && onOpenRoomFinder) {
+        onOpenRoomFinder(filteredRooms[0].name);
         if (onClose) onClose();
       }
     } else if (e.key === 'Escape') {
@@ -616,12 +635,12 @@ export function SectionSelector({
               </button>
             )}
 
-            {/* Room Inspection Match */}
-            {roomMatch && onOpenRoomFinder && (
+            {/* Generic Room Search: Open Complete Room Finder */}
+            {isGenericRoomQuery && onOpenRoomFinder && (
               <button
                 type="button"
                 onClick={() => {
-                  onOpenRoomFinder(roomMatch);
+                  onOpenRoomFinder();
                   if (onClose) onClose();
                 }}
                 className="w-full rounded-xl border border-sky-400/80 bg-sky-50/80 dark:bg-sky-950/40 dark:border-sky-500/60 p-2.5 flex items-center justify-between cursor-pointer hover:bg-sky-100/80 dark:hover:bg-sky-900/40 transition-colors shadow-2xs text-left"
@@ -629,13 +648,61 @@ export function SectionSelector({
                 <div className="flex items-center gap-2">
                   <DoorOpen className="h-4 w-4 text-sky-600 dark:text-sky-400 shrink-0" />
                   <span className="font-bold text-xs sm:text-sm text-sky-950 dark:text-sky-100 font-mono">
-                    Room {roomMatch}
+                    Browse Empty Classrooms & Labs
                   </span>
                 </div>
                 <span className="text-xs font-mono font-bold text-sky-700 dark:text-sky-300">
-                  View Schedule →
+                  Open Finder →
                 </span>
               </button>
+            )}
+
+            {/* Real Campus Rooms & Labs Search Results */}
+            {filteredRooms.length > 0 && onOpenRoomFinder && (
+              <div className={`space-y-1 ${isRoomTop ? 'order-first' : ''}`}>
+                <div className="text-xs font-mono font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 px-0.5 flex items-center justify-between">
+                  <span>Classrooms & Labs ({filteredRooms.length})</span>
+                  {filteredRooms.length > 1 && (
+                    <span className="text-[10px] text-slate-400 font-normal">Click to view timetable</span>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  {filteredRooms.map((room) => {
+                    const displayName = formatRoomDisplay(room.name);
+                    return (
+                      <button
+                        key={room.id}
+                        type="button"
+                        onClick={() => {
+                          onOpenRoomFinder(room.name);
+                          if (onClose) onClose();
+                        }}
+                        className="w-full flex items-center justify-between p-2 sm:p-2.5 rounded-xl border border-slate-200 bg-white hover:border-sky-400 hover:bg-sky-50/30 dark:border-slate-800 dark:bg-slate-950 dark:hover:border-sky-500/50 dark:hover:bg-slate-800/40 text-left transition-colors cursor-pointer group shadow-2xs"
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span
+                            className={`shrink-0 px-2 py-0.5 rounded-md font-mono font-bold text-xs border ${
+                              room.isLab
+                                ? 'bg-amber-100 text-amber-900 border-amber-300/70 dark:bg-amber-950/70 dark:text-amber-300 dark:border-amber-700/60'
+                                : 'bg-sky-100 text-sky-900 border-sky-300/70 dark:bg-sky-950/70 dark:text-sky-300 dark:border-sky-700/60'
+                            }`}
+                          >
+                            {displayName}
+                          </span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
+                            {room.zone === 'Labs'
+                              ? room.labType || 'Computer Lab'
+                              : `${room.zone} • Floor ${room.floor}`}
+                          </span>
+                        </div>
+                        <span className="text-xs font-mono font-bold text-sky-600 dark:text-sky-400 group-hover:translate-x-0.5 transition-transform shrink-0">
+                          Schedule →
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             )}
 
             {/* Faculty Results */}
@@ -707,9 +774,9 @@ export function SectionSelector({
             )}
 
             {/* Empty Search State */}
-            {filteredFacultyResults.length === 0 && filteredSections.length === 0 && !roomMatch && (
+            {filteredFacultyResults.length === 0 && filteredSections.length === 0 && filteredRooms.length === 0 && !isGenericRoomQuery && (
               <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500 space-y-2">
-                <p>No sections or teachers found matching &quot;{searchQuery}&quot;.</p>
+                <p>No sections, teachers, or rooms found matching &quot;{searchQuery}&quot;.</p>
                 {searchQuery.trim().length >= 2 && !/\d/.test(searchQuery.trim()) && (
                   <button
                     type="button"

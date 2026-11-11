@@ -1,4 +1,4 @@
-import { ALL_CAMPUS_ROOMS, fuzzyMatchRoom } from '../src/data/rooms';
+import { ALL_CAMPUS_ROOMS, fuzzyMatchRoom, resolveCanonicalRoomName } from '../src/data/rooms';
 
 function assert(condition: boolean, msg: string) {
   if (!condition) {
@@ -27,6 +27,13 @@ const cases: Array<{ query: string; expectedIncludes: string[] }> = [
   { query: 'physics', expectedIncludes: ['KT-804 (Physics Lab)'] },
   { query: 'embed', expectedIncludes: ['EMBED LAB-KT-301'] },
   { query: 'sh-105', expectedIncludes: ['SH-105 (E.C. & B.E. Lab)'] },
+  { query: '004', expectedIncludes: ['G1-004 (COM LAB)'] },
+  { query: '001', expectedIncludes: ['G1-001 (COM LAB)'] },
+  { query: 'g1 004', expectedIncludes: ['G1-004 (COM LAB)'] },
+  { query: '501', expectedIncludes: ['KT-501(A) (COM LAB)', 'KT-501(B) (COM LAB)'] },
+  { query: '502', expectedIncludes: ['IOT LAB- KT-502'] },
+  { query: 'sh 103', expectedIncludes: ['SH-103 (E.C. & B.E. Lab)'] },
+  { query: '103', expectedIncludes: ['SH-103 (E.C. & B.E. Lab)', 'ANX1-103'] },
 ];
 
 for (const { query, expectedIncludes } of cases) {
@@ -37,4 +44,27 @@ for (const { query, expectedIncludes } of cases) {
   }
 }
 
-console.log('\n✓ All fuzzy search test assertions passed successfully!');
+// 3. Test resolveCanonicalRoomName
+console.log('\n=== Canonical Room Resolution Tests ===');
+const canonicalCases = [
+  { input: '004', expected: 'G1-004 (COM LAB)' },
+  { input: '001', expected: 'G1-001 (COM LAB)' },
+  { input: 'g1 004', expected: 'G1-004 (COM LAB)' },
+  { input: 'g1-004', expected: 'G1-004 (COM LAB)' },
+  { input: '502', expected: 'IOT LAB- KT-502' },
+  { input: 'kt 502', expected: 'IOT LAB- KT-502' },
+  { input: '501', expected: 'KT-501(A) (COM LAB)' },
+  { input: 'kt-501(b)', expected: 'KT-501(B) (COM LAB)' },
+  { input: '318', expected: 'KT-318(A)' },
+  { input: 'sh 103', expected: 'SH-103 (E.C. & B.E. Lab)' },
+  { input: '103', expected: 'SH-103 (E.C. & B.E. Lab)' },
+  { input: 'anx 201', expected: 'ANX1-201' },
+];
+
+for (const { input, expected } of canonicalCases) {
+  const actual = resolveCanonicalRoomName(input);
+  console.log(`"${input}" -> "${actual}"`);
+  assert(actual === expected, `Expected "${expected}" but got "${actual}" for input "${input}"`);
+}
+
+console.log('\n✓ All fuzzy search and canonical room assertions passed successfully!');

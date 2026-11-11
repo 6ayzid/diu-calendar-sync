@@ -6,6 +6,7 @@ import {
   categorizeRoom,
   getQueryRoomCode,
   resolveCanonicalRoomName,
+  normalizeRoomKey,
   ALL_CAMPUS_ROOM_NAMES,
 } from '@/data/rooms';
 import officialRoutine from '@/data/official-routine.json';
@@ -195,9 +196,22 @@ export async function fetchRoomDaySchedule(
 
   const combinedClasses = [...allClasses, ...overridesList];
 
+  const targetNorm = normalizeRoomKey(canonicalTarget || roomNumber);
+  const isGenericSubRoom =
+    targetNorm === 'KT501' ||
+    targetNorm === 'KT318' ||
+    targetNorm === 'KT517' ||
+    /^(KT)?(501|318|517)$/i.test(roomNumber.trim());
+
   const roomClasses = combinedClasses.filter((c) => {
     if (c.dayOfWeek?.toUpperCase() !== dayUpper) return false;
-    return resolveCanonicalRoomName(c.room) === canonicalTarget;
+    if (!c.room) return false;
+    const cCanonical = resolveCanonicalRoomName(c.room);
+    if (cCanonical === canonicalTarget) return true;
+    const cNorm = normalizeRoomKey(c.room);
+    if (cNorm === targetNorm) return true;
+    if (isGenericSubRoom && cNorm.startsWith(targetNorm)) return true;
+    return false;
   });
 
   const slots = UNIVERSITY_TIME_SLOTS.map((slot): RoomOccupancy => {

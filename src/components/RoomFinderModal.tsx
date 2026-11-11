@@ -21,6 +21,7 @@ import {
 } from '@/lib/time-utils';
 import {
   ALL_CAMPUS_ROOMS,
+  ALL_CAMPUS_ROOM_NAMES,
   fuzzyMatchRoom,
   formatRoomDisplay,
   resolveCanonicalRoomName,
@@ -131,16 +132,44 @@ export function RoomFinderModal({
     setActiveDay(defaultDay);
 
     if (initialRoom) {
-      setSelectedRoom(initialRoom);
+      const canonical = resolveCanonicalRoomName(initialRoom);
+      const isKnownRoom = ALL_CAMPUS_ROOM_NAMES.some((r) => r === canonical);
+      if (isKnownRoom) {
+        setSelectedRoom(canonical);
+        setRoomSearch('');
+      } else {
+        setSelectedRoom(null);
+        setRoomSearch(initialRoom);
+      }
     } else {
       setSelectedRoom(null);
+      setRoomSearch('');
     }
-    setRoomSearch('');
     setHasScrolledToSlot(false);
     setOccupancy(null);
   }
   if (!isOpen && prevIsOpen) {
     setPrevIsOpen(false);
+  }
+
+  // Handle initialRoom changes while modal remains open
+  const [prevInitialRoom, setPrevInitialRoom] = useState(initialRoom);
+  if (isOpen && initialRoom !== prevInitialRoom) {
+    setPrevInitialRoom(initialRoom);
+    if (initialRoom) {
+      const canonical = resolveCanonicalRoomName(initialRoom);
+      const isKnownRoom = ALL_CAMPUS_ROOM_NAMES.some((r) => r === canonical);
+      if (isKnownRoom) {
+        setSelectedRoom(canonical);
+        setRoomSearch('');
+      } else {
+        setSelectedRoom(null);
+        setRoomSearch(initialRoom);
+      }
+    } else {
+      setSelectedRoom(null);
+    }
+    setOccupancy(null);
   }
 
   // Invalidate occupancy data when room or day changes in inspection view

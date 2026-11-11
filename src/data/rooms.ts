@@ -166,6 +166,18 @@ export function stripLabSuffix(str: string): string {
 }
 
 /**
+ * Normalizes a room name to alphanumeric uppercase without lab descriptors,
+ * preserving sub-room identifiers like A or B (e.g. "KT-501(A) (COM LAB)" -> "KT501A").
+ */
+export function normalizeRoomKey(str: string): string {
+  return str
+    .replace(/\s*\((?:[^)]*(?:Lab|LAB|E\.C\.|COM LAB|COMPUTER LAB|Physics Lab)[^)]*)\)/gi, '')
+    .replace(/^(?:IOT\s*LAB\s*[-–]\s*|EMBED\s*LAB\s*[-–]\s*)/i, '')
+    .replace(/[^a-zA-Z0-9]/g, '')
+    .toUpperCase();
+}
+
+/**
  * Resolves any raw room name, query string, or variant to its authoritative canonical room name in ALL_CAMPUS_ROOM_NAMES.
  */
 export function resolveCanonicalRoomName(rawName: string): string {
@@ -179,9 +191,17 @@ export function resolveCanonicalRoomName(rawName: string): string {
     }
   }
 
-  // 2. Strip lab descriptors and prefixes for normalized comparison
-  const cleanS = stripLabSuffix(s);
+  const normS = normalizeRoomKey(s);
 
+  // 2. Exact normalized alphanumeric match (e.g. "G1-004", "G1 004", "KT-502", "KT 502")
+  for (const r of ALL_CAMPUS_ROOM_NAMES) {
+    if (normalizeRoomKey(r) === normS) {
+      return r;
+    }
+  }
+
+  // 3. Strip lab descriptors and prefixes for normalized comparison
+  const cleanS = stripLabSuffix(s);
   for (const r of ALL_CAMPUS_ROOM_NAMES) {
     const cleanR = stripLabSuffix(r);
     if (cleanS === cleanR) {
@@ -189,14 +209,71 @@ export function resolveCanonicalRoomName(rawName: string): string {
     }
   }
 
-  // 3. 3-digit number (e.g. "201" -> "KT-201", "502" -> "IOT LAB- KT-502")
-  if (/^\d{3}$/.test(cleanS)) {
-    const candidate = `KT-${cleanS}`;
+  // 4. Lab numbers starting with 0: e.g. "004", "001", "026" -> G1 computer labs!
+  if (/^0\d{2}$/.test(cleanS)) {
+    const target = `G1${cleanS}`;
     for (const r of ALL_CAMPUS_ROOM_NAMES) {
-      const cleanR = stripLabSuffix(r);
-      if (candidate === cleanR) {
+      if (normalizeRoomKey(r) === target) {
         return r;
       }
+    }
+  }
+
+  // 5. Short lab number (e.g. "4" -> G1-004)
+  if (/^\d{1,2}$/.test(cleanS) && parseInt(cleanS, 10) <= 27) {
+    const padded = cleanS.padStart(3, '0');
+    const target = `G1${padded}`;
+    for (const r of ALL_CAMPUS_ROOM_NAMES) {
+      if (normalizeRoomKey(r) === target) {
+        return r;
+      }
+    }
+  }
+
+  // 6. 3-digit numbers >= 100 (e.g. "201", "501", "103")
+  if (/^\d{3}$/.test(cleanS)) {
+    // Check KT first (KT-201, KT-501(A), etc.)
+    const ktTarget = `KT${cleanS}`;
+    for (const r of ALL_CAMPUS_ROOM_NAMES) {
+      const normR = normalizeRoomKey(r);
+      if (normR === ktTarget || normR.startsWith(ktTarget)) {
+        return r;
+      }
+    }
+    // Check SH (SH-103, SH-105)
+    const shTarget = `SH${cleanS}`;
+    for (const r of ALL_CAMPUS_ROOM_NAMES) {
+      const normR = normalizeRoomKey(r);
+      if (normR === shTarget || normR.startsWith(shTarget)) {
+        return r;
+      }
+    }
+    // Check ANX1 (ANX1-103, ANX1-201)
+    const anxTarget = `ANX1${cleanS}`;
+    for (const r of ALL_CAMPUS_ROOM_NAMES) {
+      const normR = normalizeRoomKey(r);
+      if (normR === anxTarget || normR.startsWith(anxTarget)) {
+        return r;
+      }
+    }
+  }
+
+  // 7. Handle "ANX" shorthand: e.g. "ANX 201" -> "ANX1-201"
+  if (normS.startsWith('ANX') && !normS.startsWith('ANX1')) {
+    const afterAnx = normS.replace(/^ANX/, '');
+    const target = `ANX1${afterAnx}`;
+    for (const r of ALL_CAMPUS_ROOM_NAMES) {
+      if (normalizeRoomKey(r) === target) {
+        return r;
+      }
+    }
+  }
+
+  // 8. Prefix match (e.g. "KT-501" matching "KT-501(A) (COM LAB)")
+  for (const r of ALL_CAMPUS_ROOM_NAMES) {
+    const normR = normalizeRoomKey(r);
+    if (normR.startsWith(normS)) {
+      return r;
     }
   }
 
