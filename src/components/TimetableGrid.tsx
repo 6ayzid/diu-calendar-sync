@@ -1541,9 +1541,9 @@ export function TimetableGrid({
               <span>{notionDateTitle}</span>
             </h2>
 
-            {/* Navigation Controls: Smoothly collapses on Agenda view with gentle 500ms ease */}
+            {/* Desktop Navigation Controls: Hidden on phone (< 640px) */}
             <div
-              className={`overflow-hidden transition-all duration-500 ease-out flex items-center gap-1.5 shrink-0 ${
+              className={`overflow-hidden transition-all duration-500 ease-out hidden sm:flex items-center gap-1.5 shrink-0 ${
                 effectiveViewMode === 'matrix'
                   ? 'max-w-[260px] opacity-100'
                   : 'max-w-0 opacity-0 pointer-events-none'
@@ -1570,7 +1570,7 @@ export function TimetableGrid({
                 </button>
               </div>
 
-              {/* Today button - always accessible */}
+              {/* Desktop Today button */}
               <button
                 type="button"
                 onClick={() => scrollToToday(true)}
@@ -1605,13 +1605,13 @@ export function TimetableGrid({
           </div>
 
           {/* Mobile-only view switcher on Row 1 (Right) */}
-          <div className="sm:hidden flex items-center shrink-0">
-            <div className="inline-flex items-center gap-0.5 rounded-xl border border-slate-200 bg-slate-100/90 dark:border-slate-800 dark:bg-slate-950 p-0.5 shadow-2xs">
+          <div className="sm:hidden flex items-center shrink-0 w-[132px]">
+            <div className="w-full inline-flex items-center justify-between gap-0.5 rounded-xl border border-slate-200 bg-slate-100/90 dark:border-slate-800 dark:bg-slate-950 p-0.5 shadow-2xs">
               <button
                 type="button"
                 onClick={() => setEffectiveViewMode('matrix')}
                 aria-pressed={effectiveViewMode === 'matrix'}
-                className={`flex items-center justify-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer min-h-[28px] ${
+                className={`flex-1 flex items-center justify-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold transition-colors cursor-pointer min-h-[28px] ${
                   effectiveViewMode === 'matrix'
                     ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80 dark:bg-slate-800 dark:text-white dark:border-slate-700 font-bold'
                     : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
@@ -1625,7 +1625,7 @@ export function TimetableGrid({
                 type="button"
                 onClick={() => setEffectiveViewMode('agenda')}
                 aria-pressed={effectiveViewMode === 'agenda'}
-                className={`flex items-center justify-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors cursor-pointer min-h-[28px] ${
+                className={`flex-1 flex items-center justify-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold transition-colors cursor-pointer min-h-[28px] ${
                   effectiveViewMode === 'agenda'
                     ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80 dark:bg-slate-800 dark:text-white dark:border-slate-700 font-bold'
                     : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
@@ -1638,60 +1638,76 @@ export function TimetableGrid({
           </div>
         </div>
 
-        {/* Mobile Row 2 / Desktop Center: Section or Faculty Indicator (Smooth, slow, subtle glide) */}
+        {/* Mobile Row 2 / Desktop Center: Section/Faculty Indicator & (on mobile) Today button */}
         <div
-          className={`flex items-center gap-2 flex-wrap min-w-0 transition-all duration-500 ease-out sm:justify-center ${
+          className={`flex items-center justify-between sm:justify-center gap-2 min-w-0 w-full sm:w-auto transition-all duration-500 ease-out ${
             effectiveViewMode === 'matrix' ? 'sm:translate-x-1.5' : 'sm:-translate-x-1.5'
           }`}
         >
-          {/* Mobile-only VersionBadge placement on Row 2 */}
-          <div className="sm:hidden inline-flex items-center shrink-0 relative z-30">
-            <VersionBadge
-              routineVersion={cleanVersion}
-              onVersionChange={onVersionChange}
-            />
+          {/* Left info: VersionBadge + Routine name */}
+          <div className="flex items-center gap-2 min-w-0 flex-1 truncate">
+            {/* Mobile-only VersionBadge placement on Row 2 */}
+            <div className="sm:hidden inline-flex items-center shrink-0 relative z-30">
+              <VersionBadge
+                routineVersion={cleanVersion}
+                onVersionChange={onVersionChange}
+              />
+            </div>
+
+            {isFaculty && faculty ? (
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium text-slate-600 dark:text-slate-300 max-w-[200px] sm:max-w-none transition-all duration-500 ease-out truncate">
+                <span className="truncate">{faculty.name}</span>
+                {onOpenFacultyInfo && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      onOpenFacultyInfo(faculty.code, {
+                        x: Math.round(rect.left + rect.width / 2),
+                        y: Math.round(rect.top + rect.height / 2),
+                      });
+                    }}
+                    title={`View details & contact info for ${faculty.name}`}
+                    aria-label={`View details for ${faculty.name}`}
+                    className="inline-flex items-center justify-center p-0.5 rounded text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </span>
+            ) : section ? (
+              <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-mono font-medium text-slate-500 dark:text-slate-400 max-w-[200px] sm:max-w-none transition-all duration-500 ease-out truncate">
+                <span className="truncate">
+                  {section.id}
+                  {subSection && subSection !== 'all' ? ` (${section.sectionLetter}${subSection})` : ''}
+                </span>
+                {onOpenSectionInfo && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenSectionInfo(section.id)}
+                    title={`Section ${section.id} info`}
+                    aria-label={`Section ${section.id} info`}
+                    className="inline-flex items-center justify-center p-0.5 rounded text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </span>
+            ) : null}
           </div>
 
-          {isFaculty && faculty ? (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium text-slate-600 dark:text-slate-300 max-w-[280px] sm:max-w-none transition-all duration-500 ease-out">
-              <span className="truncate">{faculty.name}</span>
-              {onOpenFacultyInfo && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    onOpenFacultyInfo(faculty.code, {
-                      x: Math.round(rect.left + rect.width / 2),
-                      y: Math.round(rect.top + rect.height / 2),
-                    });
-                  }}
-                  title={`View details & contact info for ${faculty.name}`}
-                  aria-label={`View details for ${faculty.name}`}
-                  className="inline-flex items-center justify-center p-0.5 rounded text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
-                >
-                  <Info className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </span>
-          ) : section ? (
-            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-mono font-medium text-slate-500 dark:text-slate-400 max-w-[280px] sm:max-w-none transition-all duration-500 ease-out">
-              <span className="truncate">
-                {section.id}
-                {subSection && subSection !== 'all' ? ` (${section.sectionLetter}${subSection})` : ''}
-              </span>
-              {onOpenSectionInfo && (
-                <button
-                  type="button"
-                  onClick={() => onOpenSectionInfo(section.id)}
-                  title={`Section ${section.id} info`}
-                  aria-label={`Section ${section.id} info`}
-                  className="inline-flex items-center justify-center p-0.5 rounded text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
-                >
-                  <Info className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </span>
-          ) : null}
+          {/* Mobile-only Today button directly below Week/Day switcher (matching 132px width) */}
+          <div className="sm:hidden flex items-center shrink-0 w-[132px]">
+            <button
+              type="button"
+              onClick={() => scrollToToday(true)}
+              title="Jump to Today"
+              aria-label="Jump to Today"
+              className="w-full inline-flex items-center justify-center py-1 text-xs font-semibold rounded-xl border border-slate-200/90 dark:border-slate-800 bg-slate-100/90 dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-slate-200/70 dark:hover:bg-slate-800 shadow-2xs transition-colors cursor-pointer active:scale-95 min-h-[28px]"
+            >
+              Today
+            </button>
+          </div>
         </div>
 
         {/* Desktop-only: View switcher on the right */}
