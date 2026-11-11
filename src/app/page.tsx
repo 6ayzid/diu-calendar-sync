@@ -8,6 +8,7 @@ import { SubscriptionActions } from '@/components/SubscriptionActions';
 import { TimetableGrid } from '@/components/TimetableGrid';
 import { TimetableSkeleton } from '@/components/TimetableSkeleton';
 import { StickySyncBar } from '@/components/StickySyncBar';
+import { CompareBar } from '@/components/CompareBar';
 import { RoomFinderModal } from '@/components/RoomFinderModal';
 import { FacultyInfoModal } from '@/components/FacultyInfoModal';
 import { SectionInfoModal } from '@/components/SectionInfoModal';
